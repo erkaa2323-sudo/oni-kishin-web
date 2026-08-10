@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070707">
+<title>ONI & KISHIN — Админ</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#070707;color:#f5f5f5;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{width:min(900px,92%);margin:auto}
+header{border-bottom:1px solid #292929;background:#090909;position:sticky;top:0;z-index:10}
+.nav{height:68px;display:flex;align-items:center;justify-content:space-between}
+.brand{color:#fff;text-decoration:none;font-weight:900;letter-spacing:.08em}.brand b{color:#f01822}
+main{padding:35px 0 60px}
+.card{background:#0d0d0d;border:1px solid #292929;border-radius:16px;padding:24px;margin-bottom:20px}
+h1{font-size:clamp(32px,8vw,52px);margin:0 0 10px}h2{margin-top:0}.muted{color:#999}
+label{display:block;color:#bbb;font-size:13px;font-weight:700;margin:17px 0 7px}
+input,textarea{width:100%;background:#151515;color:#fff;border:1px solid #333;border-radius:8px;padding:13px;outline:none;font:inherit}
+textarea{min-height:120px;resize:vertical}
+button{border:0;border-radius:9px;padding:13px 16px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.primary{background:#e50914;color:#fff}.secondary{background:#191919;color:#fff;border:1px solid #333}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.msg{margin-top:14px;padding:11px;border-radius:9px;display:none}
+.msg.show{display:block}
+.error{background:#2a1012;color:#ff9da2;border:1px solid #6a2228}
+.ok{background:#102116;color:#b9efc1;border:1px solid #24552e}
+#dashboard{display:none}#login{display:block}
+hr{border:0;border-top:1px solid #292929;margin:25px 0}
+.small{font-size:12px;color:#777}
+.app{border:1px solid #292929;border-radius:12px;padding:18px;margin:12px 0;background:#101010}
+.apphead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{padding:6px 10px;border-radius:20px;background:#251010;color:#ff9da2;font-size:12px;font-weight:800}
+.badge.ok{background:#102116;color:#b9efc1}.badge.no{background:#222;color:#aaa}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.item{background:#151515;border-radius:8px;padding:10px}.item small{display:block;color:#777}.item b{word-break:break-word}
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.photo-grid button{padding:0;background:#080808;border:1px solid #292929;overflow:hidden}
+.photo-grid img{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+.danger{background:#261012;color:#ff9da2;border:1px solid #5b2228}
+.count{font-size:14px;color:#aaa;margin-top:8px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;padding:20px;align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal img{max-width:95vw;max-height:88vh;border-radius:12px;border:1px solid #333;object-fit:contain}
+.close{position:fixed;right:18px;top:18px;background:#191919;color:#fff;border:1px solid #444;border-radius:50%;width:44px;height:44px;padding:0;font-size:24px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.photo-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="index.html">ONI <b>&</b> KISHIN</a>
+    <a href="index.html" style="color:#fff;text-decoration:none">← Website</a>
+  </div>
+</header>
+
+<main><div class="wrap">
+
+<section id="login" class="card">
+  <h1>Админ нэвтрэх</h1>
+  <p class="muted">Зөвхөн <b>erkaa130@gmail.com</b> admin эрхтэй.</p>
+  <label>Email</label>
+  <input id="email" type="email" autocomplete="email" value="erkaa130@gmail.com">
+  <label>Нууц үг</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="Нууц үг">
+  <div class="row">
+    <button id="loginBtn" class="primary">Нэвтрэх</button>
+    <button id="forgotBtn" class="secondary">Нууц үг сэргээх</button>
+  </div>
+  <div id="loginMsg" class="msg"></div>
+</section>
+
+<section id="dashboard">
+
+  <div class="card">
+    <h1>Админ самбар</h1>
+    <p class="muted">Нэвтэрсэн: <b id="adminEmail"></b></p>
+    <div class="row">
+      <a href="index.html" class="secondary" style="padding:13px 16px;border-radius:9px;text-decoration:none">Website харах</a>
+      <button id="logoutBtn" class="secondary">Гарах</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Шинэ гишүүд</h2>
+    <p class="muted">Join Clan анкетаар ирсэн хүмүүс болон машины зургууд энд харагдана.</p>
+    <div class="count" id="appCount"></div>
+    <div class="row">
+      <button id="refreshApps" class="primary">Дахин ачаалах</button>
+    </div>
+    <div id="apps"></div>
+    <div id="appsMsg" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Website Settings</h2>
+    <p class="muted">Website-ийн үндсэн мэдээллээ эндээс өөрчилнө.</p>
+    <label>Website нэр</label><input id="siteTitle" placeholder="ONI & KISHIN">
+    <label>Hero гарчиг</label><input id="heroTitle" placeholder="ONI & KISHIN">
+    <label>Hero тайлбар</label><textarea id="heroText" placeholder="Website дээр харагдах тайлбар..."></textarea>
+    <label>Logo URL</label><input id="logoUrl" placeholder="https://...">
+    <label>Shop холбоос</label><input id="shopLink" placeholder="https://...">
+    <label>Join хэсгийн текст</label><textarea id="joinText" placeholder="Club-д нэгдэх тухай мэдээлэл..."></textarea>
+    <div class="row">
+      <button id="saveBtn" class="primary">💾 Хадгалах</button>
+      <button id="loadBtn" class="secondary">Дахин ачаалах</button>
+    </div>
+    <div id="saveMsg" class="msg"></div>
+  </div>
+
+</section>
+</div></main>
+
+<div class="modal" id="photoModal">
+  <button class="close" id="closePhoto">×</button>
+  <img id="modalPhoto" src="" alt="Машины зураг">
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import{getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,query,orderBy,updateDoc,deleteDoc}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+const app=initializeApp({
+  apiKey:"AIzaSyBguVnoZvjPMIH78zLzYMHOfp10wYZX_zk",
+  authDomain:"oni-kishinn.firebaseapp.com",
+  projectId:"oni-kishinn",
+  storageBucket:"oni-kishinn.firebasestorage.app",
+  messagingSenderId:"748622521861",
+  appId:"1:748622521861:web:081b13b37337ce687b9e6c",
+  measurementId:"G-JSTP09E2J9"
+});
+
+const auth=getAuth(app);
+const db=getFirestore(app);
+const ADMIN_EMAIL="erkaa130@gmail.com";
+const $=id=>document.getElementById(id);
+
+function msg(el,text,type="error"){
+  el.textContent=text;
+  el.className="msg show "+type;
+}
+
+$("loginBtn").onclick=async()=>{
+  const e=$("email").value.trim().toLowerCase(),p=$("password").value;
+  if(e!==ADMIN_EMAIL)return msg($("loginMsg"),"Энэ email admin эрхгүй.");
+  if(!p)return msg($("loginMsg"),"Нууц үгээ оруулна уу.");
+  try{await signInWithEmailAndPassword(auth,e,p)}
+  catch(err){msg($("loginMsg"),"Нэвтрэх боломжгүй. Email эсвэл нууц үг буруу байна.")}
+};
+
+$("forgotBtn").onclick=async()=>{
+  const e=$("email").value.trim().toLowerCase();
+  if(e!==ADMIN_EMAIL)return msg($("loginMsg"),"Зөвхөн admin Gmail дээр ажиллана.");
+  try{
+    await sendPasswordResetEmail(auth,e);
+    msg($("loginMsg"),"Нууц үг сэргээх холбоос Gmail рүү илгээгдлээ.","ok");
+  }catch(err){
+    msg($("loginMsg"),"Нууц үг сэргээх email илгээж чадсангүй.");
+  }
+};
+
+$("logoutBtn").onclick=()=>signOut(auth);
+
+async function loadSettings(){
+  try{
+    const s=await getDoc(doc(db,"site","content"));
+    if(!s.exists())return;
+    const d=s.data();
+    $("siteTitle").value=d.siteTitle||"";
+    $("heroTitle").value=d.heroTitle||"";
+    $("heroText").value=d.heroText||"";
+    $("logoUrl").value=d.logoUrl||"";
+    $("shopLink").value=d.shopLink||"";
+    $("joinText").value=d.joinText||"";
+  }catch(e){
+    msg($("saveMsg"),"Website мэдээлэл уншиж чадсангүй.");
+  }
+}
+$("loadBtn").onclick=loadSettings;
+
+$("saveBtn").onclick=async()=>{
+  try{
+    await setDoc(doc(db,"site","content"),{
+      siteTitle:$("siteTitle").value.trim(),
+      heroTitle:$("heroTitle").value.trim(),
+      heroText:$("heroText").value.trim(),
+      logoUrl:$("logoUrl").value.trim(),
+      shopLink:$("shopLink").value.trim(),
+      joinText:$("joinText").value.trim(),
+      updatedAt:new Date().toISOString(),
+      updatedBy:ADMIN_EMAIL
+    });
+    msg($("saveMsg"),"✅ Амжилттай хадгалагдлаа!","ok");
+  }catch(e){
+    console.error(e);
+    msg($("saveMsg"),"❌ Хадгалах боломжгүй байна. Firestore Rules-ээ шалгана уу.");
+  }
+};
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+
+function renderApps(list){
+  $("appCount").textContent=`Нийт хүсэлт: ${list.length}`;
+
+  if(!list.length){
+    $("apps").innerHTML='<p class="muted">Одоогоор шинэ хүсэлт алга.</p>';
+    return;
+  }
+
+  $("apps").innerHTML=list.map(x=>{
+    const d=x.data,id=x.id,status=d.status||"Шинэ";
+    const cls=status==="Зөвшөөрсөн"?"ok":status==="Татгалзсан"?"no":"";
+
+    const photos=Array.isArray(d.imageUrls)&&d.imageUrls.length
+      ? `<div style="margin-top:15px">
+          <small style="display:block;color:#777;margin-bottom:8px">МАШИНЫ ЗУРАГ — ${d.imageUrls.length}</small>
+          <div class="photo-grid">
+            ${d.imageUrls.map((u,i)=>`
+              <button type="button" class="photoBtn" data-photo="${esc(u)}">
+                <img src="${esc(u)}" alt="Машины зураг ${i+1}" loading="lazy">
+              </button>`).join("")}
+          </div>
+        </div>`
+      : `<div class="item" style="margin-top:10px"><small>Машины зураг</small><b>Зураг оруулаагүй</b></div>`;
+
+    return `<div class="app">
+      <div class="apphead">
+        <b>${esc(d.lastName)} ${esc(d.firstName)}</b>
+        <span class="badge ${cls}">${esc(status)}</span>
+      </div>
+
+      <div class="grid">
+        <div class="item"><small>Нас / Хүйс</small><b>${esc(d.age)} / ${esc(d.gender)}</b></div>
+        <div class="item"><small>CPM</small><b>${esc(d.cpmId)} / ${esc(d.nickname)}</b></div>
+        <div class="item"><small>Чиглэл</small><b>${esc(d.role)}</b></div>
+        <div class="item"><small>Холбоо</small><b>${esc(d.contactType)}: ${esc(d.contact)}</b></div>
+        <div class="item"><small>Тоглосон хугацаа</small><b>${esc(d.experience)}</b></div>
+        <div class="item"><small>Зургийн нэр</small><b>${esc((d.imageNames||[]).join(", ")||"Оруулаагүй")}</b></div>
+      </div>
+
+      ${photos}
+
+      <div class="item" style="margin-top:10px">
+        <small>Өөрийнхөө талаар</small>
+        <b>${esc(d.message||"—")}</b>
+      </div>
+
+      <div class="actions">
+        <button class="primary" data-id="${id}" data-status="Зөвшөөрсөн">Зөвшөөрөх</button>
+        <button class="danger" data-id="${id}" data-status="Татгалзсан">Татгалзах</button>
+        <button class="secondary" data-delete="${id}">Устгах</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll("[data-status]").forEach(b=>{
+    b.onclick=async()=>{
+      b.disabled=true;
+      try{
+        await updateDoc(doc(db,"applications",b.dataset.id),{
+          status:b.dataset.status,
+          reviewedAt:new Date().toISOString(),
+          reviewedBy:ADMIN_EMAIL
+        });
+        await loadApps();
+      }catch(e){
+        console.error(e);
+        b.disabled=false;
+        msg($("appsMsg"),"Статус өөрчлөхөд алдаа гарлаа.");
+      }
+    };
+  });
+
+  document.querySelectorAll("[data-delete]").forEach(b=>{
+    b.onclick=async()=>{
+      if(!confirm("Энэ анкетыг устгах уу?"))return;
+      b.disabled=true;
+      try{
+        await deleteDoc(doc(db,"applications",b.dataset.delete));
+        await loadApps();
+      }catch(e){
+        console.error(e);
+        b.disabled=false;
+        msg($("appsMsg"),"Анкет устгахад алдаа гарлаа.");
+      }
+    };
+  });
+
+  document.querySelectorAll(".photoBtn").forEach(b=>{
+    b.onclick=()=>{
+      $("modalPhoto").src=b.dataset.photo;
+      $("photoModal").classList.add("show");
+    };
+  });
+}
+
+async function loadApps(){
+  $("refreshApps").disabled=true;
+  $("refreshApps").textContent="Уншиж байна...";
+  try{
+    const snap=await getDocs(query(collection(db,"applications"),orderBy("createdAt","desc")));
+    renderApps(snap.docs.map(d=>({id:d.id,data:d.data()})));
+  }catch(e){
+    console.error(e);
+    msg($("appsMsg"),"Анкетуудыг уншиж чадсангүй. Firestore Rules эсвэл индексээ шалгана уу.");
+  }finally{
+    $("refreshApps").disabled=false;
+    $("refreshApps").textContent="Дахин ачаалах";
+  }
+}
+$("refreshApps").onclick=loadApps;
+
+$("closePhoto").onclick=()=>{
+  $("photoModal").classList.remove("show");
+  $("modalPhoto").src="";
+};
+$("photoModal").onclick=e=>{
+  if(e.target===$("photoModal")){
+    $("photoModal").classList.remove("show");
+    $("modalPhoto").src="";
+  }
+};
+
+onAuthStateChanged(auth,async user=>{
+  if(user&&user.email&&user.email.toLowerCase()===ADMIN_EMAIL){
+    $("login").style.display="none";
+    $("dashboard").style.display="block";
+    $("adminEmail").textContent=user.email;
+    await loadSettings();
+    await loadApps();
+  }else{
+    $("login").style.display="block";
+    $("dashboard").style.display="none";
+    if(user)await signOut(auth);
+  }
+});
+</script>
+</body>
+</html>
