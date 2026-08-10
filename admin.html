@@ -5,146 +5,755 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#070707">
 <title>ONI & KISHIN — Admin</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#070707;color:#f5f5f5;font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
-.wrap{width:min(760px,92%);margin:auto}
-header{border-bottom:1px solid #292929;background:#090909;position:sticky;top:0;z-index:2}
-.nav{height:68px;display:flex;align-items:center;justify-content:space-between}
-.brand{font-weight:900;letter-spacing:.08em}.brand b{color:#f01822}
-a{color:#fff;text-decoration:none}
-main{padding:50px 0}
-.card{background:#0d0d0d;border:1px solid #292929;border-radius:16px;padding:24px}
-h1{font-size:clamp(34px,8vw,58px);margin:0 0 10px}h2{margin-top:0}
-.muted{color:#999}
-label{display:block;color:#bbb;font-size:13px;font-weight:700;margin:15px 0 7px}
-input{width:100%;background:#151515;color:#fff;border:1px solid #333;border-radius:8px;padding:13px;outline:none}
-button{border:0;border-radius:9px;padding:13px 16px;font-weight:800;cursor:pointer}
-.primary{background:#e50914;color:#fff}.secondary{background:#191919;color:#fff;border:1px solid #333}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.msg{margin-top:14px;padding:11px;border-radius:9px;display:none}
-.msg.show{display:block}.error{background:#2a1012;color:#ff9da2;border:1px solid #6a2228}
-.ok{background:#102116;color:#b9efc1;border:1px solid #24552e}
-#dashboard{display:none}
-#login{display:block}
-hr{border:0;border-top:1px solid #292929;margin:25px 0}
-.small{font-size:12px;color:#777}
+
+body{
+  margin:0;
+  background:#070707;
+  color:#f5f5f5;
+  font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+  min-height:100vh;
+}
+
+.wrap{
+  width:min(760px,92%);
+  margin:auto;
+}
+
+header{
+  border-bottom:1px solid #292929;
+  background:#090909;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.nav{
+  height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.brand{
+  color:#fff;
+  text-decoration:none;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.brand b{
+  color:#f01822;
+}
+
+main{
+  padding:35px 0 60px;
+}
+
+.card{
+  background:#0d0d0d;
+  border:1px solid #292929;
+  border-radius:16px;
+  padding:24px;
+  margin-bottom:20px;
+}
+
+h1{
+  font-size:clamp(32px,8vw,52px);
+  margin:0 0 10px;
+}
+
+h2{
+  margin-top:0;
+}
+
+.muted{
+  color:#999;
+}
+
+label{
+  display:block;
+  color:#bbb;
+  font-size:13px;
+  font-weight:700;
+  margin:17px 0 7px;
+}
+
+input,textarea{
+  width:100%;
+  background:#151515;
+  color:#fff;
+  border:1px solid #333;
+  border-radius:8px;
+  padding:13px;
+  outline:none;
+  font:inherit;
+}
+
+textarea{
+  min-height:120px;
+  resize:vertical;
+}
+
+input:focus,textarea:focus{
+  border-color:#e50914;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:13px 16px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.primary{
+  background:#e50914;
+  color:#fff;
+}
+
+.secondary{
+  background:#191919;
+  color:#fff;
+  border:1px solid #333;
+}
+
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.msg{
+  margin-top:14px;
+  padding:11px;
+  border-radius:9px;
+  display:none;
+}
+
+.msg.show{
+  display:block;
+}
+
+.error{
+  background:#2a1012;
+  color:#ff9da2;
+  border:1px solid #6a2228;
+}
+
+.ok{
+  background:#102116;
+  color:#b9efc1;
+  border:1px solid #24552e;
+}
+
+#dashboard{
+  display:none;
+}
+
+#login{
+  display:block;
+}
+
+hr{
+  border:0;
+  border-top:1px solid #292929;
+  margin:25px 0;
+}
+
+.small{
+  font-size:12px;
+  color:#777;
+}
+
+.section-title{
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:5px;
+}
+
+.danger{
+  color:#ff7b82;
+}
 </style>
 </head>
+
 <body>
-<header><div class="wrap nav">
-  <a class="brand" href="index.html">ONI <b>&</b> KISHIN</a>
-  <a href="index.html">← Website</a>
-</div></header>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="index.html">
+      ONI <b>&</b> KISHIN
+    </a>
+
+    <a href="index.html" style="color:#fff;text-decoration:none">
+      ← Website
+    </a>
+  </div>
+</header>
 
 <main>
 <div class="wrap">
-  <section id="login" class="card">
-    <h1>Admin Login</h1>
-    <p class="muted">Зөвхөн <b>erkaa130@gmail.com</b> admin эрхтэй.</p>
 
-    <label for="email">Email</label>
-    <input id="email" type="email" autocomplete="email" value="erkaa130@gmail.com">
+<!-- LOGIN -->
+<section id="login" class="card">
 
-    <label for="password">Password</label>
-    <input id="password" type="password" autocomplete="current-password" placeholder="Admin password">
+  <h1>Admin Login</h1>
 
-    <div class="row">
-      <button id="loginBtn" class="primary">Нэвтрэх</button>
-      <button id="forgotBtn" class="secondary">Forgot password?</button>
-    </div>
-    <div id="loginMsg" class="msg"></div>
-    <p class="small">Password-оо мартсан бол Forgot password дарж Gmail-рүү сэргээх холбоос авна.</p>
-  </section>
+  <p class="muted">
+    Зөвхөн <b>erkaa130@gmail.com</b> admin эрхтэй.
+  </p>
 
-  <section id="dashboard" class="card">
+  <label for="email">Email</label>
+  <input
+    id="email"
+    type="email"
+    autocomplete="email"
+    value="erkaa130@gmail.com"
+  >
+
+  <label for="password">Password</label>
+  <input
+    id="password"
+    type="password"
+    autocomplete="current-password"
+    placeholder="Admin password"
+  >
+
+  <div class="row">
+    <button id="loginBtn" class="primary">
+      Нэвтрэх
+    </button>
+
+    <button id="forgotBtn" class="secondary">
+      Forgot password?
+    </button>
+  </div>
+
+  <div id="loginMsg" class="msg"></div>
+
+  <p class="small">
+    Password-оо мартсан бол Forgot password дарж
+    Gmail-рүү сэргээх холбоос авна.
+  </p>
+
+</section>
+
+
+<!-- DASHBOARD -->
+<section id="dashboard">
+
+  <div class="card">
+
     <h1>Admin Panel</h1>
-    <p class="muted">Амжилттай нэвтэрлээ: <span id="adminEmail"></span></p>
-    <hr>
-    <h2>ONI & KISHIN</h2>
-    <p class="muted">Firebase authentication ажиллаж байна. Дараагийн алхамд энэ хэсэгт website-ийн текст, logo, marketplace, Join анкет зэрэг мэдээллийг Firestore-оор хадгалж засварладаг editor холбоно.</p>
+
+    <p class="muted">
+      Амжилттай нэвтэрлээ:
+      <b id="adminEmail"></b>
+    </p>
+
     <div class="row">
-      <a class="secondary" style="padding:13px 16px;border-radius:9px" href="index.html">Website харах</a>
-      <button id="logoutBtn" class="secondary">Гарах</button>
+
+      <a
+        href="index.html"
+        class="secondary"
+        style="padding:13px 16px;border-radius:9px;text-decoration:none"
+      >
+        Website харах
+      </a>
+
+      <button id="logoutBtn" class="secondary">
+        Гарах
+      </button>
+
     </div>
-  </section>
+
+  </div>
+
+
+  <!-- WEBSITE SETTINGS -->
+  <div class="card">
+
+    <div class="section-title">
+      Website Settings
+    </div>
+
+    <p class="muted">
+      Website-ийн үндсэн мэдээллээ эндээс өөрчилнө.
+    </p>
+
+    <label>Website нэр</label>
+    <input
+      id="siteTitle"
+      placeholder="ONI & KISHIN"
+    >
+
+    <label>Hero гарчиг</label>
+    <input
+      id="heroTitle"
+      placeholder="ONI & KISHIN"
+    >
+
+    <label>Hero тайлбар</label>
+    <textarea
+      id="heroText"
+      placeholder="Website дээр харагдах тайлбар..."
+    ></textarea>
+
+    <label>Logo URL</label>
+    <input
+      id="logoUrl"
+      placeholder="https://..."
+    >
+
+    <label>Shop холбоос</label>
+    <input
+      id="shopLink"
+      placeholder="https://..."
+    >
+
+    <label>Join хэсгийн текст</label>
+    <textarea
+      id="joinText"
+      placeholder="Club-д нэгдэх тухай мэдээлэл..."
+    ></textarea>
+
+    <div class="row">
+
+      <button id="saveBtn" class="primary">
+        💾 Хадгалах
+      </button>
+
+      <button id="loadBtn" class="secondary">
+        Дахин ачаалах
+      </button>
+
+    </div>
+
+    <div id="saveMsg" class="msg"></div>
+
+  </div>
+
+
+  <!-- INFO -->
+  <div class="card">
+
+    <h2>ONI & KISHIN</h2>
+
+    <p class="muted">
+      Firebase authentication болон Firestore холболт ажиллаж байна.
+    </p>
+
+    <hr>
+
+    <p class="small">
+      Website дээрх мэдээллийг Firestore-оос уншуулж,
+      Admin Panel-оос өөрчлөх боломжтой болно.
+    </p>
+
+  </div>
+
+</section>
+
 </div>
 </main>
 
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBguVnoZvjPMIH78zLzYMHOfp10wYZX_zk",
-  authDomain: "oni-kishinn.firebaseapp.com",
-  projectId: "oni-kishinn",
-  storageBucket: "oni-kishinn.firebasestorage.app",
-  messagingSenderId: "748622521861",
-  appId: "1:748622521861:web:081b13b37337ce687b9e6c",
-  measurementId: "G-JSTP09E2J9"
+
+  apiKey:
+    "AIzaSyBguVnoZvjPMIH78zLzYMHOfp10wYZX_zk",
+
+  authDomain:
+    "oni-kishinn.firebaseapp.com",
+
+  projectId:
+    "oni-kishinn",
+
+  storageBucket:
+    "oni-kishinn.firebasestorage.app",
+
+  messagingSenderId:
+    "748622521861",
+
+  appId:
+    "1:748622521861:web:081b13b37337ce687b9e6c",
+
+  measurementId:
+    "G-JSTP09E2J9"
 };
 
+
 const app = initializeApp(firebaseConfig);
+
 const auth = getAuth(app);
-const ADMIN_EMAIL = "erkaa130@gmail.com";
 
-const login = document.getElementById("login");
-const dashboard = document.getElementById("dashboard");
-const email = document.getElementById("email");
-const password = document.getElementById("password");
-const loginMsg = document.getElementById("loginMsg");
-const adminEmail = document.getElementById("adminEmail");
+const db = getFirestore(app);
 
-function showMsg(text, type="error") {
+
+const ADMIN_EMAIL =
+  "erkaa130@gmail.com";
+
+
+const login =
+  document.getElementById("login");
+
+const dashboard =
+  document.getElementById("dashboard");
+
+const email =
+  document.getElementById("email");
+
+const password =
+  document.getElementById("password");
+
+const loginMsg =
+  document.getElementById("loginMsg");
+
+const adminEmail =
+  document.getElementById("adminEmail");
+
+
+const siteTitle =
+  document.getElementById("siteTitle");
+
+const heroTitle =
+  document.getElementById("heroTitle");
+
+const heroText =
+  document.getElementById("heroText");
+
+const logoUrl =
+  document.getElementById("logoUrl");
+
+const shopLink =
+  document.getElementById("shopLink");
+
+const joinText =
+  document.getElementById("joinText");
+
+const saveMsg =
+  document.getElementById("saveMsg");
+
+
+function showLoginMsg(text,type="error"){
+
   loginMsg.textContent = text;
-  loginMsg.className = "msg show " + type;
+
+  loginMsg.className =
+    "msg show " + type;
 }
 
-document.getElementById("loginBtn").addEventListener("click", async () => {
-  const entered = email.value.trim().toLowerCase();
-  if (entered !== ADMIN_EMAIL) {
-    showMsg("Энэ email admin эрхгүй.");
-    return;
-  }
-  if (!password.value) {
-    showMsg("Password оруулна уу.");
-    return;
-  }
-  try {
-    await signInWithEmailAndPassword(auth, entered, password.value);
-  } catch (err) {
-    showMsg("Нэвтрэх боломжгүй. Email эсвэл password буруу байна.");
-  }
-});
 
-document.getElementById("forgotBtn").addEventListener("click", async () => {
-  const entered = email.value.trim().toLowerCase();
-  if (entered !== ADMIN_EMAIL) {
-    showMsg("Password сэргээх email нь зөвхөн admin Gmail дээр ажиллана.");
-    return;
-  }
-  try {
-    await sendPasswordResetEmail(auth, entered);
-    showMsg("Password сэргээх холбоос Gmail рүү илгээгдлээ.", "ok");
-  } catch (err) {
-    showMsg("Password сэргээх email илгээж чадсангүй. Firebase-ийн Authorized domains тохиргоог шалгана уу.");
-  }
-});
+function showSaveMsg(text,type="ok"){
 
-document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
+  saveMsg.textContent = text;
 
-onAuthStateChanged(auth, user => {
-  if (user && user.email.toLowerCase() === ADMIN_EMAIL) {
-    login.style.display = "none";
-    dashboard.style.display = "block";
-    adminEmail.textContent = user.email;
-  } else {
-    login.style.display = "block";
-    dashboard.style.display = "none";
-    if (user) signOut(auth);
+  saveMsg.className =
+    "msg show " + type;
+}
+
+
+/* LOGIN */
+
+document
+  .getElementById("loginBtn")
+  .addEventListener("click",async()=>{
+
+    const entered =
+      email.value.trim().toLowerCase();
+
+    if(entered !== ADMIN_EMAIL){
+
+      showLoginMsg(
+        "Энэ email admin эрхгүй."
+      );
+
+      return;
+    }
+
+    if(!password.value){
+
+      showLoginMsg(
+        "Password оруулна уу."
+      );
+
+      return;
+    }
+
+    try{
+
+      await signInWithEmailAndPassword(
+        auth,
+        entered,
+        password.value
+      );
+
+    }catch(err){
+
+      showLoginMsg(
+        "Нэвтрэх боломжгүй. Email эсвэл password буруу байна."
+      );
+
+    }
+
+  });
+
+
+/* FORGOT PASSWORD */
+
+document
+  .getElementById("forgotBtn")
+  .addEventListener("click",async()=>{
+
+    const entered =
+      email.value.trim().toLowerCase();
+
+    if(entered !== ADMIN_EMAIL){
+
+      showLoginMsg(
+        "Password сэргээх email нь зөвхөн admin Gmail дээр ажиллана."
+      );
+
+      return;
+    }
+
+    try{
+
+      await sendPasswordResetEmail(
+        auth,
+        entered
+      );
+
+      showLoginMsg(
+        "Password сэргээх холбоос Gmail рүү илгээгдлээ.",
+        "ok"
+      );
+
+    }catch(err){
+
+      showLoginMsg(
+        "Password сэргээх email илгээж чадсангүй."
+      );
+
+    }
+
+  });
+
+
+/* LOAD WEBSITE DATA */
+
+async function loadWebsite(){
+
+  try{
+
+    const ref =
+      doc(db,"site","content");
+
+    const snap =
+      await getDoc(ref);
+
+    if(snap.exists()){
+
+      const data =
+        snap.data();
+
+      siteTitle.value =
+        data.siteTitle || "";
+
+      heroTitle.value =
+        data.heroTitle || "";
+
+      heroText.value =
+        data.heroText || "";
+
+      logoUrl.value =
+        data.logoUrl || "";
+
+      shopLink.value =
+        data.shopLink || "";
+
+      joinText.value =
+        data.joinText || "";
+
+    }else{
+
+      siteTitle.value =
+        "ONI & KISHIN";
+
+      heroTitle.value =
+        "ONI & KISHIN";
+
+      heroText.value =
+        "";
+
+      logoUrl.value =
+        "";
+
+      shopLink.value =
+        "";
+
+      joinText.value =
+        "";
+
+    }
+
+  }catch(err){
+
+    showSaveMsg(
+      "Мэдээлэл уншихад алдаа гарлаа.",
+      "error"
+    );
+
   }
-});
+
+}
+
+
+/* SAVE WEBSITE DATA */
+
+document
+  .getElementById("saveBtn")
+  .addEventListener("click",async()=>{
+
+    try{
+
+      await setDoc(
+        doc(db,"site","content"),
+        {
+
+          siteTitle:
+            siteTitle.value.trim(),
+
+          heroTitle:
+            heroTitle.value.trim(),
+
+          heroText:
+            heroText.value.trim(),
+
+          logoUrl:
+            logoUrl.value.trim(),
+
+          shopLink:
+            shopLink.value.trim(),
+
+          joinText:
+            joinText.value.trim(),
+
+          updatedAt:
+            new Date().toISOString(),
+
+          updatedBy:
+            ADMIN_EMAIL
+
+        }
+      );
+
+      showSaveMsg(
+        "✅ Амжилттай хадгалагдлаа!",
+        "ok"
+      );
+
+    }catch(err){
+
+      console.error(err);
+
+      showSaveMsg(
+        "❌ Хадгалах боломжгүй байна. Firestore Rules-ээ шалгана уу.",
+        "error"
+      );
+
+    }
+
+  });
+
+
+/* RELOAD */
+
+document
+  .getElementById("loadBtn")
+  .addEventListener("click",loadWebsite);
+
+
+/* LOGOUT */
+
+document
+  .getElementById("logoutBtn")
+  .addEventListener(
+    "click",
+    ()=>signOut(auth)
+  );
+
+
+/* AUTH STATE */
+
+onAuthStateChanged(
+  auth,
+  async user=>{
+
+    if(
+      user &&
+      user.email &&
+      user.email.toLowerCase()
+        === ADMIN_EMAIL
+    ){
+
+      login.style.display =
+        "none";
+
+      dashboard.style.display =
+        "block";
+
+      adminEmail.textContent =
+        user.email;
+
+      await loadWebsite();
+
+    }else{
+
+      login.style.display =
+        "block";
+
+      dashboard.style.display =
+        "none";
+
+      if(user){
+
+        await signOut(auth);
+
+      }
+
+    }
+
+  }
+);
+
 </script>
+
 </body>
 </html>
