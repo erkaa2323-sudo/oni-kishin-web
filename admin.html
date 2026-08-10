@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070707">
+<title>ONI & KISHIN — Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070707;color:#f5f5f5;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{width:min(900px,92%);margin:auto}header{border-bottom:1px solid #292929;background:#090909;position:sticky;top:0;z-index:10}.nav{height:68px;display:flex;align-items:center;justify-content:space-between}.brand{color:#fff;text-decoration:none;font-weight:900;letter-spacing:.08em}.brand b{color:#f01822}
+main{padding:35px 0 60px}.card{background:#0d0d0d;border:1px solid #292929;border-radius:16px;padding:24px;margin-bottom:20px}h1{font-size:clamp(32px,8vw,52px);margin:0 0 10px}h2{margin-top:0}.muted{color:#999}label{display:block;color:#bbb;font-size:13px;font-weight:700;margin:17px 0 7px}input,textarea{width:100%;background:#151515;color:#fff;border:1px solid #333;border-radius:8px;padding:13px;outline:none;font:inherit}textarea{min-height:120px;resize:vertical}button{border:0;border-radius:9px;padding:13px 16px;font-weight:800;cursor:pointer}.primary{background:#e50914;color:#fff}.secondary{background:#191919;color:#fff;border:1px solid #333}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.msg{margin-top:14px;padding:11px;border-radius:9px;display:none}.msg.show{display:block}.error{background:#2a1012;color:#ff9da2;border:1px solid #6a2228}.ok{background:#102116;color:#b9efc1;border:1px solid #24552e}#dashboard{display:none}.small{font-size:12px;color:#777}.section-title{font-size:20px;font-weight:900;margin-bottom:5px}.app{background:#111;border:1px solid #292929;border-radius:16px;padding:18px;margin-top:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{background:#171717;border-radius:10px;padding:12px}.item span{display:block;color:#777;font-size:12px;margin-bottom:3px}.status{display:inline-block;padding:7px 10px;border-radius:999px;background:#242424;color:#ccc;font-weight:800}.approve{background:#16803b;color:white}.reject{background:#4a171a;color:#ffb4b8}.count{font-size:28px;font-weight:900}.member{background:#151515;border:1px solid #292929;border-radius:10px;padding:12px;margin-top:9px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap nav"><a class="brand" href="index.html">ONI <b>&</b> KISHIN</a><a href="index.html" style="color:#fff;text-decoration:none">← Website</a></div></header>
+<main><div class="wrap">
+
+<section id="login" class="card">
+<h1>Admin Login</h1><p class="muted">Зөвхөн <b>erkaa130@gmail.com</b> admin эрхтэй.</p>
+<label>Email</label><input id="email" type="email" value="erkaa130@gmail.com">
+<label>Password</label><input id="password" type="password" placeholder="Admin password">
+<div class="row"><button id="loginBtn" class="primary">Нэвтрэх</button><button id="forgotBtn" class="secondary">Password сэргээх</button></div>
+<div id="loginMsg" class="msg"></div>
+</section>
+
+<section id="dashboard">
+<div class="card">
+<h1>Admin Panel</h1><p class="muted">Амжилттай нэвтэрлээ: <b id="adminEmail"></b></p>
+<div class="row"><a href="index.html" class="secondary" style="padding:13px 16px;border-radius:9px;text-decoration:none">Website харах</a><button id="logoutBtn" class="secondary">Гарах</button></div>
+</div>
+
+<div class="card">
+<div class="section-title">Шинэ гишүүд</div>
+<p class="muted">Анкет илгээсэн хүмүүс энд гарна. Зөвшөөрсөн хүн Website-ийн “Одоогийн гишүүд” хэсэгт автоматаар нэмэгдэнэ.</p>
+<div class="count">Нийт хүсэлт: <span id="appCount">0</span></div>
+<div id="applications"></div>
+<div id="appMsg" class="msg"></div>
+</div>
+
+<div class="card">
+<div class="section-title">Одоогийн гишүүд</div>
+<p class="muted">Зөвшөөрөгдсөн гишүүд.</p>
+<div class="count"><span id="memberCount">10</span> / 52 MAX</div>
+<div id="members"></div>
+</div>
+</section>
+</div></main>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,sendPasswordResetEmail,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import {getFirestore,collection,onSnapshot,query,orderBy,doc,updateDoc,addDoc,serverTimestamp,getDoc} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+const app=initializeApp({
+apiKey:"AIzaSyBguVnoZvjPMIH78zLzYMHOfp10wYZX_zk",
+authDomain:"oni-kishinn.firebaseapp.com",
+projectId:"oni-kishinn",
+storageBucket:"oni-kishinn.firebasestorage.app",
+messagingSenderId:"748622521861",
+appId:"1:748622521861:web:081b13b37337ce687b9e6c"
+});
+const auth=getAuth(app),db=getFirestore(app),ADMIN_EMAIL="erkaa130@gmail.com";
+const $=id=>document.getElementById(id);
+
+function msg(el,text,type="error"){el.textContent=text;el.className="msg show "+type}
+
+$("loginBtn").onclick=async()=>{
+ const entered=$("email").value.trim().toLowerCase();
+ if(entered!==ADMIN_EMAIL)return msg($("loginMsg"),"Энэ email admin эрхгүй.");
+ if(!$("password").value)return msg($("loginMsg"),"Password оруулна уу.");
+ try{await signInWithEmailAndPassword(auth,entered,$("password").value)}
+ catch(e){msg($("loginMsg"),"Email эсвэл password буруу байна.")}
+};
+$("forgotBtn").onclick=async()=>{
+ const entered=$("email").value.trim().toLowerCase();
+ if(entered!==ADMIN_EMAIL)return msg($("loginMsg"),"Admin Gmail-ээ оруулна уу.");
+ try{await sendPasswordResetEmail(auth,entered);msg($("loginMsg"),"Password сэргээх холбоос Gmail рүү илгээгдлээ.","ok")}
+ catch(e){msg($("loginMsg"),"Сэргээх email илгээж чадсангүй.")}
+};
+$("logoutBtn").onclick=()=>signOut(auth);
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+function startAdminData(){
+ const aq=query(collection(db,"applications"),orderBy("createdAt","desc"));
+ onSnapshot(aq,snap=>{
+   $("appCount").textContent=snap.size;
+   $("applications").innerHTML="";
+   snap.forEach(d=>{
+     const a=d.data(),id=d.id;
+     const el=document.createElement("div");el.className="app";
+     el.innerHTML=`
+       <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+         <h2 style="margin:0">${esc(a.last)} ${esc(a.first)}</h2>
+         <span class="status">${esc(a.status||"Шинэ")}</span>
+       </div>
+       <div class="grid" style="margin-top:14px">
+        <div class="item"><span>Нас / Хүйс</span><b>${esc(a.age)} / ${esc(a.gender)}</b></div>
+        <div class="item"><span>CPM</span><b>${esc(a.cpmid)} / ${esc(a.nick)}</b></div>
+        <div class="item"><span>Чиглэл</span><b>${esc(a.direction)}</b></div>
+        <div class="item"><span>Холбоо</span><b>${esc(a.contactType)}: ${esc(a.contact)}</b></div>
+        <div class="item"><span>Тоглосон хугацаа</span><b>${esc(a.experience)}</b></div>
+        <div class="item"><span>Тайлбар</span><b>${esc(a.message||"—")}</b></div>
+       </div>
+       ${a.status==="Зөвшөөрсөн"||a.status==="Татгалзсан"?"":`
+       <div class="row">
+         <button class="approve" data-approve="${id}">✅ Зөвшөөрөх</button>
+         <button class="reject" data-reject="${id}">❌ Татгалзах</button>
+       </div>`}`;
+     $("applications").appendChild(el);
+   });
+   document.querySelectorAll("[data-approve]").forEach(b=>b.onclick=()=>approve(b.dataset.approve));
+   document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=()=>reject(b.dataset.reject));
+ },e=>msg($("appMsg"),"Анкетуудыг уншихад алдаа гарлаа. Firestore Rules-ээ шалгана уу."));
+
+ const mq=query(collection(db,"members"),orderBy("createdAt","asc"));
+ onSnapshot(mq,snap=>{
+   $("memberCount").textContent=10+snap.size;
+   $("members").innerHTML=snap.size?snap.docs.map(d=>`<div class="member"><b>${esc(d.data().nick||d.data().name||"Гишүүн")}</b><div class="small">${esc(d.data().cpmid||"")}</div></div>`).join(""):'<p class="muted">Одоогоор нэмэгдсэн гишүүн алга.</p>';
+ });
+}
+
+async function approve(id){
+ try{
+  const a=(await getDoc(doc(db,"applications",id))).data();
+  if(!a)return;
+  await addDoc(collection(db,"members"),{
+   nick:a.nick||a.first||"Гишүүн",cpmid:a.cpmid||"",first:a.first||"",last:a.last||"",
+   createdAt:serverTimestamp(),applicationId:id
+  });
+  await updateDoc(doc(db,"applications",id),{status:"Зөвшөөрсөн",approvedAt:serverTimestamp()});
+ }catch(e){console.error(e);msg($("appMsg"),"Зөвшөөрөхөд алдаа гарлаа. Firestore Rules-ээ шалгана уу.")}
+}
+async function reject(id){
+ try{await updateDoc(doc(db,"applications",id),{status:"Татгалзсан",rejectedAt:serverTimestamp()})}
+ catch(e){console.error(e);msg($("appMsg"),"Татгалзахад алдаа гарлаа.")}
+}
+
+onAuthStateChanged(auth,async user=>{
+ if(user&&user.email&&user.email.toLowerCase()===ADMIN_EMAIL){
+  $("login").style.display="none";$("dashboard").style.display="block";$("adminEmail").textContent=user.email;
+  startAdminData();
+ }else{
+  $("login").style.display="block";$("dashboard").style.display="none";
+  if(user)await signOut(auth);
+ }
+});
+</script>
+</body>
+</html>
