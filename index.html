@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050505">
+<title>ONI & KISHIN — CPM 1</title>
+<style>
+:root{--bg:#050505;--card:#0d0d0f;--red:#e50914;--white:#f5f5f5;--muted:#8b8b8f;--line:#242428}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#030303;color:var(--white);font-family:Arial,Helvetica,sans-serif;line-height:1.6;overflow-x:hidden}
+body:after{content:"";position:fixed;inset:-35%;z-index:-2;pointer-events:none;background:radial-gradient(circle at 20% 30%,rgba(229,9,20,.22),transparent 20%),radial-gradient(circle at 75% 65%,rgba(120,0,8,.20),transparent 23%),radial-gradient(circle at 50% 100%,rgba(229,9,20,.12),transparent 28%);filter:blur(45px);animation:oniBackground 16s ease-in-out infinite alternate}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.18;z-index:-1;background:linear-gradient(115deg,transparent 0%,rgba(229,9,20,.06) 25%,transparent 48%,rgba(255,0,20,.07) 72%,transparent 100%);background-size:220% 220%;animation:redSweep 12s linear infinite}
+@keyframes oniBackground{0%{transform:translate3d(-3%,2%,0) scale(1)}50%{transform:translate3d(4%,-3%,0) scale(1.08)}100%{transform:translate3d(-2%,4%,0) scale(1.02)}}
+@keyframes redSweep{0%{background-position:0% 50%}50%{background-position:100% 40%}100%{background-position:0% 60%}}a{text-decoration:none;color:inherit}button,input,select,textarea{font:inherit}
+
+header{position:fixed;z-index:10;top:0;left:0;right:0;height:68px;background:#050505dd;backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 5%}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:2px}.logo img{width:40px;height:40px;border-radius:50%;object-fit:cover;display:none}.oni{width:40px;height:40px;border:1px solid var(--red);display:grid;place-items:center;color:var(--red);font-size:22px}.logo small{display:block;color:#777;font-size:8px;letter-spacing:3px}nav{display:flex;gap:25px}nav a{font-size:10px;color:#aaa;font-weight:700;letter-spacing:1px}nav a:hover{color:#fff}.menu{display:none;background:none;border:1px solid var(--line);color:#fff;padding:8px}
+.hero{min-height:100svh;padding:125px 7% 70px;display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(circle at 80% 50%,#e509142b,transparent 30%),radial-gradient(circle at 10% 90%,#8b000022,transparent 35%)}.hero:after{content:"鬼";position:absolute;right:7%;top:18%;font-size:35vw;line-height:1;color:#e5091408;font-weight:900}.content{max-width:720px;position:relative;z-index:2}.tag{font-size:10px;letter-spacing:4px;color:#999}.tag b,h1 i,h2 span,.num,.type{color:var(--red)}h1{font-size:clamp(60px,13vw,150px);line-height:.78;margin:18px 0 25px;letter-spacing:-7px}h1 i{font-style:normal}h2{font-size:clamp(35px,6vw,70px);line-height:1;margin:0}p{color:var(--muted);max-width:700px}.buttons{display:flex;gap:10px;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:15px 22px;border:1px solid var(--line);font-size:10px;font-weight:900;letter-spacing:2px;cursor:pointer}.primary{background:var(--red);border-color:var(--red);color:#fff}.outline:hover{border-color:var(--red);color:var(--red)}.stats{display:flex;gap:45px;margin-top:45px}.stats b{display:block;font-size:23px}.stats small{color:#666;letter-spacing:2px;font-size:8px}
+section{max-width:1200px;margin:auto;padding:100px 25px;border-top:1px solid var(--line)}.num{font-size:9px;letter-spacing:4px;font-weight:900}.heading{margin-bottom:45px}.heading h2{margin-top:12px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card,.event,.product{background:linear-gradient(145deg,#111113,#09090a);border:1px solid var(--line);padding:30px}.card:hover,.event:hover,.product:hover{border-color:#e5091466;transform:translateY(-4px);transition:.25s}.icon{font-size:35px;color:var(--red);margin-bottom:45px}.events{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.event{min-height:200px}.event b{color:var(--red);font-size:9px;letter-spacing:3px}.event strong{font-size:30px;display:block;margin:8px 0}
+form{max-width:900px;margin:auto}.row{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{margin-bottom:17px}.field label{display:block;color:#aaa;font-size:10px;font-weight:bold;margin-bottom:7px}.field input,.field select,.field textarea{width:100%;background:#080808;border:1px solid var(--line);color:#fff;padding:14px;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#e5091499}.err{color:var(--red);font-size:9px;min-height:12px;display:block}.upload{border:1px dashed #333;padding:28px;text-align:center;color:#777}.upload input{margin-top:10px}.previews{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}.previews img{width:100%;aspect-ratio:1;object-fit:cover}.check{display:flex;gap:10px;color:#777;font-size:11px;margin:20px 0}.success{display:none;margin-top:15px;padding:12px;border:1px solid #36c97855;color:#6df0a0}.success.show{display:block}.rules{margin:25px 0;padding:20px;border:1px solid #e5091433;background:#100707;border-radius:8px;white-space:pre-line;color:#bbb;font-size:13px}.rules strong{color:#fff}
+.filters{display:flex;gap:8px;margin-bottom:25px}.filter{background:none;color:#777;border:1px solid var(--line);padding:10px 16px;font-size:9px;font-weight:900;cursor:pointer}.filter.active,.filter:hover{background:var(--red);color:#fff;border-color:var(--red)}.products{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pic{height:180px;background:radial-gradient(circle,#e5091420,transparent 55%),#101012;display:grid;place-items:center;font-size:50px;font-weight:900;font-style:italic;color:#29292d}.product{padding:0;overflow:hidden}.pinfo{padding:18px}.price{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px;margin-top:15px}.detail{border:0;background:none;color:var(--red);font-size:9px;font-weight:900;cursor:pointer}.hide{display:none!important}.contact{text-align:center;max-width:none;background:radial-gradient(circle at center,#e5091412,transparent 40%)}.socials{display:grid;grid-template-columns:repeat(3,1fr);max-width:850px;margin:30px auto 0;gap:10px}.social{padding:20px;border:1px solid var(--line);font-size:10px;font-weight:900}.social:hover{border-color:var(--red)}footer{padding:25px 6%;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;color:#555;font-size:9px}footer span:last-child{margin-left:auto}.modal{display:none;position:fixed;inset:0;z-index:50;place-items:center;background:#000c;padding:20px}.modal.show{display:grid}.modalbox{max-width:500px;width:100%;background:#0b0b0c;border:1px solid #e5091466;padding:30px;position:relative}.close{position:absolute;right:12px;top:8px;background:none;border:0;color:#fff;font-size:25px;cursor:pointer}
+@media(max-width:800px){nav{display:none;position:absolute;top:68px;left:0;right:0;background:#050505f5;padding:15px 5%;flex-direction:column;gap:0}nav.open{display:flex}nav a{padding:14px 0;border-bottom:1px solid var(--line)}.menu{display:block}.grid3,.events,.row{grid-template-columns:1fr}.products{grid-template-columns:1fr 1fr}.socials{grid-template-columns:1fr}.hero{padding-left:25px;padding-right:25px}.hero:after{right:-15%;font-size:90vw}}@media(max-width:480px){section{padding:75px 18px}.products{grid-template-columns:1fr}.buttons{flex-direction:column}.btn{width:100%}.previews{grid-template-columns:repeat(2,1fr)}h1{letter-spacing:-4px}.stats{gap:25px}}
+</style>
+</head>
+<body>
+<header><a class="logo" href="#home"><img id="logoImage"><span class="oni" id="logoOni">鬼</span><span><span id="headerTitle">ONI & KISHIN</span><small>CPM 1 CLAN</small></span></a><button class="menu" id="menu">☰</button><nav id="nav"><a href="#home">НҮҮР</a><a href="#about">БИДНИЙ ТУХАЙ</a><a href="#events">EVENT</a><a href="#apply">БҮРТГЭЛ</a><a href="#market">MARKET</a><a href="#contact">ХОЛБОО</a></nav></header>
+<main>
+<section class="hero" id="home"><div class="content"><div class="tag"><b>●</b> CAR PARKING MULTIPLAYER 1</div><h1 id="heroTitle">ONI <i>&</i><br>KISHIN</h1><p id="heroText">Цэвэр загвар, анимэ загвар, дрифт, драг болон хүчирхэг хамт олныг нэг дор цуглуулсан CPM 1-ийн онцгой клуб.</p><div class="buttons"><a class="btn primary" href="#apply">КЛАНД НЭГДЭХ →</a><a class="btn outline" id="marketButton" href="#market">ЗАХ</a></div><div class="stats"><div><b>10</b><small>ОДООГИЙН ГИШҮҮД</small></div><div><b>52</b><small>ДЭЭД ХЯЗГААР</small></div></div></div></section>
+<section id="about"><div class="heading"><div class="num">01 / БИДНИЙ ТУХАЙ</div><h2>БИД БОЛ <span>ONI & KISHIN</span></h2><p>Машин бол зөвхөн машин биш. Энэ бол өөрийн style, personality болон бүтээлч байдлыг илэрхийлэх хэрэгсэл.</p></div><div class="grid3"><article class="card"><div class="icon">鬼</div><h3>БИДНИЙ ОНЦЛОГ</h3><p>Японы Demon / Oni aesthetic, Cyberpunk болон Anime culture-ийг CPM 1-ийн автомашины ертөнцтэй нэгтгэнэ.</p></article><article class="card"><div class="icon">01</div><h3>ЦЭВЭР ХЭВ МАЯГ</h3><p>Clean Logo, Anime Livery болон premium car design дээр төвлөрнө.</p></article><article class="card"><div class="icon">⚡</div><h3>ТЭМЦЭЭН</h3><p>Drift, Drag, Race болон community event-үүдээр дамжуулан шилдэг жолооч нарыг тодруулна.</p></article></div></section>
+<section id="events"><div class="heading"><div class="num">02 / ҮЙЛ АЖИЛЛАГАА</div><h2>OUR <span>ҮЙЛ АЖИЛЛАГАА</span></h2><p>Өдөр бүр өөр өөр challenge. Нэг clan, нэг community, нэг стиль.</p></div><div class="events"><article class="event"><b>01 / ТЭМЦЭЭН</b><strong>ДРИФТ ТЭМЦЭЭН</strong><p>Smoke, angle, speed. Хэн хамгийн цэвэр drift хийх вэ?</p></article><article class="event"><b>02 / RACING</b><strong>ДРАГ ТЭМЦЭЭН</strong><p>Build, launch, speed. Straight line-д хэн хамгийн хурдан бэ?</p></article><article class="event"><b>03 / COMMUNITY</b><strong>МАШИНЫ УУЛЗАЛТ</strong><p>Clean build, Anime livery, premium машины цугларалт.</p></article><article class="event"><b>04 / CREATIVE</b><strong>ДИЗАЙНЫ ТЭМЦЭЭН</strong><p>Anime Livery болон Clean Logo design-ийн өрсөлдөөн.</p></article></div></section>
+<section id="apply"><div class="heading"><div class="num">03 / БҮРТГЭЛ</div><h2>JOIN THE <span>CLAN</span></h2><p>Oni & KISHIN-ийн гишүүн болох хүсэлтээ илгээнэ үү.</p></div><form id="form"><div class="rules" id="joinRules"><strong>CLAN-Д НЭГДЭХ ДҮРЭМ</strong>
+
+17 нас болон түүнээс дээш настай байх.
+Clan-ийн үйл ажиллагаанд идэвхтэй оролцох.
+Бусдыг scam хийх, хуурах, мэхлэхгүй байх.
+Spam хийхгүй байх.
+Бусдыг доромжлох, хараал хэлэх болон зохисгүй харилцаа үүсгэхгүй байх.
+Clan-ийн дотоод болон нууц мэдээллийг гадны хүмүүст задруулахгүй байх.
+Бусад гишүүдээ хүндэтгэх.
+Тэмцээн, event болон clan-ийн үйл ажиллагаанд шударга оролцох.
+Дүрэм зөрчсөн тохиолдолд clan-аас хасагдах боломжтой.
+
+Дээрх дүрмийг уншиж зөвшөөрсөн тохиолдолд хүсэлтээ илгээнэ үү.</div><div class="row"><div class="field"><label>ОВОГ *</label><input id="last" required><span class="err"></span></div><div class="field"><label>НЭР *</label><input id="first" required><span class="err"></span></div></div><div class="row"><div class="field"><label>НАС *</label><input id="age" type="number" min="17" max="80" required><span class="err"></span></div><div class="field"><label>ХҮЙС *</label><select id="gender" required><option value="">Сонгох</option><option>Эрэгтэй</option><option>Эмэгтэй</option><option>Бусад</option></select><span class="err"></span></div></div><div class="row"><div class="field"><label>CPM ID *</label><input id="cpmid" required><span class="err"></span></div><div class="field"><label>CPM NICKNAME *</label><input id="nick" required><span class="err"></span></div></div><div class="field"><label>КЛАНД ЯМАР ЧИГЛЭЛЭЭР ОРОХ ВЭ? *</label><select id="role" required><option value="">Сонгох</option><option>Clean Logo Designer</option><option>Anime Livery Artist</option><option>Racer / Drifter</option><option>Drag Racer</option><option>Content Creator</option><option>Other</option></select><span class="err"></span></div><div class="row"><div class="field"><label>ХОЛБОО БАРИХ ТӨРӨЛ *</label><select id="contactType" required><option value="">Сонгох</option><option>Discord</option><option>Facebook</option><option>Phone</option></select><span class="err"></span></div><div class="field"><label>ХОЛБОО БАРИХ МЭДЭЭЛЭЛ *</label><input id="contact" required><span class="err"></span></div></div><div class="field"><label>CPM ТОГЛОЖ БУЙ ХУГАЦАА *</label><select id="experience" required><option value="">Сонгох</option><option>6 сараас бага</option><option>6 сар – 1 жил</option><option>1 – 2 жил</option><option>2+ жил</option></select><span class="err"></span></div><div class="field"><label>МАШИНЫ ЗУРАГ / PORTFOLIO</label><div class="upload"><div>Зураг сонгоно уу</div><input id="images" type="file" accept="image/*" multiple></div><div class="previews" id="previews"></div></div><div class="field"><label>ӨӨРИЙНХӨӨ ТАЛААР</label><textarea id="message" rows="5" placeholder="Машин, туршлага, яагаад clan-д орохыг хүсэж байгаа гэх мэт..."></textarea></div><label class="check"><input id="terms" type="checkbox"><span>Би мэдээллээ үнэн зөв оруулж, clan-ийн дүрмийг дагаж мөрдөнө.</span></label><button class="btn primary" style="width:100%;border:0" type="submit">БҮРТГЭЛ ИЛГЭЭХ →</button><div class="success" id="success">✓ Таны хүсэлт бэлэн боллоо.</div></form></section>
+<section id="market"><div class="heading"><div class="num">04 / ЗАХ</div><h2>ONI <span>MARKET</span></h2><p>Clean Logo машин, Anime build болон CPM account.</p></div><div class="filters"><button class="filter active" data-f="all">БҮГД</button><button class="filter" data-f="car">МАШИН</button><button class="filter" data-f="account">АККАУНТ</button></div><div class="products"><article class="product" data-c="car"><div class="pic">R34</div><div class="pinfo"><span class="type">CLEAN LOGO CAR</span><h3>Skyline R34 — Oni Edition</h3><p>Dark red / black clean logo build.</p><div class="price"><b>₮45,000</b><button class="detail" data-title="Skyline R34 — Oni Edition" data-price="₮45,000">ДЭЛГЭРЭНГҮЙ</button></div></div></article><article class="product" data-c="car"><div class="pic">S15</div><div class="pinfo"><span class="type">ANIME LIVERY</span><h3>Silvia S15 — KISHIN</h3><p>Japanese Demon inspired Anime livery.</p><div class="price"><b>₮35,000</b><button class="detail" data-title="Silvia S15 — KISHIN" data-price="₮35,000">ДЭЛГЭРЭНГҮЙ</button></div></div></article><article class="product" data-c="account"><div class="pic">ID</div><div class="pinfo"><span class="type">CPM ACCOUNT</span><h3>Premium Account #01</h3><p>Олон машинтай хөгжүүлсэн account.</p><div class="price"><b>₮120,000</b><button class="detail" data-title="Premium Account #01" data-price="₮120,000">ДЭЛГЭРЭНГҮЙ</button></div></div></article><article class="product" data-c="car"><div class="pic">GTR</div><div class="pinfo"><span class="type">CLEAN BUILD</span><h3>GTR R34 — Red Oni</h3><p>Red Oni theme бүхий clean street build.</p><div class="price"><b>₮50,000</b><button class="detail" data-title="GTR R34 — Red Oni" data-price="₮50,000">ДЭЛГЭРЭНГҮЙ</button></div></div></article></div></section>
+<section class="contact" id="contact"><div class="num">05 / ХОЛБОО</div><h2>ENTER THE <span>DOMAIN</span></h2><p>Clan-ийн эвент, Marketplace болон бүртгэлийн талаар админтай холбогдоорой.</p><div class="socials"><a class="social" href="#" onclick="return placeholder()">DISCORD →</a><a class="social" href="#" onclick="return placeholder()">FACEBOOK →</a><a class="social" href="#" onclick="return placeholder()">MESSENGER →</a></div></section>
+</main>
+<div class="modal" id="modal"><div class="modalbox"><button class="close" id="close">×</button><span class="type">ONI ЗАХ</span><h2 id="mtitle"></h2><p>Энэ барааны дэлгэрэнгүй мэдээллийг Admin-аас авна уу.</p><h2 id="mprice" style="color:#e50914"></h2><a class="btn primary" href="#contact" onclick="document.getElementById('modal').classList.remove('show')">ADMIN ХОЛБОО</a></div></div>
+<footer><span class="oni">鬼</span><b>ONI & KISHIN</b><span>© 2026 CPM 1 CLAN</span></footer>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import{getFirestore,doc,getDoc,collection,addDoc,serverTimestamp}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import{getStorage,ref as storageRef,uploadBytes,getDownloadURL}from"https://www.gstatic.com/firebasejs/12.17.1/firebase-storage.js";
+const app=initializeApp({apiKey:"AIzaSyBguVnoZvjPMIH78zLzYMHOfp10wYZX_zk",authDomain:"oni-kishinn.firebaseapp.com",projectId:"oni-kishinn",storageBucket:"oni-kishinn.firebasestorage.app",messagingSenderId:"748622521861",appId:"1:748622521861:web:081b13b37337ce687b9e6c",measurementId:"G-JSTP09E2J9"});
+const db=getFirestore(app);const storage=getStorage(app);
+async function loadAdminSettings(){try{const s=await getDoc(doc(db,"site","content"));if(!s.exists())return;const d=s.data();if(d.siteTitle){document.title=d.siteTitle+" — CPM 1";document.getElementById("headerTitle").textContent=d.siteTitle}if(d.heroTitle){const t=document.getElementById("heroTitle"),v=String(d.heroTitle),p=v.split("&");t.innerHTML=p.length>1?p[0].trim()+' <i>&</i><br>'+p.slice(1).join("&").trim():v}if(d.heroText)document.getElementById("heroText").textContent=d.heroText;if(d.joinText)document.getElementById("joinRules").textContent=d.joinText;if(d.logoUrl){const i=document.getElementById("logoImage");i.src=d.logoUrl;i.style.display="block";document.getElementById("logoOni").style.display="none"}if(d.shopLink){const b=document.getElementById("marketButton");b.href=d.shopLink;b.target="_blank";b.rel="noopener noreferrer"}}catch(e){console.error(e)}}
+loadAdminSettings();
+const menu=document.getElementById('menu'),nav=document.getElementById('nav');menu.onclick=()=>nav.classList.toggle('open');nav.querySelectorAll('a').forEach(a=>a.onclick=()=>nav.classList.remove('open'));
+document.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');const f=b.dataset.f;document.querySelectorAll('.product').forEach(p=>p.classList.toggle('hide',f!=='all'&&p.dataset.c!==f))});
+const modal=document.getElementById('modal');document.querySelectorAll('.detail').forEach(b=>b.onclick=()=>{document.getElementById('mtitle').textContent=b.dataset.title;document.getElementById('mprice').textContent=b.dataset.price;modal.classList.add('show')});document.getElementById('close').onclick=()=>modal.classList.remove('show');modal.onclick=e=>{if(e.target===modal)modal.classList.remove('show')};
+document.getElementById('images').onchange=e=>{const p=document.getElementById('previews');p.innerHTML='';[...e.target.files].slice(0,8).forEach(f=>{if(f.type.startsWith('image/')){const r=new FileReader();r.onload=x=>{const i=document.createElement('img');i.src=x.target.result;p.appendChild(i)};r.readAsDataURL(f)}})};
+document.getElementById('form').onsubmit=async e=>{
+  e.preventDefault();
+
+  const ids=['last','first','age','gender','cpmid','nick','role','contactType','contact','experience'];
+  let ok=true;
+
+  ids.forEach(id=>{
+    const x=document.getElementById(id);
+    const er=x.parentElement.querySelector('.err');
+    if(!String(x.value).trim()){
+      er.textContent='Заавал бөглөнө үү.';
+      ok=false;
+    }else{
+      er.textContent='';
+    }
+  });
+
+  const age=+document.getElementById('age').value;
+  if(age<17||age>80){
+    document.getElementById('age').parentElement.querySelector('.err').textContent='17–80 насны утга оруулна уу.';
+    ok=false;
+  }
+
+  if(!document.getElementById('terms').checked){
+    alert('Дүрэмтэй танилцсан гэдгээ баталгаажуулна уу.');
+    ok=false;
+  }
+
+  if(!ok) return;
+
+  const submitBtn=e.target.querySelector('button[type="submit"]');
+  const originalText=submitBtn.textContent;
+  submitBtn.disabled=true;
+  submitBtn.textContent='ИЛГЭЭЖ БАЙНА...';
+
+  try{
+    const files=[...document.getElementById('images').files]
+      .filter(f=>f.type.startsWith('image/'))
+      .slice(0,8);
+
+    if(files.length>8){
+      alert('Хамгийн ихдээ 8 зураг сонгоно уу.');
+      return;
+    }
+
+    const applicationId=crypto.randomUUID();
+    const imageUrls=[];
+
+    for(let i=0;i<files.length;i++){
+      const file=files[i];
+      if(file.size>10*1024*1024){
+        throw new Error('Нэг зураг 10MB-аас их байна.');
+      }
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const fileRef=storageRef(
+        storage,
+        `applications/${applicationId}/${i+1}_${safeName}`
+      );
+      await uploadBytes(fileRef,file,{contentType:file.type});
+      imageUrls.push(await getDownloadURL(fileRef));
+    }
+
+    await addDoc(collection(db,'applications'),{
+      applicationId,
+      lastName:document.getElementById('last').value.trim(),
+      firstName:document.getElementById('first').value.trim(),
+      age:age,
+      gender:document.getElementById('gender').value,
+      cpmId:document.getElementById('cpmid').value.trim(),
+      nickname:document.getElementById('nick').value.trim(),
+      role:document.getElementById('role').value,
+      contactType:document.getElementById('contactType').value,
+      contact:document.getElementById('contact').value.trim(),
+      experience:document.getElementById('experience').value,
+      message:document.getElementById('message').value.trim(),
+      imageUrls,
+      imageNames:files.map(f=>f.name),
+      status:'Шинэ',
+      createdAt:serverTimestamp()
+    });
+
+    document.getElementById('success').textContent='✓ Таны хүсэлт амжилттай илгээгдлээ. Админ шалгаад хариу өгнө.';
+    document.getElementById('success').classList.add('show');
+    e.target.reset();
+    document.getElementById('previews').innerHTML='';
+    setTimeout(()=>{
+      document.getElementById('success').classList.remove('show');
+      document.getElementById('success').textContent='✓ Таны хүсэлт бэлэн боллоо.';
+    },8000);
+
+  }catch(err){
+    console.error(err);
+    alert('Анкет илгээхэд алдаа гарлаа. Firebase Firestore Rules-ээ шалгана уу.');
+  }finally{
+    submitBtn.disabled=false;
+    submitBtn.textContent=originalText;
+  }
+};
+function placeholder(){alert('Энд Clan-ийн Discord / Facebook / Messenger холбоосоо оруулна уу.');return false}
+</script>
+</body>
+</html>
