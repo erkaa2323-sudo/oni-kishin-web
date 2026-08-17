@@ -238,6 +238,13 @@ body{
   .role-row{grid-template-columns:88px 1fr 28px}
 }
 
+
+/* APPLICATION REVIEW V4 FIX */
+.applications{width:100%;min-height:40px;display:grid!important;grid-template-columns:1fr;gap:12px}
+.application{width:100%;min-height:150px;display:block!important;visibility:visible!important}
+.application .panel-head{display:flex!important;visibility:visible!important}
+.application .app-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:760px){.application .app-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.application .toolbar{display:grid;grid-template-columns:1fr 1fr 1fr}.application .toolbar .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -478,7 +485,70 @@ function renderMembers(){const q=$("memberSearch").value.trim().toLowerCase();co
 $("memberSearch").oninput=renderMembers;$("newMemberBtn").onclick=()=>{$("memberModal").classList.add("open")};document.querySelectorAll("[data-close-member]").forEach(b=>b.onclick=()=>$("memberModal").classList.remove("open"));
 $("saveMember").onclick=async()=>{const name=$("mName").value.trim(),nick=$("mNick").value.trim(),cpmid=$("mId").value.trim(),role=$("mRole").value,title=$("mTitle").value.trim();if(!nick||!cpmid)return msg($("memberModalMsg"),"CPM Nick болон CPM ID заавал.");if(memberData.length>=52)return msg($("memberModalMsg"),"52 member capacity хүрсэн.");try{await addDoc(collection(db,"members"),{name,nick,cpmid,role,title,createdAt:serverTimestamp(),createdBy:ADMIN_EMAIL});$("memberModal").classList.remove("open");["mName","mNick","mId","mTitle"].forEach(id=>$(id).value="");await loadMembers();toast("Member нэмэгдлээ")}catch(e){msg($("memberModalMsg"),"Member нэмэхэд алдаа гарлаа")}};
 async function loadApps(){try{const s=await getDocs(collection(db,"applications"));appData=s.docs.map(d=>({id:d.id,data:d.data()})).sort((a,b)=>(b.data.createdAt?.seconds||0)-(a.data.createdAt?.seconds||0));renderApps()}catch(e){toast("Applications уншихад алдаа")}}
-function renderApps(){const pending=appData.filter(x=>!["Зөвшөөрсөн","Татгалзсан"].includes(x.data.status));$("appCount").textContent=pending.length;$("statApps").textContent=pending.length;if(!pending.length){$("appList").innerHTML='<div class="empty">Шинэ application алга. ✦</div>';return}$("appList").innerHTML=pending.map(x=>{const d=x.data;return`<article class="application"><div class="panel-head"><div><h2>${esc([d.firstName||d.first,d.lastName||d.last].filter(Boolean).join(" ")||"Unknown")}</h2><div class="muted">${esc(d.nickname||d.nick||"")} · ${esc(d.cpmId||d.cpmid||"")}</div></div><span class="badge">${esc(d.status||"NEW")}</span></div><div class="app-grid"><div class="mini"><small>AGE / GENDER</small><b>${esc(d.age)} / ${esc(d.gender)}</b></div><div class="mini"><small>ROLE</small><b>${esc(d.role)}</b></div><div class="mini"><small>CONTACT</small><b>${esc(d.contact)}</b></div><div class="mini"><small>TYPE</small><b>${esc(d.contactType)}</b></div></div><div class="toolbar"><button class="btn green" data-approve="${x.id}">✓ APPROVE</button><button class="btn danger" data-reject="${x.id}">REJECT</button><button class="btn" data-del-app="${x.id}">DELETE</button></div></article>`}).join("");document.querySelectorAll("[data-approve]").forEach(b=>b.onclick=()=>approveApp(b.dataset.approve));document.querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{await updateDoc(doc(db,"applications",b.dataset.reject),{status:"Татгалзсан",reviewedAt:serverTimestamp(),reviewedBy:ADMIN_EMAIL});await loadApps();toast("Application rejected")});document.querySelectorAll("[data-del-app]").forEach(b=>b.onclick=async()=>{if(confirm("Application устгах уу?")){await deleteDoc(doc(db,"applications",b.dataset.delApp));await loadApps();toast("Application устгагдлаа")}})}
+function renderApps(){
+  const pending=appData.filter(x=>{
+    const st=String(x?.data?.status??"Шинэ").trim();
+    return !["Зөвшөөрсөн","Татгалзсан"].includes(st);
+  });
+  $("appCount").textContent=pending.length;
+  $("statApps").textContent=pending.length;
+  const list=$("appList");
+  if(!list)return;
+  list.style.display="grid";
+  list.style.gap="12px";
+  if(!pending.length){
+    list.innerHTML='<div class="empty">Шинэ application алга. ✦</div>';
+    return;
+  }
+  try{
+    list.innerHTML=pending.map((x,idx)=>{
+      const d=x?.data||{};
+      const fullName=[d.firstName||d.first,d.lastName||d.last].filter(Boolean).join(" ")||"Нэр оруулаагүй";
+      const nick=d.nickname||d.nick||"—";
+      const cpmid=d.cpmId||d.cpmid||"—";
+      const role=d.role||"MEMBER";
+      const contact=d.contact||"—";
+      const type=d.contactType||"—";
+      const direction=d.direction||"—";
+      const experience=d.experience||"—";
+      const message=d.message||"";
+      return `<article class="application" style="display:block!important;visibility:visible!important;opacity:1!important;color:#f7f7fb">
+        <div class="panel-head">
+          <div>
+            <h2 style="margin:0;color:#fff">${esc(fullName)}</h2>
+            <div class="muted">${esc(nick)} · ${esc(cpmid)}</div>
+          </div>
+          <span class="badge">${esc(d.status||"ШИНЭ")}</span>
+        </div>
+        <div class="app-grid">
+          <div class="mini"><small>НАС / ХҮЙС</small><b>${esc(d.age||"—")} / ${esc(d.gender||"—")}</b></div>
+          <div class="mini"><small>ЧИГЛЭЛ</small><b>${esc(direction)}</b></div>
+          <div class="mini"><small>ХОЛБОО</small><b>${esc(contact)}</b></div>
+          <div class="mini"><small>ХУГАЦАА</small><b>${esc(experience)}</b></div>
+        </div>
+        ${message?`<div class="mini" style="margin-bottom:12px"><small>ӨӨРИЙН ТУХАЙ</small><b style="line-height:1.45">${esc(message)}</b></div>`:""}
+        <div class="toolbar">
+          <button class="btn green" data-approve="${esc(x.id)}">✓ ЗӨВШӨӨРӨХ</button>
+          <button class="btn danger" data-reject="${esc(x.id)}">ТАТГАЛЗАХ</button>
+          <button class="btn" data-del-app="${esc(x.id)}">УСТГАХ</button>
+        </div>
+      </article>`;
+    }).join("");
+    list.querySelectorAll("[data-approve]").forEach(b=>b.onclick=()=>approveApp(b.dataset.approve));
+    list.querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{
+      try{await updateDoc(doc(db,"applications",b.dataset.reject),{status:"Татгалзсан",reviewedAt:serverTimestamp(),reviewedBy:ADMIN_EMAIL});await loadApps();toast("Хүсэлтийг татгалзлаа")}
+      catch(e){console.error(e);toast("Татгалзахад алдаа гарлаа")}
+    });
+    list.querySelectorAll("[data-del-app]").forEach(b=>b.onclick=async()=>{
+      if(!confirm("Application устгах уу?"))return;
+      try{await deleteDoc(doc(db,"applications",b.dataset.delApp));await loadApps();toast("Application устгагдлаа")}
+      catch(e){console.error(e);toast("Устгахад алдаа гарлаа")}
+    });
+  }catch(e){
+    console.error("renderApps error:",e);
+    list.innerHTML='<div class="empty" style="color:#ff9da6">Хүсэлтүүдийг дэлгэцэнд гаргахад алдаа гарлаа. REFRESH дарж дахин оролдоно уу.</div>';
+  }
+}
 async function approveApp(id){try{const ref=doc(db,"applications",id),s=await getDoc(ref);if(!s.exists())return;const d=s.data();if(memberData.length>=52)return toast("52 member capacity хүрсэн.");await addDoc(collection(db,"members"),{name:[d.firstName||d.first,d.lastName||d.last].filter(Boolean).join(" "),nick:d.nickname||d.nick||"",cpmid:d.cpmId||d.cpmid||"",role:"member",title:"MEMBER",createdAt:serverTimestamp(),applicationId:id});await updateDoc(ref,{status:"Зөвшөөрсөн",reviewedAt:serverTimestamp(),reviewedBy:ADMIN_EMAIL});await loadMembers();await loadApps();toast("Application approved → Member")}catch(e){console.error(e);toast("Approve хийхэд алдаа")}}
 $("refreshApps").onclick=loadApps;
 async function loadSettings(){try{const s=await getDoc(doc(db,"site","content"));if(!s.exists())return;const d=s.data();["siteTitle","heroTitle","heroText","logoUrl","shopLink","joinText"].forEach(k=>$(k).value=d[k]||"")}catch(e){toast("Settings уншихад алдаа")}}
