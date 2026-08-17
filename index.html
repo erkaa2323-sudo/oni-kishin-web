@@ -235,6 +235,77 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes marquee{to{transform:translateX(-50%)}}
 
+/* Permanent post-intro neon orbit — subtle red motion around the clan logo */
+.hero-art{
+  isolation:isolate;
+}
+.hero-neon-orbit{
+  position:absolute;
+  left:50%;top:50%;
+  width:min(365px,67vw);
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:35%;
+  pointer-events:none;
+  z-index:1;
+  filter:drop-shadow(0 0 8px rgba(255,32,51,.45));
+  animation:heroOrbitSpin 13s linear infinite;
+}
+.hero-neon-orbit:before,
+.hero-neon-orbit:after{
+  content:"";
+  position:absolute;
+  inset:-12px;
+  border-radius:38%;
+  border:1px solid transparent;
+  background:
+    linear-gradient(transparent,transparent) padding-box,
+    conic-gradient(from 15deg,
+      transparent 0 10%,
+      rgba(255,32,51,.08) 10% 18%,
+      #ff2033 18% 23%,
+      transparent 23% 48%,
+      rgba(255,32,51,.18) 48% 55%,
+      transparent 55% 74%,
+      #ff2033 74% 78%,
+      transparent 78% 100%) border-box;
+  box-shadow:0 0 16px rgba(255,32,51,.20),0 0 38px rgba(255,32,51,.10);
+}
+.hero-neon-orbit:after{
+  inset:18px;
+  border-radius:31%;
+  animation:heroOrbitCounter 8s linear infinite;
+  opacity:.7;
+  transform:rotate(18deg);
+}
+.hero-neon-dot{
+  position:absolute;
+  width:7px;height:7px;border-radius:50%;
+  background:#ff2033;
+  box-shadow:0 0 7px #ff2033,0 0 22px rgba(255,32,51,.9);
+}
+.hero-neon-dot.d1{left:6%;top:24%;animation:heroDot1 5.5s ease-in-out infinite}
+.hero-neon-dot.d2{right:8%;bottom:20%;animation:heroDot2 6.5s ease-in-out infinite}
+.hero-neon-dot.d3{right:20%;top:7%;width:4px;height:4px;animation:heroDot3 4.8s ease-in-out infinite}
+.hero-neon-streak{
+  position:absolute;
+  width:85px;height:2px;
+  background:linear-gradient(90deg,transparent,#ff2033,transparent);
+  box-shadow:0 0 10px #ff2033;
+  opacity:.55;
+  transform:rotate(-28deg);
+  animation:heroStreak 4.2s ease-in-out infinite;
+}
+.hero-neon-streak.s1{left:-3%;top:31%}
+.hero-neon-streak.s2{right:-3%;bottom:30%;transform:rotate(152deg);animation-delay:2s}
+
+@keyframes heroOrbitSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes heroOrbitCounter{to{transform:rotate(-360deg)}}
+@keyframes heroDot1{0%,100%{transform:translate(0,0);opacity:.35}50%{transform:translate(10px,-15px);opacity:1}}
+@keyframes heroDot2{0%,100%{transform:translate(0,0);opacity:.3}50%{transform:translate(-13px,10px);opacity:.95}}
+@keyframes heroDot3{0%,100%{opacity:.2}50%{opacity:1;transform:scale(1.7)}}
+@keyframes heroStreak{0%,100%{opacity:0;transform:translateX(-8px) rotate(-28deg)}35%{opacity:.7}60%{opacity:0;transform:translateX(55px) rotate(-28deg)}}
+
 @media(max-width:950px){
   nav{display:none}.menu{display:block}
   .hero-grid{grid-template-columns:1fr}.hero-art{min-height:430px;order:-1}.hero-copy{max-width:700px}
@@ -260,8 +331,14 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
   .mobile-bar a.active{color:#fff;background:rgba(255,32,51,.12)}
   footer{padding-bottom:105px}.footer-inner{display:block}.footer-note{margin-top:10px}
 }
+.hero-neon-orbit{width:min(275px,70vw)}
+.hero-neon-orbit:before{inset:-8px}
+.hero-neon-orbit:after{inset:12px}
+.hero-neon-streak{width:58px}
+
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+  .hero-neon-orbit{transform:translate(-50%,-50%)!important}
 }
 /* =========================================================
    ONI & KISHIN — V6 CINEMATIC HOMEPAGE OPENING
@@ -378,8 +455,9 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
   position:absolute;left:50%;top:50%;width:min(355px,67vw);aspect-ratio:1;
   transform:translate(-50%,-50%) scale(.82);border:1px solid transparent;border-radius:32%;
   box-shadow:0 0 0 1px rgba(255,32,51,.04),0 0 55px rgba(255,32,51,.08);
-  opacity:0;z-index:7;
-  background:linear-gradient(#050507,#050507) padding-box,
+  opacity:0;z-index:7;pointer-events:none;
+  /* IMPORTANT: transparent center — never cover the clan image with a black square */
+  background:linear-gradient(transparent,transparent) padding-box,
              conic-gradient(from -70deg,transparent 0 12%,#ff2033 20%,transparent 29% 54%,#ff2033 65%,transparent 75% 100%) border-box;
   animation:oniFrameIntro 1.45s cubic-bezier(.2,.8,.2,1) 1.48s forwards;
 }
@@ -495,6 +573,13 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 
     <div class="hero-art reveal">
       <div class="art-ring"></div>
+      <div class="hero-neon-orbit" aria-hidden="true">
+        <i class="hero-neon-dot d1"></i>
+        <i class="hero-neon-dot d2"></i>
+        <i class="hero-neon-dot d3"></i>
+        <i class="hero-neon-streak s1"></i>
+        <i class="hero-neon-streak s2"></i>
+      </div>
       <img class="logo-orb" src="oni-kishin-logo.jpg" alt="ONI & KISHIN">
       <div class="orb-card one"><span class="live-dot"></span>CLAN STATUS<b><span id="heroCount">0</span> / 52 MEMBERS</b></div>
       <div class="orb-card two">STYLE<b>ANIME × CLEAN × DRIFT</b></div>
