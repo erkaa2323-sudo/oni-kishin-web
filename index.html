@@ -1959,6 +1959,115 @@ footer{
   .member-modal{padding:14px}.member-modal-name{font-size:26px}
 }
 
+
+/* =========================================================
+   FINAL MOBILE HERO FIX
+   Prevent clan artwork from covering HUD cards/text.
+   Keep orbit visible behind the artwork.
+   ========================================================= */
+.hero-art{
+  position:relative!important;
+  overflow:visible!important;
+  min-height:500px!important;
+  isolation:isolate!important;
+}
+.hero-art .art-ring{
+  z-index:0!important;
+}
+.hero-neon-orbit{
+  z-index:2!important;
+}
+.hero-art .logo-orb{
+  z-index:5!important;
+  position:relative!important;
+}
+.hero-art .orb-card{
+  z-index:9!important;
+  position:absolute!important;
+}
+.hero-art .orb-card.one{
+  top:9%!important;
+  right:-2%!important;
+}
+.hero-art .orb-card.two{
+  bottom:9%!important;
+  left:-2%!important;
+}
+.hero-art .hero-eye-glow{
+  z-index:6!important;
+}
+
+/* Mobile: make the artwork smaller so the HUD remains readable. */
+@media(max-width:800px){
+  .hero{
+    padding-top:92px!important;
+    padding-bottom:30px!important;
+  }
+  .hero-art{
+    min-height:390px!important;
+    margin-top:8px!important;
+  }
+  .hero-art .logo-orb{
+    width:min(280px,68vw)!important;
+    height:min(280px,68vw)!important;
+  }
+  .hero-art:before{
+    width:min(315px,76vw)!important;
+    height:min(315px,76vw)!important;
+  }
+  .hero-neon-orbit{
+    width:min(305px,76vw)!important;
+  }
+  .hero-art .orb-card{
+    min-width:150px!important;
+    max-width:180px!important;
+    padding:11px 12px!important;
+    font-size:8px!important;
+    line-height:1.25!important;
+  }
+  .hero-art .orb-card b{
+    font-size:11px!important;
+    margin-top:4px!important;
+  }
+  .hero-art .orb-card.one{
+    top:5%!important;
+    right:-1%!important;
+  }
+  .hero-art .orb-card.two{
+    bottom:5%!important;
+    left:-1%!important;
+  }
+}
+
+@media(max-width:520px){
+  .hero-art{
+    min-height:350px!important;
+  }
+  .hero-art .logo-orb{
+    width:min(250px,64vw)!important;
+    height:min(250px,64vw)!important;
+  }
+  .hero-neon-orbit{
+    width:min(275px,70vw)!important;
+  }
+  .hero-art:before{
+    width:min(285px,73vw)!important;
+    height:min(285px,73vw)!important;
+  }
+  .hero-art .orb-card{
+    min-width:136px!important;
+    max-width:158px!important;
+  }
+  .hero-art .orb-card.one{
+    right:0!important;
+    top:2%!important;
+  }
+  .hero-art .orb-card.two{
+    left:0!important;
+    bottom:2%!important;
+  }
+}
+
 </style>
 </head>
 
