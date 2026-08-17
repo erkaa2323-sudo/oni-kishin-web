@@ -71,6 +71,8 @@ header.scrolled{background:rgba(5,5,7,.88);border-color:var(--line)}
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:900;letter-spacing:.08em}
 .brand img{width:43px;height:43px;border-radius:14px;object-fit:cover;border:1px solid var(--line2);box-shadow:0 0 30px rgba(255,32,51,.18)}
 .brand b{color:var(--red)}
+.brand-fallback{display:none;width:43px;height:43px;border-radius:14px;place-items:center;background:#111118;border:1px solid rgba(255,255,255,.15);color:#fff;font-size:20px}
+@media(max-width:650px){.brand-fallback{width:39px;height:39px}}
 nav{display:flex;align-items:center;gap:7px}
 nav a{padding:10px 12px;color:#b9b9c3;text-decoration:none;font-size:13px;font-weight:700;border-radius:10px}
 nav a:hover,nav a.active{color:#fff;background:rgba(255,255,255,.06)}
@@ -115,7 +117,7 @@ section{padding:110px 0;position:relative}
 }
 .art-ring:before,.art-ring:after{content:"";position:absolute;inset:9%;border-radius:50%;border:1px dashed rgba(255,255,255,.10)}
 .art-ring:after{inset:20%;border-color:rgba(255,32,51,.20);animation:spin 22s linear infinite}
-.logo-wrap{position:relative;z-index:2;display:grid;place-items:center}.logo-fallback{display:none;width:min(285px,55vw);aspect-ratio:1;border-radius:34%;place-items:center;text-align:center;font-family:"Space Grotesk";font-size:95px;font-weight:700;color:#fff;background:radial-gradient(circle at 50% 35%,#331018,#09090c 65%);border:1px solid rgba(255,255,255,.18);box-shadow:0 0 0 12px rgba(255,255,255,.025),0 0 100px rgba(255,32,51,.24),0 35px 80px rgba(0,0,0,.7)}.logo-fallback small{font-family:Inter;font-size:14px;letter-spacing:.3em;color:#ff2033}.brand-fallback{display:none;width:43px;height:43px;border-radius:14px;place-items:center;background:#111118;border:1px solid rgba(255,255,255,.15);color:#fff;font-size:20px}.logo-orb{
+.logo-orb{
   width:min(285px,55vw);aspect-ratio:1;border-radius:34%;object-fit:cover;position:relative;z-index:2;
   border:1px solid rgba(255,255,255,.18);
   box-shadow:0 0 0 12px rgba(255,255,255,.025),0 0 100px rgba(255,32,51,.24),0 35px 80px rgba(0,0,0,.7);
@@ -226,172 +228,12 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 
 .mobile-bar{display:none}
 
-.reveal{opacity:1;transform:none;transition:opacity .7s ease,transform .7s ease}.js .reveal{opacity:0;transform:translateY(20px)}.js .reveal.visible{opacity:1;transform:none}
+.reveal{opacity:1;transform:none;transition:opacity .7s ease,transform .7s ease}.reveal.visible{opacity:1;transform:none}
+
 
 @keyframes float{50%{transform:translateY(-9px) rotate(1deg)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes marquee{to{transform:translateX(-50%)}}
-
-
-
-/* ===== ONI & KISHIN LUXURY UI V3 ===== */
-body{background:
- radial-gradient(circle at 78% 8%,rgba(255,24,52,.13),transparent 24%),
- radial-gradient(circle at 12% 48%,rgba(101,63,255,.08),transparent 27%),
- linear-gradient(180deg,#020204 0%,#050507 45%,#020203 100%);
-}
-body:before{opacity:.38;mix-blend-mode:screen}
-header{background:rgba(3,3,6,.68)!important;backdrop-filter:blur(22px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
-.nav{height:76px}
-.logo{letter-spacing:.09em}
-.hero{position:relative;overflow:hidden}
-.hero:before{content:"";position:absolute;width:620px;height:620px;border-radius:50%;right:-170px;top:-120px;background:radial-gradient(circle,rgba(255,25,52,.20),rgba(255,25,52,.04) 34%,transparent 70%);filter:blur(8px);pointer-events:none}
-.hero:after{content:"";position:absolute;left:-20%;right:-20%;bottom:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:rotate(-3deg);box-shadow:0 0 35px rgba(255,32,56,.3);pointer-events:none}
-.hero h1{text-shadow:0 0 45px rgba(255,25,50,.12);letter-spacing:-.055em}
-.hero .kicker,.section-head .kicker{font-size:10px;letter-spacing:.28em;color:#a6a6b0}
-.btn,.primary,.secondary{border-radius:13px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
-.primary{box-shadow:0 10px 35px rgba(255,24,52,.18)}
-section{position:relative}
-.section-head{position:relative}
-.section-head:after{content:"";position:absolute;right:0;top:18px;width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--red));opacity:.6}
-.garage-toolbar{padding:12px;border:1px solid rgba(255,255,255,.065);border-radius:17px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));backdrop-filter:blur(16px);box-shadow:inset 0 1px rgba(255,255,255,.04),0 20px 55px rgba(0,0,0,.18)}
-.garage-tab{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.025);transition:.25s ease}
-.garage-tab.active{box-shadow:0 0 25px rgba(255,32,56,.14),inset 0 1px rgba(255,255,255,.08)}
-.garage-grid{gap:15px}
-.garage-card{position:relative;border-color:rgba(255,255,255,.085);background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 45%,rgba(0,0,0,.3));box-shadow:0 20px 60px rgba(0,0,0,.24);isolation:isolate}
-.garage-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.16),transparent 28%,transparent 65%,rgba(255,32,56,.14));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:5}
-.garage-card:hover{transform:translateY(-9px) scale(1.008);border-color:rgba(255,32,56,.38);box-shadow:0 28px 80px rgba(0,0,0,.48),0 0 35px rgba(255,32,56,.07)}
-.garage-image{height:255px;background:#07070a}
-.garage-image:before{transition:transform .8s ease,filter .8s ease}
-.garage-card:hover .garage-image:before{transform:scale(1.08);filter:saturate(1.2)}
-.garage-image:after{bottom:12%;height:2px;filter:blur(.2px)}
-.garage-tag{background:rgba(3,3,5,.65);backdrop-filter:blur(10px);border-color:rgba(255,255,255,.12)}
-.garage-id{background:rgba(3,3,5,.48);backdrop-filter:blur(10px)}
-.car-visual{height:90px;top:37%;box-shadow:0 30px 45px rgba(0,0,0,.78),0 0 50px rgba(255,32,56,.14)}
-.car-visual:before{filter:drop-shadow(0 0 12px rgba(255,255,255,.05))}
-.garage-info{background:linear-gradient(180deg,rgba(10,10,14,.25),rgba(6,6,9,.72))}
-.garage-info h3{font-size:22px;letter-spacing:-.045em}
-.garage-arrow{width:29px;height:29px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;transition:.25s}
-.garage-card:hover .garage-arrow{color:#fff;border-color:rgba(255,32,56,.35);transform:translate(2px,-2px)}
-.garage-note{background:linear-gradient(120deg,rgba(255,32,56,.05),rgba(255,255,255,.015));box-shadow:0 20px 55px rgba(0,0,0,.2)}
-.garage-modal-card{background:linear-gradient(145deg,#111117,#07070a 65%);border-color:rgba(255,255,255,.11);box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 60px rgba(255,32,56,.08)}
-.modal-car{box-shadow:inset 0 1px rgba(255,255,255,.08),0 20px 50px rgba(0,0,0,.35)}
-/* luxury stat / card surfaces */
-.stat,.card,.rule,.market-card,.event-card{border-color:rgba(255,255,255,.075)!important;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012))!important;box-shadow:0 18px 55px rgba(0,0,0,.2)}
-footer{border-top-color:rgba(255,255,255,.07)!important}
-/* subtle light sweep */
-@keyframes oniSweep{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
-.garage-card:hover:after{content:"";position:absolute;z-index:4;top:0;bottom:0;width:35%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);transform:skewX(-18deg);animation:oniSweep .8s ease}
-@media(max-width:650px){
- .section-head:after{display:none}
- .garage-toolbar{padding:10px}
- .garage-image{height:205px}
- .garage-grid{gap:10px}
- .garage-card{border-radius:17px}
- .garage-info h3{font-size:17px}
- .garage-info p{font-size:9px}
- .hero:before{width:420px;height:420px;right:-180px}
-}
-
-.garage-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px}
-.garage-tabs{display:flex;gap:7px;flex-wrap:wrap}
-.garage-tab{border:1px solid var(--line);background:rgba(255,255,255,.035);color:#81828d;padding:9px 12px;border-radius:10px;font-size:9px;font-weight:900;letter-spacing:.12em}
-.garage-tab:hover,.garage-tab.active{color:#fff;border-color:rgba(255,32,51,.42);background:rgba(255,32,51,.10)}
-.garage-count{font-size:9px;font-weight:900;color:#666;letter-spacing:.12em}
-.garage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.garage-card{border:1px solid var(--line);border-radius:20px;background:#0b0b0f;overflow:hidden;cursor:pointer;transition:.28s ease}
-.garage-card:hover{transform:translateY(-7px);border-color:rgba(255,32,51,.35);box-shadow:0 22px 50px rgba(0,0,0,.35)}
-.garage-card.hidden{display:none}
-.garage-image{height:230px;position:relative;overflow:hidden;background:#0a0a0d}
-.garage-image:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 35%,rgba(255,32,51,.18),transparent 35%),linear-gradient(135deg,#18131a,#08080b 70%)}
-.garage-image.clean-art:before{background:radial-gradient(circle at 70% 30%,rgba(141,92,255,.18),transparent 35%),linear-gradient(135deg,#12141b,#08080b 70%)}
-.garage-image.drift-art:before{background:radial-gradient(circle at 75% 30%,rgba(255,209,102,.14),transparent 32%),linear-gradient(135deg,#18160f,#08080b 70%)}
-.garage-image.rare-art:before{background:radial-gradient(circle at 65% 25%,rgba(66,230,164,.13),transparent 32%),linear-gradient(135deg,#101a17,#08080b 70%)}
-.garage-image:after{content:"";position:absolute;left:-20%;right:-20%;bottom:17%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:rotate(-7deg)}
-.garage-tag,.garage-id{position:absolute;top:13px;z-index:3;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.10);font-size:8px;font-weight:900;letter-spacing:.12em}
-.garage-tag{left:13px;color:#ddd}.garage-id{right:13px;color:#666}
-.car-visual{position:absolute;z-index:2;left:8%;right:8%;top:36%;height:82px;border-radius:58% 30% 20% 32%;transform:skewX(-12deg);background:linear-gradient(160deg,#303038,#0b0b0f 70%);border:1px solid rgba(255,255,255,.14);box-shadow:0 28px 35px rgba(0,0,0,.75),0 0 35px rgba(255,32,51,.10)}
-.car-visual:before{content:"";position:absolute;left:24%;right:17%;top:-23px;height:40px;clip-path:polygon(18% 100%,31% 0,77% 0,92% 100%);background:linear-gradient(160deg,#28282f,#08080b);border:1px solid rgba(255,255,255,.08)}
-.car-visual:after{content:"";position:absolute;left:9%;right:8%;bottom:12px;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 14px var(--red)}
-.car-visual.m4{background:linear-gradient(160deg,#44434a,#111116 70%)}.car-visual.drift{background:linear-gradient(160deg,#403a25,#0c0c0e 70%)}.car-visual.918{background:linear-gradient(160deg,#34483f,#0a0d0c 70%)}
-.wheel{position:absolute;width:35px;height:35px;border-radius:50%;background:#020204;border:5px solid #19191f;bottom:-13px;box-shadow:inset 0 0 0 3px #050507}
-.w1{left:10%}.w2{right:11%}
-.garage-info{padding:16px 17px 18px}.garage-info>div:first-child{display:flex;justify-content:space-between;align-items:center}
-.garage-type{font-size:8px;font-weight:900;letter-spacing:.13em;color:#666772}.garage-arrow{color:#777;font-size:14px}
-.garage-info h3{font-family:"Space Grotesk";font-size:21px;margin:11px 0 5px;letter-spacing:-.03em}.garage-info p{margin:0;color:#747580;font-size:10px}
-.garage-empty{display:none;padding:28px;text-align:center;color:#686974;border:1px dashed var(--line);border-radius:18px;margin-top:12px}
-.garage-note{display:flex;gap:14px;align-items:flex-start;margin-top:16px;padding:17px 19px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.018)}
-.garage-note>span{color:var(--red);font-size:18px}.garage-note b{display:block;font-size:10px;letter-spacing:.12em}.garage-note small{display:block;color:#73747e;font-size:10px;line-height:1.55;margin-top:4px}
-.garage-modal{display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center;padding:20px}.garage-modal.open{display:flex}
-.garage-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(10px)}
-.garage-modal-card{position:relative;width:min(520px,100%);border:1px solid var(--line2);border-radius:25px;background:#0b0b0f;box-shadow:0 30px 100px rgba(0,0,0,.65);padding:22px;z-index:1}
-.garage-close{position:absolute;right:13px;top:13px;width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.45);color:#fff;font-size:22px;z-index:3}
-.modal-car{height:210px;border-radius:18px;background:radial-gradient(circle at 70% 30%,rgba(255,32,51,.2),transparent 35%),linear-gradient(145deg,#19131a,#07070a);margin-bottom:20px;position:relative;overflow:hidden}
-.modal-car:before{content:"";position:absolute;left:10%;right:10%;top:43%;height:80px;border-radius:55% 30% 20% 30%;background:linear-gradient(160deg,#383841,#0b0b0f);transform:skewX(-12deg);border:1px solid rgba(255,255,255,.14);box-shadow:0 25px 50px #000}
-.modal-kicker{color:var(--red);font-size:9px;font-weight:900;letter-spacing:.16em}.garage-modal-card h3{font-family:"Space Grotesk";font-size:32px;margin:8px 0}.garage-modal-card>p{color:#858691;font-size:12px;line-height:1.7}
-.modal-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.modal-meta div{padding:13px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.modal-meta span{display:block;color:#666;font-size:8px;font-weight:900;letter-spacing:.12em}.modal-meta b{display:block;margin-top:5px;font-size:11px}
-@media(max-width:950px){.garage-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:650px){
-/* ===== ONI & KISHIN LUXURY UI V3 ===== */
-body{background:
- radial-gradient(circle at 78% 8%,rgba(255,24,52,.13),transparent 24%),
- radial-gradient(circle at 12% 48%,rgba(101,63,255,.08),transparent 27%),
- linear-gradient(180deg,#020204 0%,#050507 45%,#020203 100%);
-}
-body:before{opacity:.38;mix-blend-mode:screen}
-header{background:rgba(3,3,6,.68)!important;backdrop-filter:blur(22px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
-.nav{height:76px}
-.logo{letter-spacing:.09em}
-.hero{position:relative;overflow:hidden}
-.hero:before{content:"";position:absolute;width:620px;height:620px;border-radius:50%;right:-170px;top:-120px;background:radial-gradient(circle,rgba(255,25,52,.20),rgba(255,25,52,.04) 34%,transparent 70%);filter:blur(8px);pointer-events:none}
-.hero:after{content:"";position:absolute;left:-20%;right:-20%;bottom:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:rotate(-3deg);box-shadow:0 0 35px rgba(255,32,56,.3);pointer-events:none}
-.hero h1{text-shadow:0 0 45px rgba(255,25,50,.12);letter-spacing:-.055em}
-.hero .kicker,.section-head .kicker{font-size:10px;letter-spacing:.28em;color:#a6a6b0}
-.btn,.primary,.secondary{border-radius:13px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
-.primary{box-shadow:0 10px 35px rgba(255,24,52,.18)}
-section{position:relative}
-.section-head{position:relative}
-.section-head:after{content:"";position:absolute;right:0;top:18px;width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--red));opacity:.6}
-.garage-toolbar{padding:12px;border:1px solid rgba(255,255,255,.065);border-radius:17px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));backdrop-filter:blur(16px);box-shadow:inset 0 1px rgba(255,255,255,.04),0 20px 55px rgba(0,0,0,.18)}
-.garage-tab{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.025);transition:.25s ease}
-.garage-tab.active{box-shadow:0 0 25px rgba(255,32,56,.14),inset 0 1px rgba(255,255,255,.08)}
-.garage-grid{gap:15px}
-.garage-card{position:relative;border-color:rgba(255,255,255,.085);background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 45%,rgba(0,0,0,.3));box-shadow:0 20px 60px rgba(0,0,0,.24);isolation:isolate}
-.garage-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.16),transparent 28%,transparent 65%,rgba(255,32,56,.14));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:5}
-.garage-card:hover{transform:translateY(-9px) scale(1.008);border-color:rgba(255,32,56,.38);box-shadow:0 28px 80px rgba(0,0,0,.48),0 0 35px rgba(255,32,56,.07)}
-.garage-image{height:255px;background:#07070a}
-.garage-image:before{transition:transform .8s ease,filter .8s ease}
-.garage-card:hover .garage-image:before{transform:scale(1.08);filter:saturate(1.2)}
-.garage-image:after{bottom:12%;height:2px;filter:blur(.2px)}
-.garage-tag{background:rgba(3,3,5,.65);backdrop-filter:blur(10px);border-color:rgba(255,255,255,.12)}
-.garage-id{background:rgba(3,3,5,.48);backdrop-filter:blur(10px)}
-.car-visual{height:90px;top:37%;box-shadow:0 30px 45px rgba(0,0,0,.78),0 0 50px rgba(255,32,56,.14)}
-.car-visual:before{filter:drop-shadow(0 0 12px rgba(255,255,255,.05))}
-.garage-info{background:linear-gradient(180deg,rgba(10,10,14,.25),rgba(6,6,9,.72))}
-.garage-info h3{font-size:22px;letter-spacing:-.045em}
-.garage-arrow{width:29px;height:29px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;transition:.25s}
-.garage-card:hover .garage-arrow{color:#fff;border-color:rgba(255,32,56,.35);transform:translate(2px,-2px)}
-.garage-note{background:linear-gradient(120deg,rgba(255,32,56,.05),rgba(255,255,255,.015));box-shadow:0 20px 55px rgba(0,0,0,.2)}
-.garage-modal-card{background:linear-gradient(145deg,#111117,#07070a 65%);border-color:rgba(255,255,255,.11);box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 60px rgba(255,32,56,.08)}
-.modal-car{box-shadow:inset 0 1px rgba(255,255,255,.08),0 20px 50px rgba(0,0,0,.35)}
-/* luxury stat / card surfaces */
-.stat,.card,.rule,.market-card,.event-card{border-color:rgba(255,255,255,.075)!important;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012))!important;box-shadow:0 18px 55px rgba(0,0,0,.2)}
-footer{border-top-color:rgba(255,255,255,.07)!important}
-/* subtle light sweep */
-@keyframes oniSweep{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
-.garage-card:hover:after{content:"";position:absolute;z-index:4;top:0;bottom:0;width:35%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);transform:skewX(-18deg);animation:oniSweep .8s ease}
-@media(max-width:650px){
- .section-head:after{display:none}
- .garage-toolbar{padding:10px}
- .garage-image{height:205px}
- .garage-grid{gap:10px}
- .garage-card{border-radius:17px}
- .garage-info h3{font-size:17px}
- .garage-info p{font-size:9px}
- .hero:before{width:420px;height:420px;right:-180px}
-}
-
-.garage-toolbar{display:block}.garage-count{margin-top:10px}.garage-grid{grid-template-columns:1fr 1fr}.garage-image{height:185px}.garage-info h3{font-size:18px}.garage-info{padding:13px}.modal-meta{grid-template-columns:1fr}}
 
 @media(max-width:950px){
   nav{display:none}.menu{display:block}
@@ -403,7 +245,7 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
 @media(max-width:650px){
   .nav{height:68px}.brand img{width:39px;height:39px}.brand{font-size:12px}
   main{padding-top:68px}.hero{min-height:auto;padding:80px 0 55px}.hero h1{font-size:clamp(57px,18vw,92px)}
-  .hero-art{min-height:330px}.logo-wrap{position:relative;z-index:2;display:grid;place-items:center}.logo-fallback{display:none;width:min(285px,55vw);aspect-ratio:1;border-radius:34%;place-items:center;text-align:center;font-family:"Space Grotesk";font-size:95px;font-weight:700;color:#fff;background:radial-gradient(circle at 50% 35%,#331018,#09090c 65%);border:1px solid rgba(255,255,255,.18);box-shadow:0 0 0 12px rgba(255,255,255,.025),0 0 100px rgba(255,32,51,.24),0 35px 80px rgba(0,0,0,.7)}.logo-fallback small{font-family:Inter;font-size:14px;letter-spacing:.3em;color:#ff2033}.brand-fallback{display:none;width:43px;height:43px;border-radius:14px;place-items:center;background:#111118;border:1px solid rgba(255,255,255,.15);color:#fff;font-size:20px}.logo-wrap .logo-orb{width:210px}.logo-fallback{width:210px}.art-ring{width:300px}.orb-card{font-size:9px}.orb-card b{font-size:12px}
+  .hero-art{min-height:330px}.logo-orb{width:210px}.art-ring{width:300px}.orb-card{font-size:9px}.orb-card b{font-size:12px}
   section{padding:78px 0}.section-head{display:block}.section-desc{margin-top:15px}
   .stats{grid-template-columns:1fr 1fr}.stat{min-height:125px;padding:17px}.stat-value{font-size:31px;margin-top:13px}
   .bento{grid-template-columns:1fr}.panel.large{grid-column:auto}.rules-grid,.showcase{grid-template-columns:1fr}
@@ -421,226 +263,75 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
-
 /* =========================================================
-   ONI & KISHIN — HERO CINEMATIC V4
-   Only the HOME / HERO visual layer is enhanced.
-   ========================================================= */
-.hero-art{isolation:isolate}
-.hero-art .art-ring{z-index:1;transition:transform .2s ease-out}
-.hero-art .logo-wrap{z-index:7;filter:drop-shadow(0 0 28px rgba(255,32,51,.16))}
-.logo-orb{
-  transform:translateZ(0);
-  transition:filter .35s ease, box-shadow .35s ease;
-}
-.hero-art:hover .logo-orb{
-  filter:saturate(1.08) contrast(1.04);
-  box-shadow:0 0 0 12px rgba(255,255,255,.025),
-             0 0 110px rgba(255,32,51,.34),
-             0 35px 80px rgba(0,0,0,.7);
-}
-
-/* cinematic red atmosphere */
-.oni-cinematic-bg{
-  position:absolute;inset:4%;z-index:0;pointer-events:none;
-  border-radius:50%;
-  background:
-    radial-gradient(circle at 50% 50%,rgba(255,20,42,.13),transparent 34%),
-    radial-gradient(circle at 50% 50%,rgba(255,20,42,.07),transparent 58%);
-  filter:blur(2px);
-  animation:oniPulse 3.8s ease-in-out infinite;
-}
-.oni-cinematic-bg:before{
-  content:"";position:absolute;inset:10%;border-radius:50%;
-  background:conic-gradient(from 0deg,transparent 0 24%,rgba(255,32,51,.14) 29%,transparent 35% 63%,rgba(255,32,51,.10) 68%,transparent 75%);
-  filter:blur(9px);
-  animation:oniRotate 16s linear infinite;
-}
-
-/* moving energy rings */
-.oni-energy-ring{
-  position:absolute;left:50%;top:50%;translate:-50% -50%;
-  border-radius:50%;pointer-events:none;z-index:2;
-  border:1px solid rgba(255,32,51,.12);
-}
-.ring-a{width:min(455px,84vw);aspect-ratio:1;box-shadow:0 0 35px rgba(255,32,51,.07);animation:oniRingA 7s ease-in-out infinite}
-.ring-b{width:min(390px,73vw);aspect-ratio:1;border-style:dashed;border-color:rgba(255,90,105,.15);animation:oniRingB 13s linear infinite}
-.ring-c{width:min(325px,61vw);aspect-ratio:1;border-color:rgba(255,32,51,.10);box-shadow:inset 0 0 40px rgba(255,32,51,.06);animation:oniRingC 5s ease-in-out infinite}
-
-/* premium animated frame around clan logo */
-.oni-frame{
-  position:absolute;left:50%;top:50%;translate:-50% -50%;
-  width:min(345px,66vw);aspect-ratio:1;z-index:6;pointer-events:none;
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:32%;
-  box-shadow:0 0 0 1px rgba(255,32,51,.035),0 0 50px rgba(255,32,51,.08);
-  overflow:hidden;
-}
-.oni-frame:before{
-  content:"";position:absolute;inset:-1px;border-radius:inherit;
-  background:linear-gradient(115deg,transparent 0 28%,rgba(255,32,51,.85) 35%,transparent 43% 69%,rgba(255,32,51,.5) 76%,transparent 83%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;
-  padding:1px;animation:oniFrameSpin 4.8s linear infinite;
-}
-.oni-frame:after{
-  content:"";position:absolute;inset:12px;border-radius:27%;
-  border:1px solid rgba(255,32,51,.10);
-  box-shadow:inset 0 0 28px rgba(255,32,51,.055);
-}
-.corner{
-  position:absolute;width:28px;height:28px;z-index:3;
-  border-color:#ff2033;border-style:solid;
-  filter:drop-shadow(0 0 7px rgba(255,32,51,.8));
-}
-.corner.tl{left:-1px;top:-1px;border-width:2px 0 0 2px}
-.corner.tr{right:-1px;top:-1px;border-width:2px 2px 0 0}
-.corner.bl{left:-1px;bottom:-1px;border-width:0 0 2px 2px}
-.corner.br{right:-1px;bottom:-1px;border-width:0 2px 2px 0}
-.frame-sweep{
-  position:absolute;left:-35%;top:0;width:22%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
-  transform:skewX(-18deg);filter:blur(2px);
-  animation:oniSweepHero 3.6s ease-in-out infinite;
-}
-
-/* subtle red "eyes" behind the emblem */
-.oni-eyes{
-  position:absolute;left:50%;top:50%;translate:-50% -50%;
-  width:min(300px,57vw);height:min(135px,26vw);z-index:3;
-  pointer-events:none;
-}
-.oni-eyes i{
-  position:absolute;top:50%;width:68px;height:18px;
-  border-radius:50%;
-  background:radial-gradient(ellipse at center,#fff 0 4%,#ff2033 17%,#ff2033 38%,transparent 72%);
-  filter:blur(.3px);opacity:.68;
-  box-shadow:0 0 12px #ff2033,0 0 35px rgba(255,32,51,.72),0 0 70px rgba(255,32,51,.32);
-  animation:oniEye 2.8s ease-in-out infinite;
-}
-.oni-eyes i:first-child{left:7%;transform:rotate(-9deg)}
-.oni-eyes i:last-child{right:7%;transform:rotate(9deg);animation-delay:.16s}
-.oni-eyes:after{
-  content:"";position:absolute;inset:25% 22%;
-  background:radial-gradient(ellipse,rgba(255,32,51,.16),transparent 67%);
-  filter:blur(12px);
-}
-
-/* floating particles */
-.oni-particle{
-  position:absolute;width:3px;height:3px;border-radius:50%;
-  background:#ff3346;box-shadow:0 0 10px #ff2033,0 0 22px rgba(255,32,51,.55);
-  opacity:.55;
-  animation:oniParticle 4.5s ease-in-out infinite;
-}
-.p1{left:20%;top:32%;animation-delay:-.7s}.p2{left:76%;top:25%;animation-delay:-2.1s}
-.p3{left:18%;top:68%;animation-delay:-3.2s}.p4{left:82%;top:63%;animation-delay:-1.4s}
-.p5{left:35%;top:12%;animation-delay:-4s}.p6{left:64%;top:88%;animation-delay:-2.7s}
-
-/* depth motion */
-@keyframes oniPulse{
-  0%,100%{transform:scale(.94);opacity:.72}
-  50%{transform:scale(1.05);opacity:1}
-}
-@keyframes oniRotate{to{transform:rotate(360deg)}}
-@keyframes oniRingA{0%,100%{transform:rotate(0deg) scale(.97);opacity:.55}50%{transform:rotate(6deg) scale(1.03);opacity:1}}
-@keyframes oniRingB{to{transform:rotate(-360deg)}}
-@keyframes oniRingC{0%,100%{transform:scale(.96);opacity:.35}50%{transform:scale(1.06);opacity:.85}}
-@keyframes oniFrameSpin{to{transform:rotate(360deg)}}
-@keyframes oniSweepHero{0%{left:-35%;opacity:0}25%{opacity:1}65%{opacity:1}100%{left:125%;opacity:0}}
-@keyframes oniEye{0%,100%{opacity:.32;transform:scaleX(.82)}50%{opacity:.95;transform:scaleX(1.08)}}
-@keyframes oniParticle{0%,100%{transform:translate3d(0,8px,0);opacity:.15}50%{transform:translate3d(10px,-18px,0);opacity:.85}}
-
-@media(max-width:650px){
-  .oni-frame{width:230px}
-  .ring-a{width:285px}.ring-b{width:250px}.ring-c{width:215px}
-  .oni-eyes{width:215px;height:105px}
-  .oni-eyes i{width:48px;height:13px}
-  .oni-cinematic-bg{inset:1%}
-}
-@media(prefers-reduced-motion:reduce){
-  .oni-cinematic-bg,.oni-cinematic-bg:before,.oni-energy-ring,.oni-frame:before,
-  .frame-sweep,.oni-eyes i,.oni-particle{animation:none!important}
-}
-
-
-/* =========================================================
-   ONI & KISHIN — V5 CINEMATIC OPENING
-   0.0–0.5 black/red pulse
-   0.5–1.5 logo reveal + smoke/aura
-   1.5–3.0 slow push + camera drift + neon frame
-   3.0+ subtle residual atmosphere
+   ONI & KISHIN — V6 CINEMATIC HOMEPAGE OPENING
+   0.0–0.5  near-black + weak red pulse
+   0.5–1.5  clan image blur -> clear + breathing aura + smoke
+   1.5–3.0  slow push-in + subtle left/right camera drift + neon frame
+   2.2–3.0  one restrained red light sweep
+   3.0+     subtle residual red atmosphere behind the hero
    ========================================================= */
 .oni-intro{
   position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;
-  background:#010102;
-  opacity:1;
-  animation:oniIntroOut 1.05s cubic-bezier(.65,0,.2,1) 3.05s forwards;
+  background:#010102;opacity:1;visibility:visible;
+  animation:oniIntroOut .72s cubic-bezier(.65,0,.2,1) 3.0s forwards;
+  will-change:opacity,visibility;
 }
 .oni-intro-bg{
-  position:absolute;inset:-12%;
+  position:absolute;inset:-14%;
   background:
-    radial-gradient(circle at 50% 48%,rgba(255,20,42,.13) 0,rgba(255,20,42,.045) 19%,transparent 43%),
-    radial-gradient(circle at 26% 58%,rgba(255,0,35,.06),transparent 30%),
-    radial-gradient(circle at 76% 38%,rgba(155,20,35,.07),transparent 32%),
+    radial-gradient(circle at 50% 50%,rgba(255,20,42,.10) 0,rgba(255,20,42,.035) 20%,transparent 44%),
+    radial-gradient(circle at 18% 62%,rgba(255,0,35,.045),transparent 30%),
+    radial-gradient(circle at 82% 38%,rgba(155,20,35,.045),transparent 32%),
     #010102;
-  filter:blur(10px);
-  animation:oniIntroBg 3.05s ease-out forwards;
+  filter:blur(12px);
+  animation:oniIntroBg 3s ease-out forwards;
+}
+.oni-intro-bg:before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%,rgba(255,25,45,.22),transparent 38%);
+  opacity:0;animation:oniRedBreath 1.35s ease-in-out .05s 2;
 }
 .oni-intro-bg:after{
   content:"";position:absolute;inset:0;
-  background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.72) 100%);
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,.78) 100%);
 }
-
-/* ghost Oni silhouette */
 .oni-intro-oni{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.72);
   font-family:"Noto Sans JP","Yu Gothic",sans-serif;
   font-size:min(36vw,430px);font-weight:900;line-height:1;
-  color:rgba(255,20,42,.018);
-  text-shadow:0 0 90px rgba(255,20,42,.11);
+  color:rgba(255,20,42,.014);
+  text-shadow:0 0 90px rgba(255,20,42,.10);
   opacity:0;
   animation:oniSilhouette 2.7s ease-out .25s forwards;
 }
-
-/* smoke: very slow, never busy */
 .oni-intro-smoke{
   position:absolute;width:58vw;height:34vw;max-width:850px;max-height:500px;
   border-radius:50%;
-  background:
-    radial-gradient(ellipse,rgba(105,105,115,.075) 0%,rgba(50,50,58,.045) 28%,transparent 68%);
-  filter:blur(30px);
-  mix-blend-mode:screen;
-  opacity:0;
+  background:radial-gradient(ellipse,rgba(135,135,145,.065) 0%,rgba(50,50,58,.038) 28%,transparent 68%);
+  filter:blur(30px);mix-blend-mode:screen;opacity:0;
 }
-.smoke-a{left:-12%;bottom:8%;animation:oniSmokeA 3.6s ease-out .25s forwards}
-.smoke-b{right:-15%;top:16%;animation:oniSmokeB 3.8s ease-out .4s forwards}
-
-/* red lightning behind the logo */
+.smoke-a{left:-12%;bottom:8%;animation:oniSmokeA 3.5s ease-out .28s forwards}
+.smoke-b{right:-15%;top:16%;animation:oniSmokeB 3.7s ease-out .42s forwards}
 .oni-intro-lightning{
   position:absolute;left:50%;top:50%;width:min(410px,74vw);height:min(410px,74vw);
-  transform:translate(-50%,-50%) rotate(-8deg);
-  opacity:0;filter:blur(.35px);
+  transform:translate(-50%,-50%) rotate(-8deg);opacity:0;filter:blur(.35px);
 }
-.oni-intro-lightning:before,
-.oni-intro-lightning:after{
+.oni-intro-lightning:before,.oni-intro-lightning:after{
   content:"";position:absolute;inset:0;
   background:
-    linear-gradient(116deg,transparent 0 40%,rgba(255,30,50,.95) 40.5%,transparent 41.5% 100%),
-    linear-gradient(68deg,transparent 0 54%,rgba(255,40,58,.7) 54.5%,transparent 55.5% 100%),
-    linear-gradient(128deg,transparent 0 64%,rgba(255,20,42,.6) 64.5%,transparent 65.5% 100%);
+    linear-gradient(116deg,transparent 0 40%,rgba(255,30,50,.92) 40.5%,transparent 41.5% 100%),
+    linear-gradient(68deg,transparent 0 54%,rgba(255,40,58,.66) 54.5%,transparent 55.5% 100%),
+    linear-gradient(128deg,transparent 0 64%,rgba(255,20,42,.55) 64.5%,transparent 65.5% 100%);
   clip-path:polygon(49% 0,55% 27%,48% 38%,64% 50%,53% 58%,58% 100%,45% 66%,50% 55%,35% 46%,46% 35%);
-  filter:drop-shadow(0 0 9px #ff2033) drop-shadow(0 0 24px rgba(255,32,51,.7));
+  filter:drop-shadow(0 0 9px #ff2033) drop-shadow(0 0 24px rgba(255,32,51,.65));
 }
-.lightning-a{animation:oniLightning 2.7s ease-out .72s forwards}
-.lightning-b{transform:translate(-50%,-50%) rotate(172deg) scale(.72);animation:oniLightning 2.4s ease-out 1.15s forwards}
-
-/* ember field */
-.oni-intro-embers{position:absolute;inset:0;opacity:0;animation:oniEmbersIn 2.5s ease-out .7s forwards}
+.lightning-a{animation:oniLightning 2.55s ease-out .72s forwards}
+.lightning-b{transform:translate(-50%,-50%) rotate(172deg) scale(.72);animation:oniLightning 2.35s ease-out 1.08s forwards}
+.oni-intro-embers{position:absolute;inset:0;opacity:0;animation:oniEmbersIn 2.5s ease-out .68s forwards}
 .oni-intro-embers i{
-  position:absolute;width:3px;height:3px;border-radius:50%;
-  background:#ff3145;box-shadow:0 0 8px #ff2033,0 0 20px rgba(255,32,51,.55);
-  opacity:.7;
+  position:absolute;width:3px;height:3px;border-radius:50%;background:#ff3145;
+  box-shadow:0 0 8px #ff2033,0 0 20px rgba(255,32,51,.5);opacity:.7;
   animation:oniEmberFloat 2.7s ease-in-out infinite;
 }
 .oni-intro-embers i:nth-child(1){left:13%;top:66%;animation-delay:-.3s}
@@ -653,125 +344,118 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
 .oni-intro-embers i:nth-child(8){left:82%;top:36%;animation-delay:-1.7s}
 .oni-intro-embers i:nth-child(9){left:90%;top:77%;animation-delay:-2.3s}
 .oni-intro-embers i:nth-child(10){left:68%;top:89%;animation-delay:-.2s}
-
-/* premium neon frame appears during 1.5–3 sec */
+.oni-intro-art{
+  position:absolute;left:50%;top:50%;width:min(430px,78vw);aspect-ratio:1;
+  transform:translate(-50%,-50%);display:grid;place-items:center;z-index:5;
+  animation:oniCameraDrift 2.0s cubic-bezier(.2,.7,.2,1) 1.0s forwards;
+}
+.oni-intro-art img{
+  width:82%;height:82%;object-fit:cover;border-radius:32%;position:relative;z-index:2;
+  opacity:0;filter:blur(18px) saturate(.72) brightness(.38);
+  box-shadow:0 0 0 1px rgba(255,32,51,.14),0 0 90px rgba(255,20,42,.20),0 0 150px rgba(255,20,42,.08);
+  animation:oniLogoReveal 2.05s cubic-bezier(.2,.7,.2,1) .48s forwards;
+}
+/* Breathing red aura behind the clan image */
+.oni-intro-art:before{
+  content:"";position:absolute;inset:4%;border-radius:34%;z-index:1;
+  background:radial-gradient(circle,rgba(255,20,42,.30) 0,rgba(255,20,42,.13) 34%,transparent 70%);
+  filter:blur(22px);opacity:0;transform:scale(.82);
+  animation:oniAuraBreath 1.25s ease-in-out .72s 2,oniAuraRest 1s ease-out 2.95s forwards;
+}
+.oni-intro-art:after{
+  content:"";position:absolute;inset:7%;border-radius:34%;z-index:4;pointer-events:none;
+  border:1px solid rgba(255,32,51,.13);
+  box-shadow:inset 0 0 70px rgba(0,0,0,.76),0 0 65px rgba(255,20,42,.14);
+}
+/* This is intentionally a restrained eye-area glow; it works with anime artwork without altering the source image. */
+.oni-intro-eye-glow{
+  position:absolute;inset:9%;z-index:6;pointer-events:none;border-radius:30%;
+  background:radial-gradient(ellipse at 50% 43%,rgba(255,20,42,0) 0 20%,rgba(255,20,42,.18) 27%,transparent 43%);
+  mix-blend-mode:screen;opacity:0;filter:blur(3px);
+  animation:oniEyePulse 1.15s ease-out 1.32s forwards;
+}
 .oni-intro-frame{
   position:absolute;left:50%;top:50%;width:min(355px,67vw);aspect-ratio:1;
-  transform:translate(-50%,-50%) scale(.84);
-  border:1px solid transparent;border-radius:32%;
-  box-shadow:0 0 0 1px rgba(255,32,51,.03),0 0 55px rgba(255,32,51,.05);
-  opacity:0;
+  transform:translate(-50%,-50%) scale(.82);border:1px solid transparent;border-radius:32%;
+  box-shadow:0 0 0 1px rgba(255,32,51,.04),0 0 55px rgba(255,32,51,.08);
+  opacity:0;z-index:7;
   background:linear-gradient(#050507,#050507) padding-box,
-             conic-gradient(from -70deg,transparent 0 16%,#ff2033 23%,transparent 31% 58%,#ff2033 68%,transparent 77%) border-box;
-  animation:oniFrameIntro 1.5s cubic-bezier(.2,.8,.2,1) 1.42s forwards;
+             conic-gradient(from -70deg,transparent 0 12%,#ff2033 20%,transparent 29% 54%,#ff2033 65%,transparent 75% 100%) border-box;
+  animation:oniFrameIntro 1.45s cubic-bezier(.2,.8,.2,1) 1.48s forwards;
 }
 .oni-intro-frame:before{
-  content:"";position:absolute;inset:10px;border:1px solid rgba(255,32,51,.12);
-  border-radius:27%;box-shadow:inset 0 0 35px rgba(255,32,51,.05);
+  content:"";position:absolute;inset:10px;border:1px solid rgba(255,32,51,.12);border-radius:27%;
+  box-shadow:inset 0 0 35px rgba(255,32,51,.05);
 }
 .oni-intro-frame:after{
-  content:"";position:absolute;inset:-8px;border-radius:35%;
-  border:1px solid rgba(255,32,51,.16);
+  content:"";position:absolute;inset:-8px;border-radius:35%;border:1px solid rgba(255,32,51,.18);
   filter:blur(1px);opacity:.7;
 }
-
-/* one clean full-screen sweep near the end */
 .oni-intro-sweep{
   position:absolute;top:-15%;bottom:-15%;left:-45%;width:24%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.08) 48%,rgba(255,32,51,.15),transparent);
-  filter:blur(8px);transform:skewX(-15deg);
-  opacity:0;
-  animation:oniScreenSweep 1.05s ease-in-out 2.45s forwards;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.07) 48%,rgba(255,32,51,.16),transparent);
+  filter:blur(8px);transform:skewX(-15deg);opacity:0;
+  animation:oniScreenSweep 1.0s ease-in-out 2.35s forwards;
 }
-
-/* Timeline */
-@keyframes oniIntroBg{
-  0%{transform:scale(1.15);opacity:.28}
-  16%{opacity:1}
-  48%{transform:scale(1.03);opacity:1}
-  100%{transform:scale(1);opacity:.78}
-}
-@keyframes oniSilhouette{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.72)}
-  42%{opacity:.8}
-  100%{opacity:.16;transform:translate(-50%,-50%) scale(1)}
-}
-@keyframes oniSmokeA{
-  0%{opacity:0;transform:translate3d(-8%,8%,0) scale(.75)}
-  35%{opacity:.5}
-  100%{opacity:.18;transform:translate3d(15%,-7%,0) scale(1.18)}
-}
-@keyframes oniSmokeB{
-  0%{opacity:0;transform:translate3d(10%,-5%,0) scale(.7)}
-  35%{opacity:.42}
-  100%{opacity:.14;transform:translate3d(-12%,9%,0) scale(1.15)}
-}
-@keyframes oniLightning{
-  0%,30%{opacity:0}
-  34%{opacity:.9}
-  37%{opacity:.12}
-  41%{opacity:.8}
-  46%{opacity:.08}
-  100%{opacity:0}
-}
-@keyframes oniEmbersIn{
-  0%{opacity:0}35%{opacity:.8}100%{opacity:.42}
-}
-@keyframes oniEmberFloat{
-  0%,100%{transform:translate3d(0,8px,0) scale(.65);opacity:.2}
-  50%{transform:translate3d(9px,-22px,0) scale(1);opacity:.85}
-}
-@keyframes oniFrameIntro{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.84) rotate(-3deg)}
-  30%{opacity:1}
-  100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}
-}
-@keyframes oniScreenSweep{
-  0%{left:-45%;opacity:0}
-  18%{opacity:1}
-  72%{opacity:.65}
-  100%{left:125%;opacity:0}
-}
-@keyframes oniIntroOut{
-  0%{opacity:1}
-  58%{opacity:.96}
-  100%{opacity:0;visibility:hidden}
-}
+@keyframes oniIntroBg{0%{transform:scale(1.18);opacity:.22}16%{opacity:1}50%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:.82}}
+@keyframes oniRedBreath{0%,100%{opacity:.04;transform:scale(.94)}50%{opacity:.7;transform:scale(1.08)}}
+@keyframes oniSilhouette{0%{opacity:0;transform:translate(-50%,-50%) scale(.72)}42%{opacity:.72}100%{opacity:.14;transform:translate(-50%,-50%) scale(1)}}
+@keyframes oniSmokeA{0%{opacity:0;transform:translate3d(-8%,8%,0) scale(.75)}35%{opacity:.42}100%{opacity:.15;transform:translate3d(15%,-7%,0) scale(1.18)}}
+@keyframes oniSmokeB{0%{opacity:0;transform:translate3d(10%,-5%,0) scale(.7)}35%{opacity:.36}100%{opacity:.13;transform:translate3d(-12%,9%,0) scale(1.15)}}
+@keyframes oniLightning{0%,30%{opacity:0}34%{opacity:.86}37%{opacity:.10}41%{opacity:.74}46%{opacity:.05}100%{opacity:0}}
+@keyframes oniEmbersIn{0%{opacity:0}35%{opacity:.72}100%{opacity:.38}}
+@keyframes oniEmberFloat{0%,100%{transform:translate3d(0,8px,0) scale(.65);opacity:.18}50%{transform:translate3d(9px,-22px,0) scale(1);opacity:.82}}
+@keyframes oniLogoReveal{0%{opacity:0;filter:blur(18px) saturate(.65) brightness(.28);transform:scale(.88)}45%{opacity:.72;filter:blur(7px) saturate(.9) brightness(.55);transform:scale(.94)}100%{opacity:1;filter:blur(0) saturate(1.08) brightness(.90);transform:scale(1.04)}}
+@keyframes oniCameraDrift{0%{transform:translate(-50%,-50%) translateX(-10px) scale(.94)}50%{transform:translate(-50%,-50%) translateX(9px) scale(1.015)}100%{transform:translate(-50%,-50%) translateX(0) scale(1.06)}}
+@keyframes oniAuraBreath{0%,100%{opacity:.16;transform:scale(.86)}50%{opacity:.58;transform:scale(1.08)}}
+@keyframes oniAuraRest{0%{opacity:.25}100%{opacity:.08;transform:scale(1.02)}}
+@keyframes oniEyePulse{0%{opacity:0;transform:scale(.88)}28%{opacity:.15}45%{opacity:1;transform:scale(1)}60%{opacity:.12}100%{opacity:.08;transform:scale(1.03)}}
+@keyframes oniFrameIntro{0%{opacity:0;transform:translate(-50%,-50%) scale(.82) rotate(-3deg)}30%{opacity:1}100%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(0)}}
+@keyframes oniScreenSweep{0%{left:-45%;opacity:0}18%{opacity:1}72%{opacity:.62}100%{left:125%;opacity:0}}
+@keyframes oniIntroOut{0%{opacity:1;visibility:visible}75%{opacity:.96}100%{opacity:0;visibility:hidden}}
+/* Residual atmosphere after the opening: very subtle, not a permanent animation over the page. */
+.hero:before{content:"";position:absolute;left:50%;top:42%;width:min(900px,110vw);height:500px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,20,42,.055),transparent 66%);filter:blur(24px);pointer-events:none;opacity:.45;}
 @media(max-width:650px){
-  .oni-intro-frame{width:235px}
-  .oni-intro-lightning{width:280px;height:280px}
-  .oni-intro-oni{font-size:56vw}
+  .oni-intro-frame{width:235px}.oni-intro-lightning{width:280px;height:280px}.oni-intro-oni{font-size:56vw}
+  .oni-intro-art{width:min(330px,78vw)}.oni-intro-art img{width:84%;height:84%}
 }
-@media(prefers-reduced-motion:reduce){
-  .oni-intro{display:none!important}
-}
-
+@media(prefers-reduced-motion:reduce){.oni-intro{animation:none!important;opacity:0!important;visibility:hidden!important}.oni-intro *{animation:none!important}.hero:before{opacity:.2}}
 </style>
 </head>
 
 <body>
-
-  <!-- ONI & KISHIN V5 CINEMATIC INTRO -->
-  <div class="oni-intro" id="oniIntro" aria-hidden="true">
-    <div class="oni-intro-bg"></div>
-    <div class="oni-intro-smoke smoke-a"></div>
-    <div class="oni-intro-smoke smoke-b"></div>
-    <div class="oni-intro-oni">鬼</div>
-    <div class="oni-intro-lightning lightning-a"></div>
-    <div class="oni-intro-lightning lightning-b"></div>
-    <div class="oni-intro-embers">
-      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-    </div>
-    <div class="oni-intro-frame"></div>
-    <div class="oni-intro-sweep"></div>
+<!-- ONI & KISHIN V5.1 CINEMATIC INTRO -->
+<div class="oni-intro" id="oniIntro" aria-hidden="true">
+  <div class="oni-intro-bg"></div>
+  <div class="oni-intro-smoke smoke-a"></div>
+  <div class="oni-intro-smoke smoke-b"></div>
+  <div class="oni-intro-oni">鬼</div>
+  <div class="oni-intro-lightning lightning-a"></div>
+  <div class="oni-intro-lightning lightning-b"></div>
+  <div class="oni-intro-embers"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="oni-intro-art">
+    <img src="oni-kishin-logo.jpg" alt="ONI & KISHIN" onerror="this.style.display='none'">
+    <div class="oni-intro-eye-glow"></div>
   </div>
+  <div class="oni-intro-frame"></div>
+  <div class="oni-intro-sweep"></div>
+</div>
+
+<script>
+(function(){
+  function revealSite(){ document.body.classList.add("reveal-ready"); }
+  window.addEventListener("load",function(){ setTimeout(revealSite,3050); });
+  setTimeout(revealSite,3600);
+})();
+</script>
 
 <a class="skip" href="#home">Үндсэн хэсэг рүү очих</a>
 
 <header id="siteHeader">
   <div class="container nav">
     <a class="brand" href="#home">
-      <img src="oni-kishin-logo.jpg" alt="ONI & KISHIN logo" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="brand-fallback">鬼</span>
+      <img src="oni-kishin-logo.jpg" alt="ONI & KISHIN logo" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
+      <span class="brand-fallback">鬼</span>
       <span>ONI <b>&</b> KISHIN</span>
     </a>
     <nav id="desktopNav">
@@ -810,25 +494,8 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
     </div>
 
     <div class="hero-art reveal">
-      <div class="oni-cinematic-bg" aria-hidden="true">
-        <span class="oni-particle p1"></span><span class="oni-particle p2"></span>
-        <span class="oni-particle p3"></span><span class="oni-particle p4"></span>
-        <span class="oni-particle p5"></span><span class="oni-particle p6"></span>
-      </div>
-      <div class="oni-energy-ring ring-a" aria-hidden="true"></div>
-      <div class="oni-energy-ring ring-b" aria-hidden="true"></div>
-      <div class="oni-energy-ring ring-c" aria-hidden="true"></div>
-      <div class="oni-frame" aria-hidden="true">
-        <i class="corner tl"></i><i class="corner tr"></i>
-        <i class="corner bl"></i><i class="corner br"></i>
-        <span class="frame-sweep"></span>
-      </div>
-      <div class="oni-eyes" aria-hidden="true">
-        <i></i><i></i>
-      </div>
       <div class="art-ring"></div>
-      <div class="art-ring"></div>
-      <div class="logo-wrap"><img class="logo-orb" src="oni-kishin-logo.jpg" alt="ONI & KISHIN" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="logo-fallback" aria-hidden="true">鬼<br><small>ONI</small></div></div>
+      <img class="logo-orb" src="oni-kishin-logo.jpg" alt="ONI & KISHIN">
       <div class="orb-card one"><span class="live-dot"></span>CLAN STATUS<b><span id="heroCount">0</span> / 52 MEMBERS</b></div>
       <div class="orb-card two">STYLE<b>ANIME × CLEAN × DRIFT</b></div>
     </div>
@@ -874,101 +541,21 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
 <section id="garage">
   <div class="container">
     <div class="section-head reveal">
-      <div>
-        <div class="kicker">02 / ONI GARAGE V2</div>
-        <h2>THE<br><span style="color:#fff">COLLECTION</span><span style="color:var(--red)">.</span></h2>
-      </div>
-      <p class="section-desc">ONI & KISHIN-ийн машинуудыг style, build болон owner-оор нь showcase хийх шинэ Garage. Card дээр дарж дэлгэрэнгүй мэдээллийг үзнэ.</p>
+      <div><div class="kicker">02 / ONI GARAGE</div><h2>BUILT TO<br>BE SEEN.</h2></div>
+      <p class="section-desc">Clan-ийн гол өнгө төрх: anime car, clean build, rare setup. Доорх showcase нь дараа нь admin-аас бодит машинуудын мэдээллээр өргөжүүлэхэд бэлэн.</p>
     </div>
-
-    <div class="garage-toolbar reveal">
-      <div class="garage-tabs" role="tablist" aria-label="Garage filter">
-        <button class="garage-tab active" data-filter="all">ALL</button>
-        <button class="garage-tab" data-filter="anime">ANIME</button>
-        <button class="garage-tab" data-filter="clean">CLEAN</button>
-        <button class="garage-tab" data-filter="drift">DRIFT</button>
-        <button class="garage-tab" data-filter="rare">RARE</button>
-      </div>
-      <div class="garage-count"><span id="garageVisible">4</span> BUILDS</div>
-    </div>
-
-    <div class="garage-grid">
-      <article class="garage-card reveal" data-type="anime" data-title="ITASHA R33" data-owner="ONI MEMBER" data-build="Anime / Night Spec" data-detail="Character livery • detailed wheels • night setup">
-        <div class="garage-image anime-art">
-          <div class="car-visual r33"><i class="wheel w1"></i><i class="wheel w2"></i></div>
-          <span class="garage-tag">ANIME</span>
-          <span class="garage-id">01</span>
-        </div>
-        <div class="garage-info">
-          <div><span class="garage-type">ITASHA / NIGHT</span><span class="garage-arrow">↗</span></div>
-          <h3>ITASHA R33</h3>
-          <p>Anime livery · Night setup</p>
-        </div>
+    <div class="showcase">
+      <article class="show-card reveal">
+        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
+        <div class="show-content"><span class="tag">01 / ANIME BUILD</span><h3>ITASHA DIVISION</h3><p>Character livery • detail • night spec</p></div>
       </article>
-
-      <article class="garage-card reveal" data-type="clean" data-title="OEM+ M4" data-owner="ONI MEMBER" data-build="Clean / OEM+" data-detail="Clean stance • OEM+ details • street spec">
-        <div class="garage-image clean-art">
-          <div class="car-visual m4"><i class="wheel w1"></i><i class="wheel w2"></i></div>
-          <span class="garage-tag">CLEAN</span>
-          <span class="garage-id">02</span>
-        </div>
-        <div class="garage-info">
-          <div><span class="garage-type">OEM+ / STREET</span><span class="garage-arrow">↗</span></div>
-          <h3>OEM+ M4</h3>
-          <p>Clean stance · Street spec</p>
-        </div>
+      <article class="show-card purple reveal">
+        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
+        <div class="show-content"><span class="tag">02 / CLEAN BUILD</span><h3>NIGHT SPEC</h3><p>OEM+ • stance • clean finish</p></div>
       </article>
-
-      <article class="garage-card reveal" data-type="drift" data-title="KISHIN DRIFT" data-owner="KISHIN DIVISION" data-build="Drift / Battle" data-detail="Aggressive setup • drift livery • battle spec">
-        <div class="garage-image drift-art">
-          <div class="car-visual drift"><i class="wheel w1"></i><i class="wheel w2"></i></div>
-          <span class="garage-tag">DRIFT</span>
-          <span class="garage-id">03</span>
-        </div>
-        <div class="garage-info">
-          <div><span class="garage-type">BATTLE / DRIFT</span><span class="garage-arrow">↗</span></div>
-          <h3>KISHIN DRIFT</h3>
-          <p>Battle setup · Night run</p>
-        </div>
-      </article>
-
-      <article class="garage-card reveal" data-type="rare" data-title="RARE 918" data-owner="ONI SPECIAL" data-build="Rare / Collector" data-detail="Rare setup • premium finish • showcase spec">
-        <div class="garage-image rare-art">
-          <div class="car-visual 918"><i class="wheel w1"></i><i class="wheel w2"></i></div>
-          <span class="garage-tag">RARE</span>
-          <span class="garage-id">04</span>
-        </div>
-        <div class="garage-info">
-          <div><span class="garage-type">COLLECTOR / SPECIAL</span><span class="garage-arrow">↗</span></div>
-          <h3>RARE 918</h3>
-          <p>Collector build · Special spec</p>
-        </div>
-      </article>
-    </div>
-
-    <div class="garage-empty" id="garageEmpty">Энэ ангилалд одоогоор build алга.</div>
-
-    <div class="garage-note reveal">
-      <span>✦</span>
-      <div><b>YOUR BUILD NEXT?</b><small>Дараагийн шатанд Admin V2-оос бодит машины зураг, owner, CPM ID, anime, layer болон build мэдээллийг шууд нэмдэг болгоно.</small></div>
     </div>
   </div>
 </section>
-
-<div class="garage-modal" id="garageModal" aria-hidden="true">
-  <div class="garage-modal-backdrop" data-close-garage></div>
-  <div class="garage-modal-card" role="dialog" aria-modal="true" aria-labelledby="garageModalTitle">
-    <button class="garage-close" data-close-garage aria-label="Close">×</button>
-    <div class="modal-car" id="modalCar"></div>
-    <div class="modal-kicker" id="garageModalType"></div>
-    <h3 id="garageModalTitle"></h3>
-    <p id="garageModalDetail"></p>
-    <div class="modal-meta">
-      <div><span>OWNER</span><b id="garageModalOwner"></b></div>
-      <div><span>BUILD</span><b id="garageModalBuild"></b></div>
-    </div>
-  </div>
-</div>
 
 <section id="rules">
   <div class="container">
@@ -1108,7 +695,6 @@ footer{border-top-color:rgba(255,255,255,.07)!important}
   <a href="#apply">＋<br>JOIN</a>
 </div>
 
-<script>document.documentElement.classList.add("js");</script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {getFirestore,collection,addDoc,serverTimestamp,onSnapshot,query,orderBy} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
@@ -1159,40 +745,6 @@ try{
     renderGroup("memberGroup","MEMBERS","👤",members.filter(m=>m.role==="member"||!m.role));
   });
 }catch(e){console.error("Members error:",e)}
-
-
-const garageCards=[...document.querySelectorAll(".garage-card")];
-const garageTabs=[...document.querySelectorAll(".garage-tab")];
-const garageEmpty=$("garageEmpty");
-const garageVisible=$("garageVisible");
-garageTabs.forEach(tab=>{
-  tab.addEventListener("click",()=>{
-    garageTabs.forEach(x=>x.classList.remove("active")); tab.classList.add("active");
-    const filter=tab.dataset.filter; let count=0;
-    garageCards.forEach(card=>{
-      const show=filter==="all" || card.dataset.type===filter;
-      card.classList.toggle("hidden",!show); if(show) count++;
-    });
-    garageVisible.textContent=count;
-    garageEmpty.style.display=count?"none":"block";
-  });
-});
-const garageModal=$("garageModal");
-garageCards.forEach(card=>{
-  card.addEventListener("click",()=>{
-    $("garageModalTitle").textContent=card.dataset.title;
-    $("garageModalType").textContent=card.querySelector(".garage-type").textContent;
-    $("garageModalDetail").textContent=card.dataset.detail;
-    $("garageModalOwner").textContent=card.dataset.owner;
-    $("garageModalBuild").textContent=card.dataset.build;
-    $("modalCar").className="modal-car "+card.dataset.type+"-modal";
-    garageModal.classList.add("open"); garageModal.setAttribute("aria-hidden","false");
-  });
-});
-document.querySelectorAll("[data-close-garage]").forEach(el=>el.addEventListener("click",()=>{
-  garageModal.classList.remove("open"); garageModal.setAttribute("aria-hidden","true");
-}));
-document.addEventListener("keydown",e=>{if(e.key==="Escape") garageModal.classList.remove("open")});
 
 $("form").addEventListener("submit",async(e)=>{
   e.preventDefault();
@@ -1262,16 +814,5 @@ $("menuBtn").addEventListener("click",()=>{
   }
 });
 </script>
-
-<script>
-(() => {
-  const intro = document.getElementById('oniIntro');
-  if (!intro) return;
-  window.setTimeout(() => {
-    intro.remove();
-  }, 4400);
-})();
-</script>
-
 </body>
 </html>
