@@ -232,6 +232,167 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes marquee{to{transform:translateX(-50%)}}
 
+
+
+/* ===== ONI & KISHIN LUXURY UI V3 ===== */
+body{background:
+ radial-gradient(circle at 78% 8%,rgba(255,24,52,.13),transparent 24%),
+ radial-gradient(circle at 12% 48%,rgba(101,63,255,.08),transparent 27%),
+ linear-gradient(180deg,#020204 0%,#050507 45%,#020203 100%);
+}
+body:before{opacity:.38;mix-blend-mode:screen}
+header{background:rgba(3,3,6,.68)!important;backdrop-filter:blur(22px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
+.nav{height:76px}
+.logo{letter-spacing:.09em}
+.hero{position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;width:620px;height:620px;border-radius:50%;right:-170px;top:-120px;background:radial-gradient(circle,rgba(255,25,52,.20),rgba(255,25,52,.04) 34%,transparent 70%);filter:blur(8px);pointer-events:none}
+.hero:after{content:"";position:absolute;left:-20%;right:-20%;bottom:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:rotate(-3deg);box-shadow:0 0 35px rgba(255,32,56,.3);pointer-events:none}
+.hero h1{text-shadow:0 0 45px rgba(255,25,50,.12);letter-spacing:-.055em}
+.hero .kicker,.section-head .kicker{font-size:10px;letter-spacing:.28em;color:#a6a6b0}
+.btn,.primary,.secondary{border-radius:13px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.primary{box-shadow:0 10px 35px rgba(255,24,52,.18)}
+section{position:relative}
+.section-head{position:relative}
+.section-head:after{content:"";position:absolute;right:0;top:18px;width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--red));opacity:.6}
+.garage-toolbar{padding:12px;border:1px solid rgba(255,255,255,.065);border-radius:17px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));backdrop-filter:blur(16px);box-shadow:inset 0 1px rgba(255,255,255,.04),0 20px 55px rgba(0,0,0,.18)}
+.garage-tab{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.025);transition:.25s ease}
+.garage-tab.active{box-shadow:0 0 25px rgba(255,32,56,.14),inset 0 1px rgba(255,255,255,.08)}
+.garage-grid{gap:15px}
+.garage-card{position:relative;border-color:rgba(255,255,255,.085);background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 45%,rgba(0,0,0,.3));box-shadow:0 20px 60px rgba(0,0,0,.24);isolation:isolate}
+.garage-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.16),transparent 28%,transparent 65%,rgba(255,32,56,.14));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:5}
+.garage-card:hover{transform:translateY(-9px) scale(1.008);border-color:rgba(255,32,56,.38);box-shadow:0 28px 80px rgba(0,0,0,.48),0 0 35px rgba(255,32,56,.07)}
+.garage-image{height:255px;background:#07070a}
+.garage-image:before{transition:transform .8s ease,filter .8s ease}
+.garage-card:hover .garage-image:before{transform:scale(1.08);filter:saturate(1.2)}
+.garage-image:after{bottom:12%;height:2px;filter:blur(.2px)}
+.garage-tag{background:rgba(3,3,5,.65);backdrop-filter:blur(10px);border-color:rgba(255,255,255,.12)}
+.garage-id{background:rgba(3,3,5,.48);backdrop-filter:blur(10px)}
+.car-visual{height:90px;top:37%;box-shadow:0 30px 45px rgba(0,0,0,.78),0 0 50px rgba(255,32,56,.14)}
+.car-visual:before{filter:drop-shadow(0 0 12px rgba(255,255,255,.05))}
+.garage-info{background:linear-gradient(180deg,rgba(10,10,14,.25),rgba(6,6,9,.72))}
+.garage-info h3{font-size:22px;letter-spacing:-.045em}
+.garage-arrow{width:29px;height:29px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;transition:.25s}
+.garage-card:hover .garage-arrow{color:#fff;border-color:rgba(255,32,56,.35);transform:translate(2px,-2px)}
+.garage-note{background:linear-gradient(120deg,rgba(255,32,56,.05),rgba(255,255,255,.015));box-shadow:0 20px 55px rgba(0,0,0,.2)}
+.garage-modal-card{background:linear-gradient(145deg,#111117,#07070a 65%);border-color:rgba(255,255,255,.11);box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 60px rgba(255,32,56,.08)}
+.modal-car{box-shadow:inset 0 1px rgba(255,255,255,.08),0 20px 50px rgba(0,0,0,.35)}
+/* luxury stat / card surfaces */
+.stat,.card,.rule,.market-card,.event-card{border-color:rgba(255,255,255,.075)!important;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012))!important;box-shadow:0 18px 55px rgba(0,0,0,.2)}
+footer{border-top-color:rgba(255,255,255,.07)!important}
+/* subtle light sweep */
+@keyframes oniSweep{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.garage-card:hover:after{content:"";position:absolute;z-index:4;top:0;bottom:0;width:35%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);transform:skewX(-18deg);animation:oniSweep .8s ease}
+@media(max-width:650px){
+ .section-head:after{display:none}
+ .garage-toolbar{padding:10px}
+ .garage-image{height:205px}
+ .garage-grid{gap:10px}
+ .garage-card{border-radius:17px}
+ .garage-info h3{font-size:17px}
+ .garage-info p{font-size:9px}
+ .hero:before{width:420px;height:420px;right:-180px}
+}
+
+.garage-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px}
+.garage-tabs{display:flex;gap:7px;flex-wrap:wrap}
+.garage-tab{border:1px solid var(--line);background:rgba(255,255,255,.035);color:#81828d;padding:9px 12px;border-radius:10px;font-size:9px;font-weight:900;letter-spacing:.12em}
+.garage-tab:hover,.garage-tab.active{color:#fff;border-color:rgba(255,32,51,.42);background:rgba(255,32,51,.10)}
+.garage-count{font-size:9px;font-weight:900;color:#666;letter-spacing:.12em}
+.garage-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.garage-card{border:1px solid var(--line);border-radius:20px;background:#0b0b0f;overflow:hidden;cursor:pointer;transition:.28s ease}
+.garage-card:hover{transform:translateY(-7px);border-color:rgba(255,32,51,.35);box-shadow:0 22px 50px rgba(0,0,0,.35)}
+.garage-card.hidden{display:none}
+.garage-image{height:230px;position:relative;overflow:hidden;background:#0a0a0d}
+.garage-image:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 35%,rgba(255,32,51,.18),transparent 35%),linear-gradient(135deg,#18131a,#08080b 70%)}
+.garage-image.clean-art:before{background:radial-gradient(circle at 70% 30%,rgba(141,92,255,.18),transparent 35%),linear-gradient(135deg,#12141b,#08080b 70%)}
+.garage-image.drift-art:before{background:radial-gradient(circle at 75% 30%,rgba(255,209,102,.14),transparent 32%),linear-gradient(135deg,#18160f,#08080b 70%)}
+.garage-image.rare-art:before{background:radial-gradient(circle at 65% 25%,rgba(66,230,164,.13),transparent 32%),linear-gradient(135deg,#101a17,#08080b 70%)}
+.garage-image:after{content:"";position:absolute;left:-20%;right:-20%;bottom:17%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);transform:rotate(-7deg)}
+.garage-tag,.garage-id{position:absolute;top:13px;z-index:3;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.48);border:1px solid rgba(255,255,255,.10);font-size:8px;font-weight:900;letter-spacing:.12em}
+.garage-tag{left:13px;color:#ddd}.garage-id{right:13px;color:#666}
+.car-visual{position:absolute;z-index:2;left:8%;right:8%;top:36%;height:82px;border-radius:58% 30% 20% 32%;transform:skewX(-12deg);background:linear-gradient(160deg,#303038,#0b0b0f 70%);border:1px solid rgba(255,255,255,.14);box-shadow:0 28px 35px rgba(0,0,0,.75),0 0 35px rgba(255,32,51,.10)}
+.car-visual:before{content:"";position:absolute;left:24%;right:17%;top:-23px;height:40px;clip-path:polygon(18% 100%,31% 0,77% 0,92% 100%);background:linear-gradient(160deg,#28282f,#08080b);border:1px solid rgba(255,255,255,.08)}
+.car-visual:after{content:"";position:absolute;left:9%;right:8%;bottom:12px;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);box-shadow:0 0 14px var(--red)}
+.car-visual.m4{background:linear-gradient(160deg,#44434a,#111116 70%)}.car-visual.drift{background:linear-gradient(160deg,#403a25,#0c0c0e 70%)}.car-visual.918{background:linear-gradient(160deg,#34483f,#0a0d0c 70%)}
+.wheel{position:absolute;width:35px;height:35px;border-radius:50%;background:#020204;border:5px solid #19191f;bottom:-13px;box-shadow:inset 0 0 0 3px #050507}
+.w1{left:10%}.w2{right:11%}
+.garage-info{padding:16px 17px 18px}.garage-info>div:first-child{display:flex;justify-content:space-between;align-items:center}
+.garage-type{font-size:8px;font-weight:900;letter-spacing:.13em;color:#666772}.garage-arrow{color:#777;font-size:14px}
+.garage-info h3{font-family:"Space Grotesk";font-size:21px;margin:11px 0 5px;letter-spacing:-.03em}.garage-info p{margin:0;color:#747580;font-size:10px}
+.garage-empty{display:none;padding:28px;text-align:center;color:#686974;border:1px dashed var(--line);border-radius:18px;margin-top:12px}
+.garage-note{display:flex;gap:14px;align-items:flex-start;margin-top:16px;padding:17px 19px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.018)}
+.garage-note>span{color:var(--red);font-size:18px}.garage-note b{display:block;font-size:10px;letter-spacing:.12em}.garage-note small{display:block;color:#73747e;font-size:10px;line-height:1.55;margin-top:4px}
+.garage-modal{display:none;position:fixed;inset:0;z-index:300;align-items:center;justify-content:center;padding:20px}.garage-modal.open{display:flex}
+.garage-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(10px)}
+.garage-modal-card{position:relative;width:min(520px,100%);border:1px solid var(--line2);border-radius:25px;background:#0b0b0f;box-shadow:0 30px 100px rgba(0,0,0,.65);padding:22px;z-index:1}
+.garage-close{position:absolute;right:13px;top:13px;width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.45);color:#fff;font-size:22px;z-index:3}
+.modal-car{height:210px;border-radius:18px;background:radial-gradient(circle at 70% 30%,rgba(255,32,51,.2),transparent 35%),linear-gradient(145deg,#19131a,#07070a);margin-bottom:20px;position:relative;overflow:hidden}
+.modal-car:before{content:"";position:absolute;left:10%;right:10%;top:43%;height:80px;border-radius:55% 30% 20% 30%;background:linear-gradient(160deg,#383841,#0b0b0f);transform:skewX(-12deg);border:1px solid rgba(255,255,255,.14);box-shadow:0 25px 50px #000}
+.modal-kicker{color:var(--red);font-size:9px;font-weight:900;letter-spacing:.16em}.garage-modal-card h3{font-family:"Space Grotesk";font-size:32px;margin:8px 0}.garage-modal-card>p{color:#858691;font-size:12px;line-height:1.7}
+.modal-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.modal-meta div{padding:13px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.modal-meta span{display:block;color:#666;font-size:8px;font-weight:900;letter-spacing:.12em}.modal-meta b{display:block;margin-top:5px;font-size:11px}
+@media(max-width:950px){.garage-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){
+/* ===== ONI & KISHIN LUXURY UI V3 ===== */
+body{background:
+ radial-gradient(circle at 78% 8%,rgba(255,24,52,.13),transparent 24%),
+ radial-gradient(circle at 12% 48%,rgba(101,63,255,.08),transparent 27%),
+ linear-gradient(180deg,#020204 0%,#050507 45%,#020203 100%);
+}
+body:before{opacity:.38;mix-blend-mode:screen}
+header{background:rgba(3,3,6,.68)!important;backdrop-filter:blur(22px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.06)}
+.nav{height:76px}
+.logo{letter-spacing:.09em}
+.hero{position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;width:620px;height:620px;border-radius:50%;right:-170px;top:-120px;background:radial-gradient(circle,rgba(255,25,52,.20),rgba(255,25,52,.04) 34%,transparent 70%);filter:blur(8px);pointer-events:none}
+.hero:after{content:"";position:absolute;left:-20%;right:-20%;bottom:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:rotate(-3deg);box-shadow:0 0 35px rgba(255,32,56,.3);pointer-events:none}
+.hero h1{text-shadow:0 0 45px rgba(255,25,50,.12);letter-spacing:-.055em}
+.hero .kicker,.section-head .kicker{font-size:10px;letter-spacing:.28em;color:#a6a6b0}
+.btn,.primary,.secondary{border-radius:13px!important;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.primary{box-shadow:0 10px 35px rgba(255,24,52,.18)}
+section{position:relative}
+.section-head{position:relative}
+.section-head:after{content:"";position:absolute;right:0;top:18px;width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--red));opacity:.6}
+.garage-toolbar{padding:12px;border:1px solid rgba(255,255,255,.065);border-radius:17px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));backdrop-filter:blur(16px);box-shadow:inset 0 1px rgba(255,255,255,.04),0 20px 55px rgba(0,0,0,.18)}
+.garage-tab{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.025);transition:.25s ease}
+.garage-tab.active{box-shadow:0 0 25px rgba(255,32,56,.14),inset 0 1px rgba(255,255,255,.08)}
+.garage-grid{gap:15px}
+.garage-card{position:relative;border-color:rgba(255,255,255,.085);background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.012) 45%,rgba(0,0,0,.3));box-shadow:0 20px 60px rgba(0,0,0,.24);isolation:isolate}
+.garage-card:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(255,255,255,.16),transparent 28%,transparent 65%,rgba(255,32,56,.14));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:5}
+.garage-card:hover{transform:translateY(-9px) scale(1.008);border-color:rgba(255,32,56,.38);box-shadow:0 28px 80px rgba(0,0,0,.48),0 0 35px rgba(255,32,56,.07)}
+.garage-image{height:255px;background:#07070a}
+.garage-image:before{transition:transform .8s ease,filter .8s ease}
+.garage-card:hover .garage-image:before{transform:scale(1.08);filter:saturate(1.2)}
+.garage-image:after{bottom:12%;height:2px;filter:blur(.2px)}
+.garage-tag{background:rgba(3,3,5,.65);backdrop-filter:blur(10px);border-color:rgba(255,255,255,.12)}
+.garage-id{background:rgba(3,3,5,.48);backdrop-filter:blur(10px)}
+.car-visual{height:90px;top:37%;box-shadow:0 30px 45px rgba(0,0,0,.78),0 0 50px rgba(255,32,56,.14)}
+.car-visual:before{filter:drop-shadow(0 0 12px rgba(255,255,255,.05))}
+.garage-info{background:linear-gradient(180deg,rgba(10,10,14,.25),rgba(6,6,9,.72))}
+.garage-info h3{font-size:22px;letter-spacing:-.045em}
+.garage-arrow{width:29px;height:29px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.08);border-radius:9px;transition:.25s}
+.garage-card:hover .garage-arrow{color:#fff;border-color:rgba(255,32,56,.35);transform:translate(2px,-2px)}
+.garage-note{background:linear-gradient(120deg,rgba(255,32,56,.05),rgba(255,255,255,.015));box-shadow:0 20px 55px rgba(0,0,0,.2)}
+.garage-modal-card{background:linear-gradient(145deg,#111117,#07070a 65%);border-color:rgba(255,255,255,.11);box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 60px rgba(255,32,56,.08)}
+.modal-car{box-shadow:inset 0 1px rgba(255,255,255,.08),0 20px 50px rgba(0,0,0,.35)}
+/* luxury stat / card surfaces */
+.stat,.card,.rule,.market-card,.event-card{border-color:rgba(255,255,255,.075)!important;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012))!important;box-shadow:0 18px 55px rgba(0,0,0,.2)}
+footer{border-top-color:rgba(255,255,255,.07)!important}
+/* subtle light sweep */
+@keyframes oniSweep{0%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.garage-card:hover:after{content:"";position:absolute;z-index:4;top:0;bottom:0;width:35%;left:-40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);transform:skewX(-18deg);animation:oniSweep .8s ease}
+@media(max-width:650px){
+ .section-head:after{display:none}
+ .garage-toolbar{padding:10px}
+ .garage-image{height:205px}
+ .garage-grid{gap:10px}
+ .garage-card{border-radius:17px}
+ .garage-info h3{font-size:17px}
+ .garage-info p{font-size:9px}
+ .hero:before{width:420px;height:420px;right:-180px}
+}
+
+.garage-toolbar{display:block}.garage-count{margin-top:10px}.garage-grid{grid-template-columns:1fr 1fr}.garage-image{height:185px}.garage-info h3{font-size:18px}.garage-info{padding:13px}.modal-meta{grid-template-columns:1fr}}
+
 @media(max-width:950px){
   nav{display:none}.menu{display:block}
   .hero-grid{grid-template-columns:1fr}.hero-art{min-height:430px;order:-1}.hero-copy{max-width:700px}
@@ -355,21 +516,101 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 <section id="garage">
   <div class="container">
     <div class="section-head reveal">
-      <div><div class="kicker">02 / ONI GARAGE</div><h2>BUILT TO<br>BE SEEN.</h2></div>
-      <p class="section-desc">Clan-ийн гол өнгө төрх: anime car, clean build, rare setup. Доорх showcase нь дараа нь admin-аас бодит машинуудын мэдээллээр өргөжүүлэхэд бэлэн.</p>
+      <div>
+        <div class="kicker">02 / ONI GARAGE V2</div>
+        <h2>THE<br><span style="color:#fff">COLLECTION</span><span style="color:var(--red)">.</span></h2>
+      </div>
+      <p class="section-desc">ONI & KISHIN-ийн машинуудыг style, build болон owner-оор нь showcase хийх шинэ Garage. Card дээр дарж дэлгэрэнгүй мэдээллийг үзнэ.</p>
     </div>
-    <div class="showcase">
-      <article class="show-card reveal">
-        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
-        <div class="show-content"><span class="tag">01 / ANIME BUILD</span><h3>ITASHA DIVISION</h3><p>Character livery • detail • night spec</p></div>
+
+    <div class="garage-toolbar reveal">
+      <div class="garage-tabs" role="tablist" aria-label="Garage filter">
+        <button class="garage-tab active" data-filter="all">ALL</button>
+        <button class="garage-tab" data-filter="anime">ANIME</button>
+        <button class="garage-tab" data-filter="clean">CLEAN</button>
+        <button class="garage-tab" data-filter="drift">DRIFT</button>
+        <button class="garage-tab" data-filter="rare">RARE</button>
+      </div>
+      <div class="garage-count"><span id="garageVisible">4</span> BUILDS</div>
+    </div>
+
+    <div class="garage-grid">
+      <article class="garage-card reveal" data-type="anime" data-title="ITASHA R33" data-owner="ONI MEMBER" data-build="Anime / Night Spec" data-detail="Character livery • detailed wheels • night setup">
+        <div class="garage-image anime-art">
+          <div class="car-visual r33"><i class="wheel w1"></i><i class="wheel w2"></i></div>
+          <span class="garage-tag">ANIME</span>
+          <span class="garage-id">01</span>
+        </div>
+        <div class="garage-info">
+          <div><span class="garage-type">ITASHA / NIGHT</span><span class="garage-arrow">↗</span></div>
+          <h3>ITASHA R33</h3>
+          <p>Anime livery · Night setup</p>
+        </div>
       </article>
-      <article class="show-card purple reveal">
-        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
-        <div class="show-content"><span class="tag">02 / CLEAN BUILD</span><h3>NIGHT SPEC</h3><p>OEM+ • stance • clean finish</p></div>
+
+      <article class="garage-card reveal" data-type="clean" data-title="OEM+ M4" data-owner="ONI MEMBER" data-build="Clean / OEM+" data-detail="Clean stance • OEM+ details • street spec">
+        <div class="garage-image clean-art">
+          <div class="car-visual m4"><i class="wheel w1"></i><i class="wheel w2"></i></div>
+          <span class="garage-tag">CLEAN</span>
+          <span class="garage-id">02</span>
+        </div>
+        <div class="garage-info">
+          <div><span class="garage-type">OEM+ / STREET</span><span class="garage-arrow">↗</span></div>
+          <h3>OEM+ M4</h3>
+          <p>Clean stance · Street spec</p>
+        </div>
       </article>
+
+      <article class="garage-card reveal" data-type="drift" data-title="KISHIN DRIFT" data-owner="KISHIN DIVISION" data-build="Drift / Battle" data-detail="Aggressive setup • drift livery • battle spec">
+        <div class="garage-image drift-art">
+          <div class="car-visual drift"><i class="wheel w1"></i><i class="wheel w2"></i></div>
+          <span class="garage-tag">DRIFT</span>
+          <span class="garage-id">03</span>
+        </div>
+        <div class="garage-info">
+          <div><span class="garage-type">BATTLE / DRIFT</span><span class="garage-arrow">↗</span></div>
+          <h3>KISHIN DRIFT</h3>
+          <p>Battle setup · Night run</p>
+        </div>
+      </article>
+
+      <article class="garage-card reveal" data-type="rare" data-title="RARE 918" data-owner="ONI SPECIAL" data-build="Rare / Collector" data-detail="Rare setup • premium finish • showcase spec">
+        <div class="garage-image rare-art">
+          <div class="car-visual 918"><i class="wheel w1"></i><i class="wheel w2"></i></div>
+          <span class="garage-tag">RARE</span>
+          <span class="garage-id">04</span>
+        </div>
+        <div class="garage-info">
+          <div><span class="garage-type">COLLECTOR / SPECIAL</span><span class="garage-arrow">↗</span></div>
+          <h3>RARE 918</h3>
+          <p>Collector build · Special spec</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="garage-empty" id="garageEmpty">Энэ ангилалд одоогоор build алга.</div>
+
+    <div class="garage-note reveal">
+      <span>✦</span>
+      <div><b>YOUR BUILD NEXT?</b><small>Дараагийн шатанд Admin V2-оос бодит машины зураг, owner, CPM ID, anime, layer болон build мэдээллийг шууд нэмдэг болгоно.</small></div>
     </div>
   </div>
 </section>
+
+<div class="garage-modal" id="garageModal" aria-hidden="true">
+  <div class="garage-modal-backdrop" data-close-garage></div>
+  <div class="garage-modal-card" role="dialog" aria-modal="true" aria-labelledby="garageModalTitle">
+    <button class="garage-close" data-close-garage aria-label="Close">×</button>
+    <div class="modal-car" id="modalCar"></div>
+    <div class="modal-kicker" id="garageModalType"></div>
+    <h3 id="garageModalTitle"></h3>
+    <p id="garageModalDetail"></p>
+    <div class="modal-meta">
+      <div><span>OWNER</span><b id="garageModalOwner"></b></div>
+      <div><span>BUILD</span><b id="garageModalBuild"></b></div>
+    </div>
+  </div>
+</div>
 
 <section id="rules">
   <div class="container">
@@ -560,6 +801,40 @@ try{
     renderGroup("memberGroup","MEMBERS","👤",members.filter(m=>m.role==="member"||!m.role));
   });
 }catch(e){console.error("Members error:",e)}
+
+
+const garageCards=[...document.querySelectorAll(".garage-card")];
+const garageTabs=[...document.querySelectorAll(".garage-tab")];
+const garageEmpty=$("garageEmpty");
+const garageVisible=$("garageVisible");
+garageTabs.forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    garageTabs.forEach(x=>x.classList.remove("active")); tab.classList.add("active");
+    const filter=tab.dataset.filter; let count=0;
+    garageCards.forEach(card=>{
+      const show=filter==="all" || card.dataset.type===filter;
+      card.classList.toggle("hidden",!show); if(show) count++;
+    });
+    garageVisible.textContent=count;
+    garageEmpty.style.display=count?"none":"block";
+  });
+});
+const garageModal=$("garageModal");
+garageCards.forEach(card=>{
+  card.addEventListener("click",()=>{
+    $("garageModalTitle").textContent=card.dataset.title;
+    $("garageModalType").textContent=card.querySelector(".garage-type").textContent;
+    $("garageModalDetail").textContent=card.dataset.detail;
+    $("garageModalOwner").textContent=card.dataset.owner;
+    $("garageModalBuild").textContent=card.dataset.build;
+    $("modalCar").className="modal-car "+card.dataset.type+"-modal";
+    garageModal.classList.add("open"); garageModal.setAttribute("aria-hidden","false");
+  });
+});
+document.querySelectorAll("[data-close-garage]").forEach(el=>el.addEventListener("click",()=>{
+  garageModal.classList.remove("open"); garageModal.setAttribute("aria-hidden","true");
+}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape") garageModal.classList.remove("open")});
 
 $("form").addEventListener("submit",async(e)=>{
   e.preventDefault();
