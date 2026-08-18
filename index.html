@@ -235,6 +235,77 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes marquee{to{transform:translateX(-50%)}}
 
+/* Permanent post-intro neon orbit — subtle red motion around the clan logo */
+.hero-art{
+  isolation:isolate;
+}
+.hero-neon-orbit{
+  position:absolute;
+  left:50%;top:50%;
+  width:min(365px,67vw);
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:35%;
+  pointer-events:none;
+  z-index:1;
+  filter:drop-shadow(0 0 8px rgba(255,32,51,.45));
+  animation:heroOrbitSpin 13s linear infinite;
+}
+.hero-neon-orbit:before,
+.hero-neon-orbit:after{
+  content:"";
+  position:absolute;
+  inset:-12px;
+  border-radius:38%;
+  border:1px solid transparent;
+  background:
+    linear-gradient(transparent,transparent) padding-box,
+    conic-gradient(from 15deg,
+      transparent 0 10%,
+      rgba(255,32,51,.08) 10% 18%,
+      #ff2033 18% 23%,
+      transparent 23% 48%,
+      rgba(255,32,51,.18) 48% 55%,
+      transparent 55% 74%,
+      #ff2033 74% 78%,
+      transparent 78% 100%) border-box;
+  box-shadow:0 0 16px rgba(255,32,51,.20),0 0 38px rgba(255,32,51,.10);
+}
+.hero-neon-orbit:after{
+  inset:18px;
+  border-radius:31%;
+  animation:heroOrbitCounter 8s linear infinite;
+  opacity:.7;
+  transform:rotate(18deg);
+}
+.hero-neon-dot{
+  position:absolute;
+  width:7px;height:7px;border-radius:50%;
+  background:#ff2033;
+  box-shadow:0 0 7px #ff2033,0 0 22px rgba(255,32,51,.9);
+}
+.hero-neon-dot.d1{left:6%;top:24%;animation:heroDot1 5.5s ease-in-out infinite}
+.hero-neon-dot.d2{right:8%;bottom:20%;animation:heroDot2 6.5s ease-in-out infinite}
+.hero-neon-dot.d3{right:20%;top:7%;width:4px;height:4px;animation:heroDot3 4.8s ease-in-out infinite}
+.hero-neon-streak{
+  position:absolute;
+  width:85px;height:2px;
+  background:linear-gradient(90deg,transparent,#ff2033,transparent);
+  box-shadow:0 0 10px #ff2033;
+  opacity:.55;
+  transform:rotate(-28deg);
+  animation:heroStreak 4.2s ease-in-out infinite;
+}
+.hero-neon-streak.s1{left:-3%;top:31%}
+.hero-neon-streak.s2{right:-3%;bottom:30%;transform:rotate(152deg);animation-delay:2s}
+
+@keyframes heroOrbitSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes heroOrbitCounter{to{transform:rotate(-360deg)}}
+@keyframes heroDot1{0%,100%{transform:translate(0,0);opacity:.35}50%{transform:translate(10px,-15px);opacity:1}}
+@keyframes heroDot2{0%,100%{transform:translate(0,0);opacity:.3}50%{transform:translate(-13px,10px);opacity:.95}}
+@keyframes heroDot3{0%,100%{opacity:.2}50%{opacity:1;transform:scale(1.7)}}
+@keyframes heroStreak{0%,100%{opacity:0;transform:translateX(-8px) rotate(-28deg)}35%{opacity:.7}60%{opacity:0;transform:translateX(55px) rotate(-28deg)}}
+
 @media(max-width:950px){
   nav{display:none}.menu{display:block}
   .hero-grid{grid-template-columns:1fr}.hero-art{min-height:430px;order:-1}.hero-copy{max-width:700px}
@@ -260,11 +331,17 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
   .mobile-bar a.active{color:#fff;background:rgba(255,32,51,.12)}
   footer{padding-bottom:105px}.footer-inner{display:block}.footer-note{margin-top:10px}
 }
+.hero-neon-orbit{width:min(275px,70vw)}
+.hero-neon-orbit:before{inset:-8px}
+.hero-neon-orbit:after{inset:12px}
+.hero-neon-streak{width:58px}
+
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+  .hero-neon-orbit{transform:translate(-50%,-50%)!important}
 }
 /* =========================================================
-   ONI & KISHIN — V6 CINEMATIC HOMEPAGE OPENING
+   ONI & KISHIN — V8 CINEMATIC HOMEPAGE OPENING
    0.0–0.5  near-black + weak red pulse
    0.5–1.5  clan image blur -> clear + breathing aura + smoke
    1.5–3.0  slow push-in + subtle left/right camera drift + neon frame
@@ -378,8 +455,9 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
   position:absolute;left:50%;top:50%;width:min(355px,67vw);aspect-ratio:1;
   transform:translate(-50%,-50%) scale(.82);border:1px solid transparent;border-radius:32%;
   box-shadow:0 0 0 1px rgba(255,32,51,.04),0 0 55px rgba(255,32,51,.08);
-  opacity:0;z-index:7;
-  background:linear-gradient(#050507,#050507) padding-box,
+  opacity:0;z-index:7;pointer-events:none;
+  /* IMPORTANT: transparent center — never cover the clan image with a black square */
+  background:linear-gradient(transparent,transparent) padding-box,
              conic-gradient(from -70deg,transparent 0 12%,#ff2033 20%,transparent 29% 54%,#ff2033 65%,transparent 75% 100%) border-box;
   animation:oniFrameIntro 1.45s cubic-bezier(.2,.8,.2,1) 1.48s forwards;
 }
@@ -422,6 +500,1871 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 @media(prefers-reduced-motion:reduce){.oni-intro{animation:none!important;opacity:0!important;visibility:hidden!important}.oni-intro *{animation:none!important}.hero:before{opacity:.2}}
 
 /* =========================================================
+   ONI & KISHIN — V8
+   • Anime eye glow on the main clan artwork
+   • Secret ONI Mode: tap/click the ONI mark 3 times
+   • Premium mobile navigation indicator
+   ========================================================= */
+
+/* Main hero anime-eye pulse */
+.hero-eye-glow{
+  position:absolute;
+  left:50%;top:50%;
+  width:min(285px,55vw);
+  aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  z-index:3;
+  pointer-events:none;
+  border-radius:34%;
+  background:
+    radial-gradient(ellipse 12px 8px at 61% 37%,rgba(255,24,43,.96) 0 12%,rgba(255,24,43,.48) 25%,transparent 62%),
+    radial-gradient(ellipse 11px 7px at 73% 38%,rgba(255,24,43,.88) 0 11%,rgba(255,24,43,.40) 25%,transparent 62%);
+  mix-blend-mode:screen;
+  filter:blur(2px) drop-shadow(0 0 12px rgba(255,20,42,.8));
+  opacity:0;
+  animation:heroEyeAwaken 2.2s ease-out 1.1s 1 forwards,
+             heroEyeIdle 4.5s ease-in-out 3.5s infinite;
+}
+@keyframes heroEyeAwaken{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.88)}
+  35%{opacity:.12}
+  50%{opacity:.95;transform:translate(-50%,-50%) scale(1)}
+  62%{opacity:.18}
+  74%{opacity:.72}
+  100%{opacity:.18;transform:translate(-50%,-50%) scale(1.02)}
+}
+@keyframes heroEyeIdle{
+  0%,100%{opacity:.10}
+  50%{opacity:.25}
+}
+
+/* Secret ONI Mode */
+body.oni-mode{
+  --red:#ff1833;
+  --red2:#ff001c;
+  --panel:rgba(20,5,9,.78);
+  background:
+    radial-gradient(circle at 50% 18%,rgba(255,15,35,.16),transparent 30rem),
+    radial-gradient(circle at 80% 55%,rgba(255,0,25,.11),transparent 28rem),
+    #020204;
+}
+body.oni-mode:before{
+  opacity:.28;
+  background-image:
+    linear-gradient(rgba(255,20,42,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,20,42,.035) 1px,transparent 1px);
+  background-size:42px 42px;
+}
+body.oni-mode .hero:before{
+  opacity:.95;
+  animation:oniModeBreath 2.8s ease-in-out infinite;
+}
+body.oni-mode .hero-neon-orbit{
+  animation-duration:7s;
+  filter:drop-shadow(0 0 12px rgba(255,20,42,.75));
+}
+body.oni-mode .hero-neon-orbit:before{
+  box-shadow:0 0 22px rgba(255,20,42,.42),0 0 65px rgba(255,20,42,.18);
+}
+body.oni-mode .hero-neon-orbit:after{
+  animation-duration:4.5s;
+  opacity:1;
+}
+body.oni-mode .logo-orb{
+  box-shadow:
+    0 0 0 12px rgba(255,20,42,.035),
+    0 0 80px rgba(255,20,42,.38),
+    0 0 150px rgba(255,20,42,.16),
+    0 35px 80px rgba(0,0,0,.8);
+}
+body.oni-mode .hero-eye-glow{
+  animation-duration:1.2s,2.2s;
+  opacity:.35;
+}
+body.oni-mode header{
+  border-bottom-color:rgba(255,32,51,.20);
+}
+body.oni-mode .mobile-bar{
+  border-color:rgba(255,32,51,.30);
+  box-shadow:0 0 35px rgba(255,20,42,.15),0 15px 45px rgba(0,0,0,.65);
+}
+body.oni-mode .mobile-bar a.active{
+  background:rgba(255,20,42,.18);
+  box-shadow:inset 0 0 20px rgba(255,20,42,.10),0 0 15px rgba(255,20,42,.12);
+}
+body.oni-mode .oni-secret-mark{
+  color:#fff;
+  text-shadow:0 0 10px #ff2033,0 0 25px rgba(255,20,42,.8);
+  animation:oniMarkPulse 1.8s ease-in-out infinite;
+}
+@keyframes oniModeBreath{
+  0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(.96)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}
+}
+@keyframes oniMarkPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,20,42,0)}
+  50%{box-shadow:0 0 0 7px rgba(255,20,42,.06),0 0 28px rgba(255,20,42,.25)}
+}
+
+/* Secret-mode toast */
+.oni-toast{
+  position:fixed;
+  left:50%;
+  top:92px;
+  transform:translate(-50%,-18px);
+  z-index:10000;
+  padding:10px 15px;
+  border:1px solid rgba(255,32,51,.30);
+  border-radius:12px;
+  background:rgba(8,5,8,.86);
+  backdrop-filter:blur(16px);
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.18em;
+  box-shadow:0 0 30px rgba(255,20,42,.16);
+  opacity:0;
+  pointer-events:none;
+}
+.oni-toast.show{animation:toastIn 2.6s ease forwards}
+@keyframes toastIn{
+  0%{opacity:0;transform:translate(-50%,-18px)}
+  18%,78%{opacity:1;transform:translate(-50%,0)}
+  100%{opacity:0;transform:translate(-50%,-5px)}
+}
+
+/* Make the ONI mark a deliberate interactive easter egg */
+.oni-secret-mark{
+  display:grid;
+  place-items:center;
+  width:43px;height:43px;
+  border-radius:14px;
+  text-decoration:none;
+  color:#ddd;
+  background:#111118;
+  border:1px solid var(--line2);
+  transition:.25s ease;
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.oni-secret-mark:hover,.oni-secret-mark:active{border-color:rgba(255,32,51,.60);color:#fff;transform:scale(1.04)}
+@media(max-width:650px){
+  .oni-secret-mark{width:39px;height:39px;border-radius:13px}
+}
+
+/* Premium mobile navigation */
+.mobile-bar{
+  overflow:visible;
+}
+.mobile-bar a{
+  position:relative;
+  min-width:58px;
+  transition:color .25s ease,transform .25s ease,background .25s ease;
+}
+.mobile-bar a:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-4px;
+  width:0;
+  height:2px;
+  border-radius:99px;
+  background:var(--red);
+  box-shadow:0 0 10px var(--red);
+  transform:translateX(-50%);
+  transition:width .28s ease;
+}
+.mobile-bar a.active:after{width:22px}
+.mobile-bar a.active{transform:translateY(-1px)}
+.mobile-bar a.active:before{
+  content:"鬼";
+  position:absolute;
+  left:50%;
+  top:-11px;
+  transform:translateX(-50%);
+  font-size:7px;
+  color:var(--red);
+  opacity:.9;
+}
+@media(prefers-reduced-motion:reduce){
+  .hero-eye-glow,.oni-toast{animation:none!important}
+}
+
+
+/* V8.4 LOCAL PREVIEW FALLBACK — ONI MODE works without JavaScript */
+/* =========================================================
+   ONI MODE V3 — FINAL FIX
+   Pure checkbox + label + sibling CSS. No JS, no :has().
+   This is intentionally built for iPhone local HTML preview.
+   ========================================================= */
+
+#oniToggle{
+  position:fixed;
+  width:1px;height:1px;
+  opacity:0;
+  pointer-events:none;
+  left:0;top:0;
+}
+
+.oni-v3-top-control{
+  position:fixed;top:10px;right:10px;z-index:200000;
+}
+.oni-v3-top-label{
+  display:flex!important;align-items:center;gap:8px;
+  padding:6px 9px 6px 6px;
+  border:1px solid rgba(255,32,51,.28);
+  border-radius:14px;
+  background:rgba(7,7,10,.88);
+  color:#eee;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 20px rgba(255,20,42,.06);
+  transition:.25s ease;
+}
+.oni-v3-top-label:active{transform:scale(.97)}
+.oni-v3-top-mark{
+  width:31px;height:31px;flex:0 0 31px;
+  display:grid;place-items:center;
+  border-radius:10px;
+  background:rgba(255,20,42,.08);
+  border:1px solid rgba(255,32,51,.28);
+  color:#ff5261;
+  font-size:17px;font-weight:900;
+  text-shadow:0 0 12px rgba(255,20,42,.6);
+}
+.oni-v3-top-copy{display:flex;flex-direction:column;gap:2px;line-height:1}
+.oni-v3-top-copy b{font-size:9px;letter-spacing:.04em}
+.oni-v3-top-copy small{font-size:7px;font-weight:800;color:#777}
+.oni-v3-top-dot{width:6px;height:6px;border-radius:50%;background:#666}
+
+#oniToggle:checked ~ .oni-v3-top-control .oni-v3-top-label{
+  border-color:rgba(255,32,51,.78);
+  background:rgba(30,3,8,.92);
+  box-shadow:0 0 35px rgba(255,20,42,.28),0 10px 38px rgba(0,0,0,.52),inset 0 0 25px rgba(255,20,42,.07);
+}
+#oniToggle:checked ~ .oni-v3-top-control .oni-v3-top-mark{
+  color:#fff;
+  background:rgba(255,20,42,.18);
+  border-color:rgba(255,32,51,.68);
+  box-shadow:0 0 25px rgba(255,20,42,.38);
+  animation:oniV3TopPulse 1.25s ease-in-out infinite;
+}
+#oniToggle:checked ~ .oni-v3-top-control .oni-v3-top-copy small{color:#ff6672}
+#oniToggle:checked ~ .oni-v3-top-control .oni-v3-top-dot{
+  background:#ff2033;
+  box-shadow:0 0 8px #ff2033,0 0 18px rgba(255,20,42,.75);
+}
+@keyframes oniV3TopPulse{50%{transform:scale(1.08)}}
+
+/* Entire visual system lives inside this sibling shell */
+.oni-v3-shell{
+  position:relative;
+  min-height:100vh;
+  overflow:hidden;
+  isolation:isolate;
+  transition:background .55s ease,filter .45s ease;
+}
+.oni-v3-shell:before{
+  content:"";
+  position:fixed;inset:0;z-index:-2;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(255,0,25,.17),transparent 28rem),
+    radial-gradient(circle at 8% 65%,rgba(255,0,25,.08),transparent 25rem),
+    radial-gradient(circle at 92% 35%,rgba(130,0,15,.08),transparent 23rem),
+    linear-gradient(#030102,#050204 60%,#020203);
+  opacity:0;
+  transition:opacity .6s ease;
+}
+#oniToggle:checked ~ .oni-v3-shell:before{opacity:1}
+
+#oniToggle:checked ~ .oni-v3-shell header{
+  background:rgba(3,1,3,.78);
+  border-bottom-color:rgba(255,32,51,.24);
+  box-shadow:0 12px 45px rgba(255,0,25,.05);
+}
+#oniToggle:checked ~ .oni-v3-shell .hero-glow,
+#oniToggle:checked ~ .oni-v3-shell .hero-glow2{
+  opacity:1.65;
+  filter:blur(44px) saturate(1.6);
+}
+#oniToggle:checked ~ .oni-v3-shell .logo-orb{
+  box-shadow:
+    0 0 0 1px rgba(255,32,51,.32),
+    0 0 58px rgba(255,20,42,.44),
+    0 0 125px rgba(255,20,42,.25),
+    0 0 190px rgba(255,20,42,.10);
+  animation:oniV3Hero 3.8s ease-in-out infinite;
+}
+#oniToggle:checked ~ .oni-v3-shell .art-ring{
+  border-color:rgba(255,32,51,.52);
+  box-shadow:0 0 44px rgba(255,20,42,.26),inset 0 0 30px rgba(255,20,42,.10);
+}
+#oniToggle:checked ~ .oni-v3-shell .panel,
+#oniToggle:checked ~ .oni-v3-shell .stat,
+#oniToggle:checked ~ .oni-v3-shell .show-card,
+#oniToggle:checked ~ .oni-v3-shell .member,
+#oniToggle:checked ~ .oni-v3-shell .join-side,
+#oniToggle:checked ~ .oni-v3-shell .form{
+  border-color:rgba(255,32,51,.18);
+  background:rgba(18,3,7,.46);
+  box-shadow:inset 0 0 28px rgba(255,20,42,.035);
+}
+#oniToggle:checked ~ .oni-v3-shell .btn.primary{
+  box-shadow:0 0 28px rgba(255,20,42,.25);
+}
+#oniToggle:checked ~ .oni-v3-shell .hero:after{
+  content:"鬼";
+  position:absolute;left:50%;top:45%;
+  transform:translate(-50%,-50%);
+  font-family:"Noto Sans JP","Yu Gothic",sans-serif;
+  font-size:min(62vw,760px);
+  font-weight:900;line-height:1;
+  color:rgba(255,20,42,.014);
+  text-shadow:0 0 100px rgba(255,20,42,.10);
+  pointer-events:none;z-index:0;
+  animation:oniV3Breath 5s ease-in-out infinite;
+}
+@keyframes oniV3Hero{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-7px) scale(1.018)}
+}
+@keyframes oniV3Breath{
+  0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(.98)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.015)}
+}
+
+/* Activation overlay: sibling CSS, appears only when checkbox is checked */
+.oni-v3-awake{
+  position:fixed;inset:0;z-index:199900;
+  pointer-events:none;overflow:hidden;
+  opacity:0;visibility:hidden;
+  background:
+    radial-gradient(circle at 50% 50%,rgba(255,0,30,.20),transparent 25%),
+    radial-gradient(circle at 50% 50%,rgba(70,0,7,.46),transparent 60%),
+    #000;
+}
+#oniToggle:checked ~ .oni-v3-awake{
+  visibility:visible;
+  animation:oniV3In .3s ease-out 0s 1 forwards,oniV3Out .72s ease-in 3.1s 1 forwards;
+}
+@keyframes oniV3In{to{opacity:1}}
+@keyframes oniV3Out{to{opacity:0;visibility:hidden}}
+
+.oni-v3-wave{
+  position:absolute;left:50%;top:50%;width:28px;height:28px;
+  border-radius:50%;border:1px solid rgba(255,32,51,.98);
+  box-shadow:0 0 24px rgba(255,20,42,.65),inset 0 0 20px rgba(255,20,42,.25);
+  transform:translate(-50%,-50%) scale(.2);opacity:0;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-wave{
+  animation:oniV3Wave 1.35s cubic-bezier(.08,.72,.16,1) .05s 1 forwards;
+}
+@keyframes oniV3Wave{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}
+  12%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(22)}
+}
+.oni-v3-giant{
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%) scale(.62);
+  font-family:"Noto Sans JP","Yu Gothic",sans-serif;
+  font-size:min(52vw,620px);font-weight:900;line-height:1;
+  color:rgba(255,18,38,.025);
+  text-shadow:0 0 90px rgba(255,20,42,.22),0 0 180px rgba(255,20,42,.10);
+  opacity:0;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-giant{
+  animation:oniV3Giant 3s ease-out .05s 1 forwards;
+}
+@keyframes oniV3Giant{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.62)}
+  22%{opacity:.38}
+  43%{opacity:.10;transform:translate(-50%,-50%) scale(1.04)}
+  64%{opacity:.24}
+  100%{opacity:.10;transform:translate(-50%,-50%) scale(1)}
+}
+.oni-v3-orbit{
+  position:absolute;left:50%;top:50%;
+  width:min(470px,86vw);aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border-radius:50%;border:1px solid rgba(255,32,51,.18);
+}
+.oni-v3-orbit:before,.oni-v3-orbit:after{
+  content:"";position:absolute;border-radius:50%;border:2px solid transparent;
+}
+.oni-v3-orbit:before{
+  inset:-6%;border-top-color:#ff2033;border-right-color:rgba(255,32,51,.44);
+  filter:drop-shadow(0 0 10px rgba(255,20,42,.95));
+}
+.oni-v3-orbit:after{
+  inset:10%;border-bottom-color:#ff4555;border-left-color:rgba(255,32,51,.30);
+  filter:drop-shadow(0 0 9px rgba(255,20,42,.85));
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-orbit{
+  animation:oniV3Spin 4.5s linear 0s 1,oniV3SpinLoop 4.5s linear 3.7s infinite;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-orbit:before{
+  animation:oniV3Spin 2.2s linear 0s 1,oniV3SpinLoop 2.2s linear 3.7s infinite;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-orbit:after{
+  animation:oniV3SpinR 3.25s linear 0s 1,oniV3SpinRLoop 3.25s linear 3.7s infinite;
+}
+@keyframes oniV3Spin{to{transform:rotate(360deg)}}
+@keyframes oniV3SpinR{to{transform:rotate(-360deg)}}
+@keyframes oniV3SpinLoop{to{transform:rotate(360deg)}}
+@keyframes oniV3SpinRLoop{to{transform:rotate(-360deg)}}
+
+.oni-v3-strike{
+  position:absolute;top:-20%;bottom:-20%;left:-35%;width:19%;
+  transform:skewX(-12deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),rgba(255,20,42,.50),transparent);
+  filter:blur(6px);opacity:0;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-strike{
+  animation:oniV3Strike 1.25s ease-out .62s 1 forwards;
+}
+@keyframes oniV3Strike{
+  0%{left:-35%;opacity:0}18%{opacity:1}70%{opacity:.52}100%{left:125%;opacity:0}
+}
+.oni-v3-lightning{
+  position:absolute;left:50%;top:50%;
+  width:min(530px,96vw);height:min(530px,96vw);
+  transform:translate(-50%,-50%);opacity:0;
+  filter:drop-shadow(0 0 8px rgba(255,20,42,.95));
+}
+.oni-v3-lightning:before,.oni-v3-lightning:after{
+  content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(115deg,transparent 0 43%,rgba(255,31,51,.98) 43.4%,transparent 44.1% 100%),
+    linear-gradient(69deg,transparent 0 53%,rgba(255,45,60,.86) 53.5%,transparent 54.2% 100%),
+    linear-gradient(132deg,transparent 0 61%,rgba(255,31,51,.78) 61.5%,transparent 62.2% 100%);
+  clip-path:polygon(18% 0,44% 34%,37% 42%,72% 52%,55% 58%,78% 100%,46% 66%,53% 57%,26% 48%,42% 40%);
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-lightning{
+  animation:oniV3Lightning .9s steps(2,end) .35s 1 forwards;
+}
+@keyframes oniV3Lightning{
+  0%{opacity:0}18%{opacity:1}30%{opacity:.10}42%{opacity:.98}55%{opacity:.08}72%{opacity:.68}100%{opacity:0}
+}
+
+.oni-v3-shards{position:absolute;inset:0}
+.oni-v3-shards i{
+  position:absolute;width:3px;height:3px;border-radius:50%;
+  background:#ff2033;box-shadow:0 0 8px #ff2033,0 0 20px rgba(255,20,42,.75);opacity:0;
+}
+#oniToggle:checked ~ .oni-v3-awake .oni-v3-shards i{animation:oniV3Shard 2.5s ease-out 0s infinite}
+.oni-v3-shards i:nth-child(1){left:9%;top:74%;animation-delay:.05s}
+.oni-v3-shards i:nth-child(2){left:17%;top:32%;animation-delay:.75s}
+.oni-v3-shards i:nth-child(3){left:28%;top:83%;animation-delay:1.1s}
+.oni-v3-shards i:nth-child(4){left:39%;top:21%;animation-delay:.42s}
+.oni-v3-shards i:nth-child(5){left:51%;top:79%;animation-delay:1.45s}
+.oni-v3-shards i:nth-child(6){left:63%;top:26%;animation-delay:.8s}
+.oni-v3-shards i:nth-child(7){left:74%;top:72%;animation-delay:1.65s}
+.oni-v3-shards i:nth-child(8){left:87%;top:39%;animation-delay:.55s}
+.oni-v3-shards i:nth-child(9){left:94%;top:77%;animation-delay:1.25s}
+@keyframes oniV3Shard{
+  0%{opacity:0;transform:translateY(25px) scale(.45)}
+  22%{opacity:1}100%{opacity:0;transform:translateY(-105px) scale(1.3)}
+}
+
+/* Mongolian status message — CSS only */
+.oni-v3-message{
+  position:fixed;left:50%;top:92px;z-index:200100;
+  transform:translateX(-50%);
+  padding:13px 20px;
+  border:1px solid rgba(255,32,51,.48);
+  border-radius:999px;
+  background:rgba(9,2,7,.94);
+  box-shadow:0 0 40px rgba(255,20,42,.28),0 18px 48px rgba(0,0,0,.62);
+  color:#fff;font-weight:900;letter-spacing:.05em;
+  white-space:nowrap;
+  opacity:0;visibility:hidden;pointer-events:none;
+}
+#oniToggle:checked ~ .oni-v3-message{
+  visibility:visible;
+  animation:oniV3Message 3.2s ease-out 0s 1 forwards;
+}
+@keyframes oniV3Message{
+  0%{opacity:0;transform:translate(-50%,-12px)}
+  12%,76%{opacity:1;transform:translate(-50%,0)}
+  100%{opacity:0;transform:translate(-50%,-5px)}
+}
+
+@media(max-width:650px){
+  .oni-v3-top-control{top:8px;right:8px}
+  .oni-v3-top-label{padding:5px 7px 5px 5px}
+  .oni-v3-top-mark{width:29px;height:29px;flex-basis:29px}
+  .oni-v3-top-copy b{font-size:8px}
+  .oni-v3-top-copy small{font-size:7px}
+  .oni-v3-orbit{width:min(340px,84vw)}
+  .oni-v3-giant{font-size:60vw}
+  .oni-v3-message{top:72px;max-width:calc(100vw - 24px);font-size:11px}
+}
+
+
+/* =========================================================
+   V11 — FULL PREMIUM UX/UI UPGRADE
+   ONI MODE untouched. Visual/UX improvements only.
+   ========================================================= */
+
+/* 1) Global polish */
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:rgba(255,28,48,.28);color:#fff}
+
+/* 2) Header / navigation */
+header{
+  transition:background .35s ease,border-color .35s ease,box-shadow .35s ease,transform .35s ease;
+}
+header .nav a{
+  position:relative;
+  transition:color .25s ease,opacity .25s ease;
+}
+header .nav a:after{
+  content:"";position:absolute;left:50%;bottom:-8px;width:0;height:1px;
+  background:#ff263b;box-shadow:0 0 10px rgba(255,20,42,.65);
+  transform:translateX(-50%);
+  transition:width .25s ease;
+}
+header .nav a:hover:after,header .nav a.active:after{width:70%}
+
+/* 3) Hero — more cinematic depth without changing content */
+.hero{isolation:isolate}
+.hero:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+  background:
+    radial-gradient(circle at 74% 45%,rgba(255,20,42,.055),transparent 23rem),
+    linear-gradient(90deg,rgba(0,0,0,.10),transparent 52%,rgba(255,20,42,.025));
+}
+.hero-art{transform:translateZ(0)}
+.hero-art .art-ring{
+  transition:transform .6s ease,box-shadow .45s ease,border-color .45s ease;
+}
+.hero-art .logo-orb{
+  transition:transform .55s cubic-bezier(.2,.8,.2,1),filter .45s ease,box-shadow .45s ease;
+  will-change:transform;
+}
+.hero-art:hover .logo-orb{
+  transform:scale(1.025) translateY(-3px);
+  filter:saturate(1.08) contrast(1.03);
+}
+.hero-art .orb-card{
+  transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease;
+}
+.hero-art .orb-card:hover{
+  transform:translateY(-4px);
+  border-color:rgba(255,32,51,.34);
+  box-shadow:0 16px 38px rgba(0,0,0,.35),0 0 24px rgba(255,20,42,.10);
+}
+
+/* 4) Hero CTA */
+.actions .btn{
+  transition:transform .22s ease,box-shadow .3s ease,border-color .3s ease,background .3s ease;
+  will-change:transform;
+}
+.actions .btn:hover{transform:translateY(-2px)}
+.actions .btn:active{transform:translateY(0) scale(.985)}
+.actions .btn.primary{
+  box-shadow:0 8px 26px rgba(255,20,42,.08);
+}
+.actions .btn.primary:hover{
+  box-shadow:0 12px 36px rgba(255,20,42,.18),0 0 24px rgba(255,20,42,.10);
+}
+
+/* 5) Ticker becomes sharper */
+.ticker{
+  border-top:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.05);
+  background:rgba(255,255,255,.012);
+}
+.ticker-track{will-change:transform}
+
+/* 6) Sections */
+section{scroll-margin-top:74px}
+.section-head{position:relative}
+.section-head:after{
+  content:"";position:absolute;left:0;bottom:-22px;width:42px;height:1px;
+  background:linear-gradient(90deg,#ff263b,transparent);
+  box-shadow:0 0 12px rgba(255,20,42,.35);
+}
+.section-desc{max-width:54ch}
+
+/* 7) Cards — consistent premium depth */
+.panel,.stat,.show-card,.member,.join-side,.form,.orb-card{
+  transition:transform .3s ease,border-color .3s ease,box-shadow .35s ease,background .35s ease;
+}
+.panel:hover,.stat:hover,.show-card:hover,.member:hover,.join-side:hover{
+  transform:translateY(-3px);
+  border-color:rgba(255,255,255,.11);
+  box-shadow:0 18px 45px rgba(0,0,0,.28);
+}
+
+/* 8) Garage showroom treatment */
+#garage .show-card{
+  position:relative;overflow:hidden;
+}
+#garage .show-card:after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(115deg,transparent 25%,rgba(255,255,255,.045) 48%,transparent 61%);
+  transform:translateX(-130%);
+  transition:transform .8s ease;
+}
+#garage .show-card:hover:after{transform:translateX(130%)}
+#garage .show-card img{
+  transition:transform .6s cubic-bezier(.2,.8,.2,1),filter .45s ease;
+}
+#garage .show-card:hover img{
+  transform:scale(1.035);
+  filter:saturate(1.06) contrast(1.03);
+}
+
+/* 9) Member profiles */
+#members .member{
+  position:relative;overflow:hidden;
+}
+#members .member:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(#ff263b,transparent);
+  opacity:0;transition:opacity .3s ease;
+}
+#members .member:hover:before{opacity:1}
+#members .member .avatar{
+  transition:transform .35s ease,box-shadow .35s ease;
+}
+#members .member:hover .avatar{
+  transform:scale(1.045);
+  box-shadow:0 0 22px rgba(255,20,42,.16);
+}
+
+/* 10) Join form usability */
+.form input,.form textarea,.form select{
+  transition:border-color .22s ease,box-shadow .25s ease,background .25s ease;
+}
+.form input:focus,.form textarea:focus,.form select:focus{
+  outline:none;
+  border-color:rgba(255,32,51,.55)!important;
+  box-shadow:0 0 0 3px rgba(255,20,42,.08),0 0 24px rgba(255,20,42,.06);
+  background:rgba(255,255,255,.035);
+}
+
+/* 11) Scroll reveal — use existing .reveal without requiring new JS */
+.reveal{transition:opacity .65s ease,transform .65s cubic-bezier(.2,.75,.2,1)}
+.reveal.visible{opacity:1;transform:none}
+
+/* 12) Better mobile bottom bar */
+.mobile-bar{
+  transition:background .3s ease,border-color .3s ease,box-shadow .3s ease;
+}
+.mobile-bar a{
+  transition:transform .18s ease,color .2s ease;
+}
+.mobile-bar a:active{transform:scale(.93)}
+
+/* 13) Reduced-motion safety */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*:before,*:after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
+
+/* 14) Mobile spacing / tap targets */
+@media(max-width:650px){
+  .container{width:min(100% - 28px,1180px)}
+  .actions .btn{min-height:46px}
+  .section-head:after{bottom:-17px}
+  .show-card,.member,.stat,.panel{border-radius:16px}
+}
+
+
+/* =========================================================
+   V12 — ULTRA PREMIUM VISUAL UPGRADE
+   Deliberately visible. ONI MODE core is untouched.
+   ========================================================= */
+
+/* HERO: make the first screen unmistakably more premium */
+.hero{
+  min-height:clamp(650px,92vh,900px);
+  display:flex;align-items:center;
+  position:relative;
+}
+.hero-grid{
+  min-height:clamp(600px,82vh,820px);
+  align-items:center;
+}
+.hero h1{
+  font-size:clamp(64px,9vw,126px)!important;
+  line-height:.82!important;
+  letter-spacing:-.055em!important;
+  text-shadow:0 8px 45px rgba(0,0,0,.42);
+}
+.hero h1 span{
+  color:#ff263b!important;
+  text-shadow:0 0 26px rgba(255,20,42,.38);
+}
+.hero-copy{
+  max-width:560px!important;
+  font-size:clamp(15px,1.45vw,18px)!important;
+  line-height:1.75!important;
+}
+.hero .eyebrow{
+  letter-spacing:.16em!important;
+  font-size:10px!important;
+}
+.hero .actions{margin-top:30px!important}
+.hero .hero-meta{
+  margin-top:32px!important;
+  gap:22px!important;
+}
+.hero-art{
+  min-height:570px!important;
+  transform:translateZ(0);
+}
+.hero-art .logo-orb{
+  width:min(500px,78vw)!important;
+  height:min(500px,78vw)!important;
+  object-fit:cover;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:
+    0 0 0 1px rgba(255,32,51,.08),
+    0 25px 90px rgba(0,0,0,.52),
+    0 0 70px rgba(255,20,42,.13);
+}
+.hero-art:before{
+  content:"";
+  position:absolute;
+  width:min(560px,86vw);height:min(560px,86vw);
+  border-radius:50%;
+  border:1px solid rgba(255,32,51,.10);
+  box-shadow:0 0 100px rgba(255,20,42,.07);
+  animation:v12HeroPulse 5s ease-in-out infinite;
+}
+@keyframes v12HeroPulse{
+  0%,100%{transform:scale(.98);opacity:.6}
+  50%{transform:scale(1.025);opacity:1}
+}
+.hero-neon-orbit{opacity:.95!important}
+.hero-neon-streak{filter:drop-shadow(0 0 8px rgba(255,20,42,.8))}
+
+/* floating metadata cards become proper HUD cards */
+.hero-art .orb-card{
+  padding:14px 16px!important;
+  min-width:170px;
+  background:rgba(8,7,10,.72)!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:0 18px 45px rgba(0,0,0,.38),0 0 25px rgba(255,20,42,.06)!important;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+.hero-art .orb-card b{
+  display:block;
+  margin-top:5px;
+  font-size:12px;
+}
+
+/* SECTION HEADS — visibly stronger */
+.section-head h2{
+  font-size:clamp(43px,6vw,78px)!important;
+  line-height:.9!important;
+  letter-spacing:-.045em!important;
+}
+.section-head .kicker{
+  color:#ff5261!important;
+  letter-spacing:.18em!important;
+  font-weight:900!important;
+}
+.section-desc{
+  font-size:14px!important;
+  line-height:1.8!important;
+}
+
+/* ABOUT — stronger stats */
+.stats{
+  gap:12px!important;
+  margin-top:34px!important;
+}
+.stat{
+  min-height:145px!important;
+  padding:22px!important;
+  background:
+    radial-gradient(circle at 100% 0,rgba(255,20,42,.06),transparent 55%),
+    rgba(255,255,255,.018)!important;
+}
+.stat-value{
+  font-size:40px!important;
+  letter-spacing:-.04em;
+}
+.progress{
+  margin-top:18px!important;
+  height:4px!important;
+  background:rgba(255,255,255,.06)!important;
+}
+.progress span{
+  box-shadow:0 0 12px rgba(255,20,42,.55);
+}
+
+/* BENTO — make it visually layered */
+.bento{
+  gap:12px!important;
+}
+.bento .panel{
+  min-height:190px;
+  padding:26px!important;
+  position:relative;
+  overflow:hidden;
+}
+.bento .panel.large{
+  min-height:285px;
+  background:
+    radial-gradient(circle at 100% 0,rgba(255,20,42,.09),transparent 42%),
+    rgba(255,255,255,.018)!important;
+}
+.bento .panel:after{
+  content:"";
+  position:absolute;
+  right:-40px;bottom:-55px;
+  width:150px;height:150px;border-radius:50%;
+  border:1px solid rgba(255,32,51,.08);
+  box-shadow:0 0 45px rgba(255,20,42,.06);
+}
+.bento .number{
+  font-size:52px!important;
+  opacity:.08!important;
+}
+
+/* GARAGE — transform from simple cards to showroom */
+#garage{
+  position:relative;
+}
+#garage:before{
+  content:"GARAGE / 01";
+  position:absolute;right:5%;top:70px;
+  font-size:9px;letter-spacing:.25em;font-weight:900;
+  color:rgba(255,255,255,.20);
+}
+.showcase{
+  gap:18px!important;
+  margin-top:36px!important;
+}
+.show-card{
+  min-height:430px!important;
+  border-radius:24px!important;
+  overflow:hidden!important;
+  position:relative;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,20,42,.12),transparent 38%),
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.008))!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  box-shadow:0 28px 70px rgba(0,0,0,.42)!important;
+}
+.show-card:before{
+  content:"";
+  position:absolute;inset:0;
+  background:
+    linear-gradient(180deg,transparent 35%,rgba(0,0,0,.75) 100%),
+    repeating-linear-gradient(90deg,transparent 0 12%,rgba(255,255,255,.018) 12.2% 12.5%);
+  pointer-events:none;
+}
+.show-card:after{
+  content:"01";
+  position:absolute;right:20px;top:18px;
+  font-size:70px;font-weight:950;line-height:1;
+  color:rgba(255,255,255,.045);
+}
+.show-card.purple:after{content:"02"}
+.show-card .car-shape{
+  position:absolute!important;
+  left:50%!important;top:45%!important;
+  transform:translate(-50%,-50%) scale(1.18)!important;
+  width:76%!important;height:190px!important;
+  filter:drop-shadow(0 20px 28px rgba(0,0,0,.55)) drop-shadow(0 0 25px rgba(255,20,42,.12));
+}
+.show-card:hover .car-shape{
+  transform:translate(-50%,-53%) scale(1.25)!important;
+  transition:transform .55s cubic-bezier(.2,.8,.2,1);
+}
+.show-content{
+  position:absolute!important;
+  left:24px!important;right:24px!important;bottom:24px!important;
+  z-index:2;
+}
+.show-content .tag{
+  color:#ff5261!important;
+  letter-spacing:.14em!important;
+  font-weight:900!important;
+}
+.show-content h3{
+  font-size:30px!important;
+  letter-spacing:-.035em!important;
+  margin-top:7px!important;
+}
+.show-content p{
+  color:#aaa!important;
+  margin-top:6px!important;
+}
+
+/* RULES — make each item feel like a system */
+.rules-grid{gap:10px!important}
+.rule{
+  padding:22px!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  background:rgba(255,255,255,.014)!important;
+  border-radius:16px!important;
+  transition:.3s ease!important;
+}
+.rule:hover{
+  transform:translateX(4px);
+  border-color:rgba(255,32,51,.22)!important;
+  background:rgba(255,20,42,.025)!important;
+}
+
+/* EVENTS — timeline feel */
+.event-grid{
+  gap:12px!important;
+  position:relative;
+}
+.event{
+  min-height:220px!important;
+  padding:25px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:18px!important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.025),rgba(255,255,255,.008))!important;
+  transition:.35s ease!important;
+}
+.event:hover{
+  transform:translateY(-6px)!important;
+  border-color:rgba(255,32,51,.28)!important;
+  box-shadow:0 22px 50px rgba(0,0,0,.30),0 0 28px rgba(255,20,42,.07)!important;
+}
+.event-date{color:#ff5261!important;letter-spacing:.12em!important;font-weight:900!important}
+.event-status{
+  border-color:rgba(255,32,51,.28)!important;
+  color:#ff6975!important;
+}
+
+/* MARKET — make categories instantly readable */
+.market-grid{gap:12px!important}
+.market-card{
+  min-height:205px!important;
+  padding:28px!important;
+  border-radius:18px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:
+    radial-gradient(circle at 90% 0,rgba(255,20,42,.07),transparent 45%),
+    rgba(255,255,255,.014)!important;
+  transition:.35s ease!important;
+}
+.market-card:hover{
+  transform:translateY(-5px)!important;
+  border-color:rgba(255,32,51,.25)!important;
+  box-shadow:0 22px 50px rgba(0,0,0,.30)!important;
+}
+.market-card .micon{
+  font-size:28px!important;
+  filter:drop-shadow(0 0 12px rgba(255,20,42,.22));
+}
+
+/* MEMBERS — stronger roster framing */
+.members-shell{
+  margin-top:35px!important;
+  padding:20px!important;
+  border-radius:22px!important;
+  border:1px solid rgba(255,255,255,.07)!important;
+  background:rgba(255,255,255,.012)!important;
+  box-shadow:0 25px 65px rgba(0,0,0,.28)!important;
+}
+.member-group{margin-bottom:26px}
+.member-card{
+  transition:.3s ease!important;
+  border-color:rgba(255,255,255,.07)!important;
+}
+.member-card:hover{
+  transform:translateY(-4px)!important;
+  border-color:rgba(255,32,51,.28)!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.28),0 0 22px rgba(255,20,42,.05)!important;
+}
+
+/* APPLY — stronger conversion area */
+.form-shell{
+  gap:16px!important;
+  margin-top:35px!important;
+}
+.join-side{
+  background:
+    radial-gradient(circle at 0 0,rgba(255,20,42,.10),transparent 42%),
+    rgba(255,255,255,.014)!important;
+}
+.form{
+  background:rgba(255,255,255,.014)!important;
+}
+.form .btn{
+  min-height:50px!important;
+}
+
+/* FOOTER */
+footer{
+  border-top:1px solid rgba(255,255,255,.07)!important;
+  background:linear-gradient(180deg,transparent,rgba(255,20,42,.018))!important;
+}
+
+/* MOBILE: keep the changes obvious but controlled */
+@media(max-width:800px){
+  .hero{min-height:auto;padding-top:105px!important}
+  .hero-grid{min-height:auto!important}
+  .hero h1{font-size:clamp(55px,18vw,88px)!important}
+  .hero-art{min-height:420px!important;margin-top:20px}
+  .hero-art .logo-orb{width:min(360px,78vw)!important;height:min(360px,78vw)!important}
+  .hero-art:before{width:min(400px,86vw);height:min(400px,86vw)}
+  .show-card{min-height:360px!important}
+  .section-head h2{font-size:clamp(42px,14vw,66px)!important}
+  .stats{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:520px){
+  .hero-meta{flex-wrap:wrap}
+  .stats{grid-template-columns:1fr!important}
+  .show-card{min-height:330px!important}
+  .event{min-height:190px!important}
+}
+
+
+.garage-spec-strip{
+  margin-top:12px;
+  min-height:62px;
+  display:flex;align-items:center;justify-content:center;gap:22px;
+  padding:12px 18px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:15px;
+  background:rgba(255,255,255,.012);
+  color:#777;font-size:9px;font-weight:900;letter-spacing:.13em;
+}
+.garage-spec-strip b{color:#ff5261;margin-right:5px}
+.garage-spec-strip i{width:3px;height:3px;border-radius:50%;background:#ff263b;box-shadow:0 0 8px #ff263b}
+@media(max-width:650px){
+  .garage-spec-strip{gap:10px;justify-content:space-between;font-size:7px;letter-spacing:.08em}
+  .garage-spec-strip i{display:none}
+}
+
+
+/* =========================================================
+   V13 — GARAGE SHOWROOM / REPLACE PLACEHOLDER CAR SHAPES
+   CSS-rendered low-poly street cars: no external assets.
+   ========================================================= */
+#garage .show-card{
+  min-height:440px!important;
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 52% 42%,rgba(255,24,45,.15),transparent 29%),
+    linear-gradient(145deg,#111116,#07070a 72%)!important;
+}
+#garage .show-card.purple{
+  background:
+    radial-gradient(circle at 54% 40%,rgba(142,92,255,.13),transparent 28%),
+    linear-gradient(145deg,#111018,#07070a 72%)!important;
+}
+#garage .show-card .car-shape{display:none!important}
+.garage-car{
+  position:absolute;
+  left:50%; top:46%;
+  width:min(455px,92%);
+  height:225px;
+  transform:translate(-50%,-50%);
+  z-index:2;
+  pointer-events:none;
+  filter:drop-shadow(0 25px 22px rgba(0,0,0,.65));
+  transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .5s ease;
+}
+.show-card:hover .garage-car{
+  transform:translate(-50%,-53%) scale(1.045);
+  filter:drop-shadow(0 30px 25px rgba(0,0,0,.72));
+}
+.car-shadow{
+  position:absolute;
+  left:7%;right:7%;bottom:22px;height:30px;
+  border-radius:50%;
+  background:rgba(0,0,0,.85);
+  filter:blur(10px);
+}
+.car-glow{
+  position:absolute;
+  left:11%;right:11%;bottom:36px;height:16px;
+  border-radius:50%;
+  background:rgba(255,32,51,.28);
+  filter:blur(18px);
+}
+.clean-car .car-glow{background:rgba(141,92,255,.22)}
+.car-body{
+  position:absolute;
+  left:8%;right:8%;top:54px;height:112px;
+  border-radius:46% 18% 17% 24% / 55% 32% 24% 30%;
+  background:
+    linear-gradient(165deg,#34343d 0%,#17171d 38%,#09090c 76%,#24242b 100%);
+  border:1px solid rgba(255,255,255,.20);
+  box-shadow:
+    inset 0 8px 15px rgba(255,255,255,.06),
+    inset 0 -12px 22px rgba(0,0,0,.72),
+    0 0 0 1px rgba(255,32,51,.08);
+  transform:skewX(-4deg);
+}
+.clean-car .car-body{
+  background:
+    linear-gradient(165deg,#3a3944 0%,#181720 40%,#08080c 78%,#282630 100%);
+}
+.car-roof{
+  position:absolute;
+  left:25%;top:-39px;width:48%;height:58px;
+  background:linear-gradient(160deg,#27272f,#09090d);
+  clip-path:polygon(13% 100%,28% 0,73% 0,94% 100%);
+  border:1px solid rgba(255,255,255,.15);
+  border-bottom:0;
+}
+.car-window{
+  position:absolute;top:-29px;height:39px;
+  background:linear-gradient(145deg,rgba(35,41,50,.95),rgba(4,5,8,.98));
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 0 18px rgba(0,0,0,.7);
+}
+.car-window.front{
+  left:48%;width:23%;
+  clip-path:polygon(4% 100%,18% 0,100% 0,90% 100%);
+}
+.car-window.rear{
+  left:28%;width:20%;
+  clip-path:polygon(20% 0,100% 0,94% 100%,4% 100%);
+}
+.car-door{
+  position:absolute;top:16px;width:27%;height:74px;
+  border-right:1px solid rgba(255,255,255,.07);
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.car-door.d1{left:29%}
+.car-door.d2{left:56%}
+.car-line{
+  position:absolute;left:7%;right:6%;bottom:31px;height:3px;
+  background:linear-gradient(90deg,transparent,#ff263b 16%,#ff263b 68%,transparent);
+  box-shadow:0 0 10px rgba(255,32,51,.8),0 0 25px rgba(255,32,51,.28);
+}
+.clean-car .car-line{
+  background:linear-gradient(90deg,transparent,#b28aff 18%,#8d5cff 66%,transparent);
+  box-shadow:0 0 10px rgba(141,92,255,.65),0 0 22px rgba(141,92,255,.25);
+}
+.car-lamp{
+  position:absolute;
+  height:13px;width:29px;
+  border-radius:8px;
+  filter:blur(.15px);
+}
+.lamp-front{
+  right:-3px;top:39px;
+  background:linear-gradient(90deg,#ff6573,#fff);
+  box-shadow:0 0 10px #ff2033,0 0 24px rgba(255,32,51,.65);
+  transform:skewX(-15deg);
+}
+.lamp-rear{
+  left:-2px;top:52px;width:19px;height:10px;
+  background:#ff2033;
+  box-shadow:0 0 10px #ff2033;
+}
+.car-splitter{
+  position:absolute;left:5%;right:3%;bottom:17px;height:7px;
+  border-radius:8px;
+  background:#050507;
+  border:1px solid rgba(255,255,255,.10);
+}
+.car-wheel{
+  position:absolute;bottom:-27px;width:62px;height:62px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle,#0a0a0d 0 24%,#666 25% 30%,#15151a 31% 55%,#050507 56% 100%);
+  border:6px solid #08080b;
+  box-shadow:0 0 0 2px rgba(255,255,255,.08),0 7px 12px rgba(0,0,0,.65);
+}
+.car-wheel i{
+  position:absolute;left:50%;top:50%;
+  width:11px;height:11px;border-radius:50%;
+  background:#bfc0c8;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 0 5px #22232a;
+}
+.car-wheel.w1{left:14%}
+.car-wheel.w2{right:14%}
+.car-spoiler{
+  position:absolute;right:7%;top:2px;width:72px;height:9px;
+  border-radius:3px;
+  background:#0a0a0d;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 0 10px rgba(255,32,51,.15);
+  transform:skewX(-12deg);
+}
+.car-reflection{
+  position:absolute;left:18%;right:17%;top:88px;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  filter:blur(.5px);
+  opacity:.6;
+}
+.car-speed{
+  position:absolute;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+  opacity:0;
+}
+.car-speed.s1{left:-2%;top:112px;width:75px;transform:rotate(-8deg)}
+.car-speed.s2{right:-1%;top:148px;width:55px;transform:rotate(8deg)}
+.show-card:hover .car-speed{animation:garageSpeed .75s ease-out 1}
+@keyframes garageSpeed{
+  0%{opacity:0;transform:translateX(-12px) rotate(-8deg)}
+  30%{opacity:.7}
+  100%{opacity:0;transform:translateX(35px) rotate(-8deg)}
+}
+.clean-car .car-speed.s1{transform:rotate(-8deg)}
+.clean-car .car-speed.s2{transform:rotate(8deg)}
+
+#garage .show-card .show-content{
+  bottom:24px!important;
+}
+#garage .show-card .show-content:before{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:-24px;height:100px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.78));
+  z-index:-1;
+  pointer-events:none;
+}
+#garage .show-card .tag{
+  background:rgba(6,6,9,.68)!important;
+  border-color:rgba(255,32,51,.18)!important;
+  box-shadow:0 0 18px rgba(255,20,42,.06);
+}
+#garage .show-card.purple .tag{
+  border-color:rgba(141,92,255,.20)!important;
+}
+@media(max-width:650px){
+  #garage .show-card{min-height:370px!important}
+  .garage-car{width:95%;height:205px;top:45%}
+  .car-wheel{width:57px;height:57px}
+  .car-body{height:103px}
+}
+
+
+/* =========================================================
+   V14 — HERO LOGO ORBIT / HIGH-VISIBILITY LIGHT SYSTEM
+   Fix: the rotating light behind the clan logo must remain
+   visible on desktop + iPhone. Multiple layers + glow.
+   ========================================================= */
+.hero-art{overflow:visible!important;isolation:isolate!important}
+.hero-art .art-ring{z-index:0!important;opacity:.72!important}
+.hero-neon-orbit{
+  display:block!important;
+  position:absolute!important;
+  left:50%!important;top:50%!important;
+  width:min(410px,76vw)!important;
+  aspect-ratio:1!important;
+  transform:translate(-50%,-50%)!important;
+  border-radius:50%!important;
+  z-index:3!important;
+  pointer-events:none!important;
+  opacity:1!important;
+  filter:drop-shadow(0 0 5px rgba(255,32,51,.95)) drop-shadow(0 0 24px rgba(255,32,51,.55))!important;
+  animation:heroOrbitSpinV14 10s linear infinite!important;
+}
+.hero-neon-orbit:before,
+.hero-neon-orbit:after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  border-radius:50%!important;
+  border:2px solid transparent!important;
+  background:
+    linear-gradient(transparent,transparent) padding-box,
+    conic-gradient(
+      from 0deg,
+      transparent 0 7%,
+      rgba(255,32,51,.15) 7% 15%,
+      #ff1f35 15% 19%,
+      transparent 19% 35%,
+      rgba(255,68,86,.22) 35% 43%,
+      transparent 43% 57%,
+      #ff2033 57% 63%,
+      transparent 63% 82%,
+      rgba(255,32,51,.55) 82% 87%,
+      transparent 87% 100%
+    ) border-box!important;
+  box-shadow:
+    0 0 9px rgba(255,32,51,.9),
+    0 0 28px rgba(255,32,51,.52),
+    0 0 70px rgba(255,32,51,.22)!important;
+  opacity:1!important;
+}
+.hero-neon-orbit:after{
+  inset:13px!important;
+  border-width:1px!important;
+  opacity:.9!important;
+  transform:rotate(18deg)!important;
+  animation:heroOrbitCounterV14 6s linear infinite!important;
+  box-shadow:0 0 8px rgba(255,32,51,.7),0 0 28px rgba(255,32,51,.3)!important;
+}
+.hero-neon-orbit .hero-neon-dot{
+  z-index:4!important;
+  width:9px!important;height:9px!important;
+  background:#fff!important;
+  border:2px solid #ff263b!important;
+  box-shadow:0 0 7px #fff,0 0 15px #ff2033,0 0 34px rgba(255,32,51,.95)!important;
+}
+.hero-neon-orbit .hero-neon-dot.d1{left:8%!important;top:23%!important}
+.hero-neon-orbit .hero-neon-dot.d2{right:7%!important;bottom:20%!important}
+.hero-neon-orbit .hero-neon-dot.d3{right:22%!important;top:6%!important;width:6px!important;height:6px!important}
+.hero-neon-orbit .hero-neon-streak{
+  z-index:4!important;
+  width:105px!important;height:3px!important;
+  opacity:.95!important;
+  background:linear-gradient(90deg,transparent,#ff263b,#fff,#ff263b,transparent)!important;
+  box-shadow:0 0 8px #ff2033,0 0 22px rgba(255,32,51,.8)!important;
+}
+.hero-art .logo-orb{
+  z-index:5!important;
+  position:relative!important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.16),
+    0 0 0 8px rgba(255,32,51,.035),
+    0 0 38px rgba(255,32,51,.30),
+    0 0 90px rgba(255,32,51,.18),
+    0 35px 80px rgba(0,0,0,.7)!important;
+}
+.hero-art .hero-eye-glow{z-index:6!important;pointer-events:none}
+@keyframes heroOrbitSpinV14{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes heroOrbitCounterV14{to{transform:rotate(-360deg)}}
+@media(max-width:800px){
+  .hero-neon-orbit{width:min(335px,86vw)!important;z-index:3!important}
+  .hero-neon-orbit:after{inset:10px!important}
+  .hero-art .logo-orb{z-index:5!important}
+}
+@media(max-width:650px){
+  .hero-neon-orbit{width:min(305px,86vw)!important}
+  .hero-neon-orbit:before{border-width:2px!important}
+  .hero-neon-orbit .hero-neon-streak{width:72px!important}
+}
+
+
+/* =========================================================
+   MEMBERS V14 — PREMIUM CLAN ROSTER + PROFILE PANEL
+   ========================================================= */
+#members .members-shell{padding:22px!important;background:
+  radial-gradient(circle at 50% 0,rgba(255,20,42,.045),transparent 38%),
+  rgba(255,255,255,.012)!important;}
+#members .member-group{margin-bottom:34px!important}
+#members .member-group:last-child{margin-bottom:0!important}
+#members .group-title{
+  display:flex;align-items:center;gap:8px;
+  margin:0 0 14px!important;
+  color:#b9bac3!important;font-family:"Space Grotesk",sans-serif;
+  font-weight:800!important;letter-spacing:.12em!important;font-size:12px!important;
+}
+#members .group-title .group-count{color:#565862!important;letter-spacing:.08em}
+#members .member-grid{display:grid;gap:12px!important}
+#members .member-grid.role-leader,
+#members .member-grid.role-co-leader{grid-template-columns:1fr!important}
+#members .member-grid.role-special,
+#members .member-grid.role-member{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#members .member-card{
+  min-height:136px!important;padding:20px!important;border-radius:20px!important;
+  background:
+    radial-gradient(circle at 90% 100%,rgba(255,20,42,.09),transparent 35%),
+    linear-gradient(145deg,rgba(18,18,24,.98),rgba(8,8,11,.98))!important;
+  border:1px solid rgba(255,255,255,.075)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 14px 30px rgba(0,0,0,.20)!important;
+  cursor:pointer;overflow:hidden;isolation:isolate;
+  transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease!important;
+}
+#members .member-card:before{
+  content:"";position:absolute;inset:-35%;z-index:-1;opacity:0;
+  background:radial-gradient(circle at 70% 80%,rgba(255,20,42,.17),transparent 34%);
+  transition:opacity .35s ease;pointer-events:none;
+}
+#members .member-card:hover{transform:translateY(-5px)!important;border-color:rgba(255,32,51,.34)!important;box-shadow:0 22px 48px rgba(0,0,0,.38),0 0 26px rgba(255,20,42,.08)!important}
+#members .member-card:hover:before{opacity:1}
+#members .member-card:active{transform:translateY(-1px) scale(.992)!important}
+#members .member-card .member-nick{font-size:20px!important;line-height:1.05!important;letter-spacing:.02em!important;position:relative;z-index:2}
+#members .member-card .member-id{font-size:11px!important;margin-top:8px!important;color:#72747f!important;letter-spacing:.06em!important;position:relative;z-index:2}
+#members .role-pill{display:inline-flex!important;align-items:center!important;gap:6px!important;margin-top:18px!important;padding:7px 11px!important;border-radius:999px!important;font-size:9px!important;letter-spacing:.08em!important;font-weight:900!important;position:relative;z-index:2}
+#members .role-pill:before{content:"";width:6px;height:6px;border-radius:50%;background:#7a7b84;box-shadow:0 0 7px rgba(255,255,255,.08)}
+#members .role-pill.leader{color:#ffcf5a!important;background:rgba(255,181,0,.09)!important;border:1px solid rgba(255,190,50,.16)!important}
+#members .role-pill.leader:before{background:#ffbf3c;box-shadow:0 0 10px rgba(255,191,60,.7)}
+#members .role-pill.co{color:#82c1ff!important;background:rgba(71,145,255,.09)!important;border:1px solid rgba(71,145,255,.16)!important}
+#members .role-pill.co:before{background:#62b0ff;box-shadow:0 0 10px rgba(98,176,255,.65)}
+#members .role-pill.special{color:#e4a1ff!important;background:rgba(190,80,255,.09)!important;border:1px solid rgba(190,80,255,.16)!important}
+#members .role-pill.special:before{background:#d77bff;box-shadow:0 0 10px rgba(215,123,255,.65)}
+#members .member-card:not(.role-leader-card) .status-dot{display:inline-flex}
+#members .status-dot{position:absolute;right:18px;top:18px;width:9px;height:9px;border-radius:50%;background:#46e6a0;box-shadow:0 0 0 4px rgba(70,230,160,.07),0 0 12px rgba(70,230,160,.72);z-index:3}
+#members .status-label{position:absolute;right:16px;top:32px;font-size:7px;letter-spacing:.13em;color:#6f727d;font-weight:800}
+#members .leader-card{
+  min-height:185px!important;padding:26px 28px!important;
+  background:
+    linear-gradient(90deg,rgba(255,20,42,.07),transparent 45%),
+    radial-gradient(circle at 86% 50%,rgba(255,20,42,.16),transparent 34%),
+    #0b0b10!important;
+  border-color:rgba(255,32,51,.22)!important;
+}
+#members .leader-card:after{
+  content:"";position:absolute;right:-34px;top:-54px;width:250px;height:250px;border-radius:50%;
+  background:url('oni-kishin-logo.jpg') center/cover no-repeat;
+  opacity:.075;filter:grayscale(1) contrast(1.2);z-index:-1;
+  transform:rotate(9deg) scale(1.05);
+}
+#members .leader-card .member-nick{font-size:27px!important;letter-spacing:.01em!important}
+#members .leader-card .member-id{font-size:12px!important;margin-top:9px!important}
+#members .leader-card .role-pill{margin-top:20px!important}
+#members .leader-meta{position:absolute;right:28px;bottom:25px;text-align:right;z-index:2}
+#members .leader-meta strong{display:block;color:#dfe0e7;font-size:10px;letter-spacing:.12em}
+#members .leader-meta span{display:block;color:#686a75;font-size:9px;margin-top:5px;letter-spacing:.08em}
+#members .member-card .tap-hint{position:absolute;right:16px;bottom:15px;color:#4f515b;font-size:7px;letter-spacing:.12em;font-weight:800;opacity:.0;transition:.25s ease}
+#members .member-card:hover .tap-hint{opacity:1}
+
+/* Profile modal */
+.member-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.74);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.member-modal.open{display:flex;animation:memberModalIn .24s ease both}
+@keyframes memberModalIn{from{opacity:0}to{opacity:1}}
+.member-modal-card{position:relative;width:min(460px,100%);border:1px solid rgba(255,32,51,.24);border-radius:26px;overflow:hidden;background:
+  radial-gradient(circle at 85% 10%,rgba(255,20,42,.15),transparent 35%),
+  linear-gradient(145deg,#111117,#07070a);box-shadow:0 30px 90px rgba(0,0,0,.68),0 0 45px rgba(255,20,42,.08);animation:memberCardIn .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes memberCardIn{from{transform:translateY(18px) scale(.97)}to{transform:translateY(0) scale(1)}}
+.member-modal-card:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 0 42%,rgba(255,255,255,.025) 50%,transparent 58%);pointer-events:none}
+.member-modal-top{padding:25px 25px 20px;border-bottom:1px solid rgba(255,255,255,.07);position:relative}
+.member-modal-close{position:absolute;right:18px;top:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#fff;font-size:20px;cursor:pointer}
+.member-modal-kicker{font-size:8px;letter-spacing:.17em;color:#ff4051;font-weight:900;margin-bottom:12px}
+.member-modal-name{font-family:"Space Grotesk",sans-serif;font-size:30px;font-weight:800;line-height:1.05}
+.member-modal-id{color:#777985;font-size:11px;margin-top:8px;letter-spacing:.08em}
+.member-modal-body{padding:20px 25px 25px;display:grid;gap:10px}
+.member-info-row{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 14px;border:1px solid rgba(255,255,255,.06);border-radius:14px;background:rgba(255,255,255,.018)}
+.member-info-row span{font-size:8px;letter-spacing:.12em;color:#70727c;font-weight:800}.member-info-row strong{font-size:10px;color:#e8e8ed;text-align:right}
+.member-status{display:inline-flex;align-items:center;gap:7px}.member-status i{width:7px;height:7px;border-radius:50%;background:#46e6a0;box-shadow:0 0 10px rgba(70,230,160,.75)}
+.member-modal-note{margin-top:3px;color:#5f616b;font-size:8px;line-height:1.6;letter-spacing:.04em}
+@media(max-width:800px){
+  #members .member-grid.role-leader,#members .member-grid.role-co-leader{grid-template-columns:1fr!important}
+  #members .member-grid.role-special,#members .member-grid.role-member{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #members .leader-card{min-height:178px!important;padding:23px!important}
+  #members .leader-meta{right:23px;bottom:22px}
+  #members .member-card{min-height:132px!important;padding:17px!important}
+  #members .member-card .member-nick{font-size:17px!important}
+  #members .member-card .role-pill{margin-top:15px!important;font-size:8px!important;padding:6px 9px!important}
+  .member-modal{padding:14px}.member-modal-name{font-size:26px}
+}
+
+
+/* =========================================================
+   FINAL MOBILE HERO FIX
+   Prevent clan artwork from covering HUD cards/text.
+   Keep orbit visible behind the artwork.
+   ========================================================= */
+.hero-art{
+  position:relative!important;
+  overflow:visible!important;
+  min-height:500px!important;
+  isolation:isolate!important;
+}
+.hero-art .art-ring{
+  z-index:0!important;
+}
+.hero-neon-orbit{
+  z-index:2!important;
+}
+.hero-art .logo-orb{
+  z-index:5!important;
+  position:relative!important;
+}
+.hero-art .orb-card{
+  z-index:9!important;
+  position:absolute!important;
+}
+.hero-art .orb-card.one{
+  top:9%!important;
+  right:-2%!important;
+}
+.hero-art .orb-card.two{
+  bottom:9%!important;
+  left:-2%!important;
+}
+.hero-art .hero-eye-glow{
+  z-index:6!important;
+}
+
+/* Mobile: make the artwork smaller so the HUD remains readable. */
+@media(max-width:800px){
+  .hero{
+    padding-top:92px!important;
+    padding-bottom:30px!important;
+  }
+  .hero-art{
+    min-height:390px!important;
+    margin-top:8px!important;
+  }
+  .hero-art .logo-orb{
+    width:min(280px,68vw)!important;
+    height:min(280px,68vw)!important;
+  }
+  .hero-art:before{
+    width:min(315px,76vw)!important;
+    height:min(315px,76vw)!important;
+  }
+  .hero-neon-orbit{
+    width:min(305px,76vw)!important;
+  }
+  .hero-art .orb-card{
+    min-width:150px!important;
+    max-width:180px!important;
+    padding:11px 12px!important;
+    font-size:8px!important;
+    line-height:1.25!important;
+  }
+  .hero-art .orb-card b{
+    font-size:11px!important;
+    margin-top:4px!important;
+  }
+  .hero-art .orb-card.one{
+    top:5%!important;
+    right:-1%!important;
+  }
+  .hero-art .orb-card.two{
+    bottom:5%!important;
+    left:-1%!important;
+  }
+}
+
+@media(max-width:520px){
+  .hero-art{
+    min-height:350px!important;
+  }
+  .hero-art .logo-orb{
+    width:min(250px,64vw)!important;
+    height:min(250px,64vw)!important;
+  }
+  .hero-neon-orbit{
+    width:min(275px,70vw)!important;
+  }
+  .hero-art:before{
+    width:min(285px,73vw)!important;
+    height:min(285px,73vw)!important;
+  }
+  .hero-art .orb-card{
+    min-width:136px!important;
+    max-width:158px!important;
+  }
+  .hero-art .orb-card.one{
+    right:0!important;
+    top:2%!important;
+  }
+  .hero-art .orb-card.two{
+    left:0!important;
+    bottom:2%!important;
+  }
+}
+
+
+/* =========================================================
+   ONI & KISHIN — V15 PREMIUM EXPERIENCE LAYER
+   Visual upgrade only. Existing Firebase / forms / roster kept.
+   ========================================================= */
+
+/* cinematic grain + ambient depth */
+body:after{
+  content:"";position:fixed;inset:0;z-index:9990;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E");
+  mix-blend-mode:screen;
+}
+.px-progress{
+  position:fixed;left:0;top:0;width:100%;height:2px;z-index:100001;pointer-events:none;
+  background:transparent;
+}
+.px-progress i{
+  display:block;width:0;height:100%;
+  background:linear-gradient(90deg,#ff2033,#ff6a7a,#fff);
+  box-shadow:0 0 14px rgba(255,32,51,.85);
+}
+.px-ambient{
+  position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden;
+}
+.px-orb{
+  position:absolute;border-radius:50%;filter:blur(65px);opacity:.14;
+  animation:pxFloat 15s ease-in-out infinite;
+}
+.px-orb.a{width:280px;height:280px;background:#ff1730;left:-110px;top:24%}
+.px-orb.b{width:340px;height:340px;background:#7d45ff;right:-150px;top:52%;animation-delay:-6s}
+.px-orb.c{width:210px;height:210px;background:#ff3048;left:45%;bottom:-130px;animation-delay:-10s}
+@keyframes pxFloat{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(22px,-26px,0) scale(1.08)}}
+
+.px-cursor{
+  position:fixed;width:280px;height:280px;border-radius:50%;pointer-events:none;z-index:9988;
+  background:radial-gradient(circle,rgba(255,32,51,.075),transparent 68%);
+  transform:translate(-50%,-50%);opacity:0;transition:opacity .25s ease;
+  mix-blend-mode:screen;
+}
+@media(pointer:fine){body:hover .px-cursor{opacity:1}}
+
+header{
+  box-shadow:0 10px 40px rgba(0,0,0,.12);
+}
+header.scrolled{
+  box-shadow:0 12px 45px rgba(0,0,0,.32),inset 0 -1px 0 rgba(255,255,255,.025);
+}
+header .brand{
+  position:relative;
+}
+header .brand:after{
+  content:"OFFICIAL / CPM 1";
+  position:absolute;left:54px;top:34px;font-size:6px;letter-spacing:.18em;color:#555761;
+  white-space:nowrap;font-weight:900;
+}
+@media(max-width:650px){header .brand:after{display:none}}
+
+.hero{
+  overflow:hidden!important;
+}
+.hero-grid{position:relative}
+.hero-grid:after{
+  content:"SYSTEM // 2026";
+  position:absolute;right:0;bottom:-28px;
+  color:rgba(255,255,255,.18);font-size:7px;font-weight:900;letter-spacing:.24em;
+}
+.hero .eyebrow{
+  padding:8px 11px;border:1px solid rgba(255,255,255,.07);border-radius:999px;
+  background:rgba(255,255,255,.018);width:max-content;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+.hero h1{
+  position:relative;
+  filter:drop-shadow(0 18px 35px rgba(0,0,0,.28));
+}
+.hero h1:after{
+  content:"ONI / KISHIN";
+  position:absolute;left:3px;bottom:-19px;color:rgba(255,255,255,.18);
+  font-size:7px;letter-spacing:.34em;font-weight:900;
+}
+.hero-copy{position:relative}
+.hero-copy:before{
+  content:"01";
+  position:absolute;left:-34px;top:2px;color:rgba(255,32,51,.42);font-size:8px;font-weight:900;letter-spacing:.15em;
+}
+.hero .hero-meta span{
+  padding:8px 10px;border:1px solid rgba(255,255,255,.05);border-radius:10px;background:rgba(255,255,255,.014);
+}
+.actions .btn.primary{
+  position:relative;overflow:hidden;
+}
+.actions .btn.primary:after{
+  content:"";position:absolute;top:-40%;left:-35%;width:22%;height:180%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  transform:skewX(-18deg);animation:pxButtonSweep 4.5s ease-in-out infinite;
+}
+@keyframes pxButtonSweep{0%,70%{left:-35%;opacity:0}78%{opacity:1}100%{left:135%;opacity:0}}
+
+.section-head{
+  padding-top:8px;
+}
+.section-head .kicker:before{
+  content:"";
+  display:inline-block;width:18px;height:1px;margin:0 8px 3px 0;
+  background:#ff2033;box-shadow:0 0 8px rgba(255,32,51,.65);
+}
+.section-head h2{position:relative}
+.section-head h2:after{
+  content:"";
+  position:absolute;right:-4px;bottom:5px;width:90px;height:1px;
+  background:linear-gradient(90deg,rgba(255,32,51,.0),rgba(255,32,51,.35));
+}
+.stat,.panel,.event,.market-card,.member-card,.join-side,.form,.show-card{
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.stat:hover,.panel:hover,.event:hover,.market-card:hover,.join-side:hover{
+  transform:translateY(-5px)!important;
+}
+.panel,.stat,.event,.market-card,.show-card{
+  position:relative;
+}
+.panel:after,.stat:after,.event:after,.market-card:after,.show-card:after{
+  pointer-events:none;
+}
+.panel:before,.stat:before,.event:before,.market-card:before{
+  content:"";position:absolute;left:0;top:0;width:42px;height:1px;
+  background:linear-gradient(90deg,rgba(255,32,51,.8),transparent);opacity:.55;
+}
+.rule{
+  position:relative;overflow:hidden;
+}
+.rule:after{
+  content:"";position:absolute;right:-35px;top:-35px;width:110px;height:110px;border-radius:50%;
+  border:1px solid rgba(255,32,51,.06);box-shadow:0 0 35px rgba(255,32,51,.04);
+}
+.event h3,.market-card h3,.panel h3,.show-content h3{
+  text-shadow:0 8px 28px rgba(0,0,0,.35);
+}
+
+/* premium shop + gallery hub */
+#shop-gallery{position:relative;overflow:hidden}
+#shop-gallery:before{
+  content:"SHOP / GALLERY";
+  position:absolute;right:4%;top:78px;color:rgba(255,255,255,.16);
+  font-size:8px;font-weight:900;letter-spacing:.24em;
+}
+.px-hub{
+  margin-top:38px;border:1px solid rgba(255,255,255,.08);border-radius:28px;
+  padding:12px;background:
+    linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.008)),
+    rgba(5,5,8,.72);
+  box-shadow:0 30px 90px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.035);
+}
+.px-tabs{
+  display:flex;gap:8px;padding:6px;border:1px solid rgba(255,255,255,.06);border-radius:16px;
+  background:rgba(0,0,0,.25);width:max-content;
+}
+.px-tab{
+  min-width:110px;padding:11px 18px;border:1px solid transparent;border-radius:11px;
+  background:transparent;color:#666873;font-size:9px;font-weight:900;letter-spacing:.16em;
+  transition:.25s ease;
+}
+.px-tab.active{
+  color:#fff;background:rgba(255,32,51,.10);border-color:rgba(255,32,51,.25);
+  box-shadow:0 0 24px rgba(255,32,51,.08);
+}
+.px-panel{display:none;padding:18px 6px 6px}
+.px-panel.active{display:block;animation:pxPanelIn .4s ease both}
+@keyframes pxPanelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.px-shop-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+}
+.px-product{
+  min-height:205px;padding:21px;border-radius:20px;border:1px solid rgba(255,255,255,.07);
+  background:
+    radial-gradient(circle at 90% 0,rgba(255,32,51,.10),transparent 42%),
+    linear-gradient(145deg,rgba(255,255,255,.028),rgba(255,255,255,.008));
+  position:relative;overflow:hidden;transition:.35s ease;
+}
+.px-product:hover{
+  transform:translateY(-6px);border-color:rgba(255,32,51,.28);
+  box-shadow:0 24px 55px rgba(0,0,0,.32),0 0 25px rgba(255,32,51,.06);
+}
+.px-product .px-index{
+  position:absolute;right:16px;top:13px;font-size:42px;line-height:1;font-weight:900;
+  color:rgba(255,255,255,.035);
+}
+.px-product .px-icon{font-size:25px;filter:drop-shadow(0 0 14px rgba(255,32,51,.2))}
+.px-product h3{margin:15px 0 7px;font-family:"Space Grotesk";font-size:20px}
+.px-product p{margin:0;color:#777984;font-size:11px;line-height:1.65;max-width:32ch}
+.px-product .px-action{
+  display:inline-flex;margin-top:16px;padding:7px 10px;border:1px solid rgba(255,255,255,.08);
+  border-radius:9px;color:#bfc0c8;text-decoration:none;font-size:8px;font-weight:900;letter-spacing:.11em;
+}
+.px-gallery-grid{
+  display:grid;grid-template-columns:1.2fr .8fr .8fr;grid-auto-rows:180px;gap:10px;
+}
+.px-gallery-card{
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.07);border-radius:18px;
+  cursor:pointer;background:#09090d;isolation:isolate;
+}
+.px-gallery-card.big{grid-row:span 2}
+.px-gallery-card:before{
+  content:"";position:absolute;inset:-12%;
+  background:radial-gradient(circle at 60% 35%,var(--g1),transparent 34%),linear-gradient(145deg,var(--g2),#07070a 68%);
+  transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .5s ease;
+  z-index:-1;
+}
+.px-gallery-card:after{
+  content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.82));
+}
+.px-gallery-card:hover:before{transform:scale(1.10) rotate(1deg);filter:saturate(1.2)}
+.px-gallery-art{
+  position:absolute;left:50%;top:46%;width:62%;height:28%;
+  transform:translate(-50%,-50%) skewX(-10deg);
+  border-radius:65% 35% 25% 35%;background:linear-gradient(160deg,#363640,#09090d 72%);
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 30px 55px rgba(0,0,0,.7),0 0 35px var(--glow);
+}
+.px-gallery-art:before{
+  content:"";position:absolute;left:22%;right:20%;top:-25px;height:48px;
+  background:linear-gradient(160deg,#25252d,#08080c);
+  clip-path:polygon(20% 100%,34% 0,76% 0,91% 100%);
+}
+.px-gallery-art:after{
+  content:"";position:absolute;left:8%;right:8%;bottom:12px;height:2px;background:var(--accent);
+  box-shadow:0 0 13px var(--accent);
+}
+.px-gallery-label{
+  position:absolute;left:17px;right:17px;bottom:14px;z-index:3;
+}
+.px-gallery-label small{display:block;color:var(--accent);font-size:7px;font-weight:900;letter-spacing:.16em}
+.px-gallery-label b{display:block;margin-top:4px;font-family:"Space Grotesk";font-size:17px}
+.px-gallery-label span{display:block;margin-top:3px;color:#858691;font-size:9px}
+.px-lightbox{
+  position:fixed;inset:0;z-index:100002;display:none;place-items:center;padding:18px;
+  background:rgba(0,0,0,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+.px-lightbox.open{display:grid;animation:pxLb .25s ease both}
+@keyframes pxLb{from{opacity:0}to{opacity:1}}
+.px-lb-card{
+  width:min(760px,100%);border:1px solid rgba(255,32,51,.24);border-radius:26px;overflow:hidden;
+  background:linear-gradient(145deg,#111117,#050507);box-shadow:0 40px 120px rgba(0,0,0,.72);
+}
+.px-lb-visual{
+  height:min(430px,60vh);position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 38%,var(--g1),transparent 42%),linear-gradient(145deg,var(--g2),#050507);
+}
+.px-lb-visual .px-gallery-art{width:54%;height:24%;transform:translate(-50%,-50%) skewX(-10deg) scale(1.25)}
+.px-lb-copy{padding:20px 22px;border-top:1px solid rgba(255,255,255,.06)}
+.px-lb-copy small{color:#ff5261;font-size:8px;font-weight:900;letter-spacing:.16em}
+.px-lb-copy h3{font-family:"Space Grotesk";font-size:27px;margin:7px 0}
+.px-lb-copy p{color:#777984;font-size:11px;line-height:1.65;margin:0}
+.px-lb-close{
+  position:absolute;right:20px;top:18px;width:38px;height:38px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.35);color:#fff;font-size:20px;z-index:2;
+}
+
+/* utility chips / status */
+.px-livebar{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:13px;
+  padding:10px 13px;border:1px solid rgba(255,255,255,.06);border-radius:13px;background:rgba(0,0,0,.18);
+  color:#676974;font-size:8px;font-weight:900;letter-spacing:.13em;
+}
+.px-livebar strong{color:#bfc0c7}
+.px-livebar i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#42e6a4;box-shadow:0 0 10px #42e6a4;margin-right:6px}
+
+/* subtle card tilt only on desktop */
+@media(pointer:fine){
+  .px-tilt{transform-style:preserve-3d;will-change:transform}
+}
+@media(max-width:850px){
+  .px-shop-grid{grid-template-columns:1fr 1fr}
+  .px-gallery-grid{grid-template-columns:1fr 1fr;grid-auto-rows:155px}
+  .px-gallery-card.big{grid-row:span 1}
+}
+@media(max-width:650px){
+  .mobile-bar a{min-width:0;flex:1;padding-left:3px;padding-right:3px}
+  .hero-grid:after{display:none}
+  .hero-copy:before{display:none}
+  .px-hub{padding:9px;border-radius:22px}
+  .px-tabs{width:100%}
+  .px-tab{flex:1;min-width:0}
+  .px-shop-grid{grid-template-columns:1fr}
+  .px-gallery-grid{grid-template-columns:1fr 1fr;grid-auto-rows:145px}
+  .px-gallery-card:first-child{grid-column:span 2}
+  .px-gallery-label{left:12px;right:12px;bottom:11px}
+  .px-gallery-label b{font-size:14px}
+  .px-gallery-label span{font-size:8px}
+  #shop-gallery:before{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  body:after,.px-orb,.px-progress,.px-cursor{display:none}
+  .px-gallery-card:before{transition:none}
+}
+
+/* =========================================================
    ONI MARKET / GALLERY — PREMIUM V7
    ========================================================= */
 .premium-market,.premium-gallery{position:relative;overflow:hidden}
@@ -433,11 +2376,89 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 @media(max-width:900px){.premium-product-grid,.premium-gallery-grid{grid-template-columns:repeat(2,1fr)}.market-hero{align-items:flex-start}.market-stat{text-align:left}.order-summary{grid-template-columns:1fr}.gallery-toolbar{display:block}}
 @media(max-width:560px){.premium-product-grid,.premium-gallery-grid{grid-template-columns:1fr}.market-hero{display:block}.market-stat{margin-top:16px}.order-form{grid-template-columns:1fr}.order-full{grid-column:auto}.product-media{height:205px}.gallery-card{min-height:290px}}
 
+
+
+/* V15 — Premium Gallery Lightbox */
+.gallery-lightbox{display:none;position:fixed;inset:0;z-index:11000;align-items:center;justify-content:center;padding:18px}
+.gallery-lightbox.open{display:flex}
+.gallery-lightbox-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.84);backdrop-filter:blur(18px)}
+.gallery-lightbox-card{position:relative;z-index:1;width:min(920px,100%);overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:28px;background:linear-gradient(145deg,#111117,#050507);box-shadow:0 50px 180px rgba(0,0,0,.9)}
+.gallery-lightbox-visual{height:min(58vh,520px);background:radial-gradient(circle at 50% 35%,rgba(255,25,45,.18),transparent 42%),#07070a}
+.gallery-lightbox-visual img{width:100%;height:100%;object-fit:contain;display:block}
+.gallery-lightbox-info{padding:18px 20px 22px;border-top:1px solid rgba(255,255,255,.07)}
+.gallery-lightbox-info small{color:#ff6675;font-size:8px;font-weight:950;letter-spacing:.18em}
+.gallery-lightbox-info h3{margin:6px 0;font-size:28px;letter-spacing:-.05em}
+.gallery-lightbox-info p{margin:0;color:#8a8b95;font-size:11px;line-height:1.6}
+.gallery-lightbox-close{position:absolute;right:12px;top:12px;z-index:3;width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.62);color:#fff;font-size:22px;cursor:pointer}
+@media(max-width:560px){.gallery-lightbox{padding:10px}.gallery-lightbox-card{border-radius:20px}.gallery-lightbox-visual{height:48vh}.gallery-lightbox-info h3{font-size:23px}}
+
+
+/* V17 premium completion layer */
+.order-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.order-steps span{font-size:10px;letter-spacing:.14em;color:#666;border-bottom:1px solid #25252a;padding:10px 4px}.order-steps span.active{color:#fff;border-color:#ff2033}.order-pane{display:none}.order-pane.active{display:block}.order-nav{display:flex;gap:10px;margin-top:16px}.order-nav>*{flex:1}.hidden{display:none!important}.order-step-error{display:none;color:#ff6b76;background:rgba(255,32,51,.08);border:1px solid rgba(255,32,51,.25);padding:11px;border-radius:10px;margin-top:12px}.order-step-error.show{display:block}.order-confirm{text-align:center;padding:12px 0}.receipt-mark{width:54px;height:54px;border:1px solid rgba(52,255,137,.4);color:#42ff92;border-radius:50%;display:grid;place-items:center;margin:0 auto 14px;font-size:24px}.order-confirm h4{font-size:22px;margin:8px 0}.order-confirm>strong{display:block;font-size:26px;margin:10px 0 18px}.tracking-list{text-align:left;border-top:1px solid #222;border-bottom:1px solid #222;padding:10px 0}.tracking-list div{padding:9px 4px;color:#666;font-size:13px}.tracking-list div.active{color:#fff}.tracking-list i{display:inline-block;width:8px;height:8px;border-radius:50%;border:1px solid #555;margin-right:10px}.tracking-list .active i{background:#42ff92;border-color:#42ff92}.order-note{color:#777;font-size:12px}.gallery-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.gallery-action{border:1px solid #333;background:#111;color:#ddd;padding:9px 12px;border-radius:8px;font-size:10px;letter-spacing:.1em}.gallery-action.primary{border-color:#ff2033;color:#fff}.product-detail-modal{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;padding:18px}.product-detail-modal.open{display:flex}.product-detail-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(12px)}.product-detail-card{position:relative;width:min(720px,100%);max-height:90vh;overflow:auto;background:#0c0c10;border:1px solid #2b2b31;border-radius:24px;padding:20px;box-shadow:0 30px 90px #000}.detail-close{position:absolute;right:14px;top:12px;width:40px;height:40px;border-radius:50%;border:1px solid #333;background:#111;color:#fff;font-size:24px;z-index:2}.detail-visual{height:280px;border-radius:16px;overflow:hidden;background:#151519;display:grid;place-items:center;margin-bottom:18px}.detail-visual img{width:100%;height:100%;object-fit:cover}.detail-icon{font-size:80px;opacity:.5}.product-detail-card small{color:#ff4050;letter-spacing:.14em}.product-detail-card h3{font-size:30px;margin:8px 0}.product-detail-card>p{color:#aaa;line-height:1.6}.detail-meta{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #222;margin-top:18px}.detail-meta div{display:flex;justify-content:space-between;gap:14px;padding:12px 4px;border-bottom:1px solid #222}.detail-meta span{color:#666;font-size:10px;letter-spacing:.12em}.detail-meta b{font-size:12px;text-align:right}.detail-buy{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-top:18px}.detail-buy small{display:block;color:#777}.detail-buy strong{font-size:24px}.detail-buy button{max-width:220px}@media(max-width:640px){.order-steps span{font-size:8px}.detail-visual{height:220px}.detail-meta{grid-template-columns:1fr}.detail-buy{align-items:stretch;flex-direction:column}.detail-buy button{max-width:none}}
+
+/* V18 — production marketplace layer */
+.market-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin:14px 0}.market-search{width:100%;padding:13px 14px;border-radius:13px;border:1px solid rgba(255,255,255,.09);background:#08080c;color:#fff;outline:none}.market-search:focus{border-color:rgba(255,32,56,.45);box-shadow:0 0 0 3px rgba(255,32,56,.07)}.market-track{display:flex;gap:8px}.market-track input{min-width:180px}.market-track button{white-space:nowrap}.product-specs{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 2px}.product-specs span{padding:5px 7px;border:1px solid rgba(255,255,255,.07);border-radius:7px;color:#92939d;font-size:7px;font-weight:850;letter-spacing:.04em}.tracking-panel{margin-top:14px;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.012))}.tracking-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.tracking-panel h3{margin:0;font-size:17px}.tracking-panel small{color:#6f707a}.tracking-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}.tracking-result{margin-top:12px}.tracking-result.hidden{display:none}.tracking-card{border:1px solid rgba(255,255,255,.08);border-radius:15px;padding:14px;background:#08080c}.tracking-card .track-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.tracking-card .track-no{font-weight:950;font-size:17px}.tracking-status{margin-top:12px}.tracking-status-row{display:flex;gap:10px;align-items:center;padding:8px 0;color:#666}.tracking-status-row.active{color:#fff}.tracking-status-row.done{color:#42ff92}.tracking-status-row i{width:9px;height:9px;border:1px solid #555;border-radius:50%;display:block;flex:none}.tracking-status-row.active i{background:#ff2038;border-color:#ff2038;box-shadow:0 0 12px rgba(255,32,56,.45)}.tracking-status-row.done i{background:#42ff92;border-color:#42ff92}.track-token{margin-top:10px;padding:9px;border-radius:10px;background:#111;color:#a8a9b2;font-family:monospace;font-size:10px;word-break:break-all}.upload-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.upload-row input[type=file]{max-width:100%;color:#aaa;font-size:11px}.image-preview{margin-top:8px;min-height:90px;border:1px dashed rgba(255,255,255,.10);border-radius:12px;background:#08080c;display:grid;place-items:center;overflow:hidden;color:#666;font-size:10px}.image-preview img{width:100%;max-height:190px;object-fit:contain;display:block}.upload-note{color:#666;font-size:9px;margin-top:6px;line-height:1.5}.admin-link-pill{font-size:8px;color:#888;border:1px solid #2a2a30;border-radius:8px;padding:6px 8px}
+@media(max-width:700px){.market-tools{grid-template-columns:1fr}.market-track{display:grid;grid-template-columns:1fr auto}.market-track input{min-width:0}.tracking-form{grid-template-columns:1fr}.product-specs span{font-size:6.5px}}
 </style>
 </head>
 
 <body>
-<!-- ONI & KISHIN V5.1 CINEMATIC INTRO -->
+
+<div class="px-progress" aria-hidden="true"><i></i></div>
+<div class="px-ambient" aria-hidden="true"><i class="px-orb a"></i><i class="px-orb b"></i><i class="px-orb c"></i></div>
+<div class="px-cursor" aria-hidden="true"></div>
+
+<div class="px-lightbox" id="pxLightbox" aria-hidden="true">
+  <div class="px-lb-card" role="dialog" aria-modal="true" aria-labelledby="pxLbTitle">
+    <button class="px-lb-close" type="button" id="pxLbClose" aria-label="Хаах">×</button>
+    <div class="px-lb-visual" id="pxLbVisual"><div class="px-gallery-art"></div></div>
+    <div class="px-lb-copy">
+      <small id="pxLbKicker">ONI / GALLERY</small>
+      <h3 id="pxLbTitle">BUILD</h3>
+      <p id="pxLbDesc"></p>
+    </div>
+  </div>
+</div>
+
+
+<input id="oniToggle" type="checkbox" aria-label="Онь горим">
+<div class="oni-v3-top-control">
+  <label for="oniToggle" class="oni-v3-top-label">
+    <span class="oni-v3-top-mark">鬼</span>
+    <span class="oni-v3-top-copy"><b>ОНЬ ГОРИМ</b><small>Идэвхжүүлэх</small></span>
+    <span class="oni-v3-top-dot"></span>
+  </label>
+</div>
+<div class="oni-v3-shell">
+
+<script>
+/* ONI MODE BOOT — independent from Firebase/module scripts */
+(function(){
+  var last=0;
+  window.activateONI=function(ev){
+    if(ev){ try{ev.preventDefault();ev.stopPropagation();}catch(e){} }
+    var now=Date.now();
+    if(now-last<450) return false;
+    last=now;
+    var active=document.body.classList.toggle("oni-mode");
+    var toast=document.getElementById("oniToast");
+    if(toast){
+      toast.textContent=active ? "ONI MODE АМЖИЛТТАЙ ИДЭВХЖЛЭЭ" : "ONI MODE УНТРААЛАА";
+      toast.classList.remove("show");
+      void toast.offsetWidth;
+      toast.classList.add("show");
+      clearTimeout(window.__oniToastTimer);
+      window.__oniToastTimer=setTimeout(function(){toast.classList.remove("show")},2600);
+    }
+    try{localStorage.setItem("oniMode",active?"1":"0");var toggle=document.getElementById("oniToggle");if(toggle)toggle.checked=active}catch(e){}
+    return false;
+  };
+  function restore(){try{var active=localStorage.getItem("oniMode")==="1";document.body.classList.toggle("oni-mode",active);var toggle=document.getElementById("oniToggle");if(toggle)toggle.checked=active}catch(e){}}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",restore);else restore();
+})();
+</script>
+
+<!-- ONI & KISHIN V8 CINEMATIC INTRO + SECRET MODE -->
 <div class="oni-intro" id="oniIntro" aria-hidden="true">
   <div class="oni-intro-bg"></div>
   <div class="oni-intro-smoke smoke-a"></div>
@@ -467,7 +2488,6 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 <header id="siteHeader">
   <div class="container nav">
     <a class="brand" href="#home">
-      <img src="oni-kishin-logo.jpg" alt="ONI & KISHIN logo" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">
       <span class="brand-fallback">鬼</span>
       <span>ONI <b>&</b> KISHIN</span>
     </a>
@@ -508,7 +2528,15 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 
     <div class="hero-art reveal">
       <div class="art-ring"></div>
+      <div class="hero-neon-orbit" aria-hidden="true">
+        <i class="hero-neon-dot d1"></i>
+        <i class="hero-neon-dot d2"></i>
+        <i class="hero-neon-dot d3"></i>
+        <i class="hero-neon-streak s1"></i>
+        <i class="hero-neon-streak s2"></i>
+      </div>
       <img class="logo-orb" src="oni-kishin-logo.jpg" alt="ONI & KISHIN">
+      <div class="hero-eye-glow" aria-hidden="true"></div>
       <div class="orb-card one"><span class="live-dot"></span>CLAN STATUS<b><span id="heroCount">0</span> / 52 MEMBERS</b></div>
       <div class="orb-card two">STYLE<b>ANIME × CLEAN × DRIFT</b></div>
     </div>
@@ -559,13 +2587,57 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
     </div>
     <div class="showcase">
       <article class="show-card reveal">
-        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
+        <div class="garage-car anime-car" aria-label="Itasha Division машины">
+  <div class="car-shadow"></div>
+  <div class="car-glow"></div>
+  <div class="car-body">
+    <div class="car-roof"></div>
+    <div class="car-window front"></div>
+    <div class="car-window rear"></div>
+    <div class="car-door d1"></div>
+    <div class="car-door d2"></div>
+    <div class="car-line"></div>
+    <div class="car-lamp lamp-front"></div>
+    <div class="car-lamp lamp-rear"></div>
+    <div class="car-splitter"></div>
+    <div class="car-wheel w1"><i></i></div>
+    <div class="car-wheel w2"><i></i></div>
+    <div class="car-spoiler"></div>
+  </div>
+  <div class="car-reflection"></div>
+  <div class="car-speed s1"></div><div class="car-speed s2"></div>
+</div>
         <div class="show-content"><span class="tag">01 / ANIME BUILD</span><h3>ITASHA DIVISION</h3><p>Character livery • detail • night spec</p></div>
       </article>
       <article class="show-card purple reveal">
-        <div class="car-shape"><span class="wheel a"></span><span class="wheel b"></span></div>
-        <div class="show-content"><span class="tag">02 / CLEAN BUILD</span><h3>NIGHT SPEC</h3><p>OEM+ • stance • clean finish</p></div>
+        <div class="garage-car clean-car" aria-label="Itasha Division машины">
+  <div class="car-shadow"></div>
+  <div class="car-glow"></div>
+  <div class="car-body">
+    <div class="car-roof"></div>
+    <div class="car-window front"></div>
+    <div class="car-window rear"></div>
+    <div class="car-door d1"></div>
+    <div class="car-door d2"></div>
+    <div class="car-line"></div>
+    <div class="car-lamp lamp-front"></div>
+    <div class="car-lamp lamp-rear"></div>
+    <div class="car-splitter"></div>
+    <div class="car-wheel w1"><i></i></div>
+    <div class="car-wheel w2"><i></i></div>
+    <div class="car-spoiler"></div>
+  </div>
+  <div class="car-reflection"></div>
+  <div class="car-speed s1"></div><div class="car-speed s2"></div>
+</div>
+        <div class="show-content"><span class="tag">02 / CLEAN BUILD</span><h3>NIGHT SPEC</h3><p>OEM+ • stance • clean finish • night setup</p></div>
       </article>
+    </div>
+    <div class="garage-spec-strip reveal" aria-label="Garage highlights">
+      <span><b>01</b> ANIME BUILDS</span>
+      <i></i><span><b>02</b> CLEAN SETUPS</span>
+      <i></i><span><b>03</b> NIGHT SPEC</span>
+      <i></i><span><b>04</b> RARE STYLE</span>
     </div>
   </div>
 </section>
@@ -620,6 +2692,15 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
       <button class="market-filter" data-shop-filter="unlock">UNLOCK</button>
       <button class="market-filter" data-shop-filter="currency">MONEY / COINS</button>
     </div>
+    <div class="market-tools reveal">
+      <input id="shopSearch" class="market-search" placeholder="Shop хайх: Miku / Unlock / Account / Bumper..." autocomplete="off">
+      <div class="admin-link-pill">LIVE FIREBASE CATALOG</div>
+    </div>
+    <div class="tracking-panel reveal">
+      <div class="tracking-panel-head"><div><h3>📦 ЗАХИАЛГЫН TRACKING</h3><small>Захиалга илгээсний дараа tracking code-оор realtime төлөвөө шалгана.</small></div></div>
+      <div class="tracking-form"><input id="trackToken" class="market-search" placeholder="Tracking code оруулна уу" autocomplete="off"><button id="trackBtn" class="product-btn primary">TRACK →</button></div>
+      <div id="trackingResult" class="tracking-result hidden"></div>
+    </div>
     <div id="shopGrid" class="premium-product-grid">
       <div class="market-empty">Firebase Market мэдээлэл нэмэгдээгүй байна.<br><small>Admin → Market хэсгээс бараа нэмнэ.</small></div>
     </div>
@@ -642,16 +2723,33 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
       </div>
       <span class="gallery-live"><i></i> LIVE CATALOG</span>
     </div>
+    <div class="market-tools reveal">
+      <input id="gallerySearch" class="market-search" placeholder="Gallery хайх: Miku / R33 / Drift..." autocomplete="off">
+      <div class="admin-link-pill">SHOWCASE → SHOP</div>
+    </div>
     <div id="galleryGrid" class="premium-gallery-grid">
       <div class="market-empty">Gallery мэдээлэл нэмэгдээгүй байна.<br><small>Admin → Gallery хэсгээс зураг нэмнэ.</small></div>
     </div>
   </div>
 </section>
 
+
+<div id="galleryLightbox" class="gallery-lightbox" aria-hidden="true">
+  <div class="gallery-lightbox-backdrop" data-gallery-close></div>
+  <div class="gallery-lightbox-card">
+    <button class="gallery-lightbox-close" type="button" data-gallery-close aria-label="Close">×</button>
+    <div id="galleryLightboxVisual" class="gallery-lightbox-visual"></div>
+    <div class="gallery-lightbox-info">
+      <small id="galleryLbKicker">ONI / GALLERY</small>
+      <h3 id="galleryLbTitle">ONI BUILD</h3>
+      <p id="galleryLbDesc">Featured ONI & KISHIN build.</p>
+    </div>
+  </div>
+</div>
 <section id="members">
   <div class="container">
     <div class="section-head reveal">
-      <div><div class="kicker">08 / MEMBERS</div><h2>THE<br>ROSTER.</h2></div>
+      <div><div class="kicker">06 / MEMBERS</div><h2>THE<br>ROSTER.</h2></div>
       <p class="section-desc">Админ зөвшөөрсөн гишүүд Firebase-ээс автоматаар уншигдаж, role-оор ангилагдана.</p>
     </div>
     <div class="members-shell reveal">
@@ -699,7 +2797,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
           <div class="field"><label>ЧИГЛЭЛ *</label><select id="direction" required><option value="">Сонгох</option><option>Clean Car</option><option>Anime Car</option><option>Racer / Drifter</option><option>Drag Racer</option><option>Content Creator</option><option>Other</option></select></div>
           <div class="field"><label>ХОЛБОО БАРИХ ТӨРӨЛ *</label><select id="contactType" required><option value="">Сонгох</option><option>Instagram</option><option>Discord</option><option>Phone</option></select></div>
         </div>
-        <div class="field"><label>ХОЛБОО БАРИХ МЭДЭЭЛЭЛ *</label><input id="contactValue" required></div>
+        <div class="field"><label>ХОЛБОО БАРИХ МЭДЭЭЛЭЛ *</label><input id="contactInfo" required></div>
         <div class="field"><label>CPM ТОГЛОЖ БУЙ ХУГАЦАА *</label><select id="experience" required><option value="">Сонгох</option><option>6 сараас бага</option><option>6 сар – 1 жил</option><option>1 – 2 жил</option><option>2 жилээс дээш</option></select></div>
         <div class="field"><label>ӨӨРИЙН ТУХАЙ</label><textarea id="message" placeholder="Яагаад ONI & KISHIN-д нэгдэхийг хүсэж байна вэ?"></textarea></div>
         <label class="check"><input id="agree" type="checkbox" required> <span>Clan-ийн дүрмийг уншиж, дагаж мөрдөхөө зөвшөөрч байна.</span></label>
@@ -714,7 +2812,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 <section id="contact">
   <div class="container">
     <div class="section-head reveal">
-      <div><div class="kicker">10 / CONTACT</div><h2>FIND<br>THE ONI.</h2></div>
+      <div><div class="kicker">08 / CONTACT</div><h2>FIND<br>THE ONI.</h2></div>
       <p class="section-desc">Clan-ийн мэдээ, event болон шинэ build-үүдийг social сувгаар дагаарай.</p>
     </div>
     <div class="social-row reveal">
@@ -726,7 +2824,8 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
 </section>
 </main>
 
-<div id="orderModal" class="order-modal" aria-hidden="true"><div id="orderBackdrop" class="order-backdrop"></div><div class="order-card"><button id="orderClose" class="order-close">×</button><div class="order-head"><small id="orderType">ONI MARKET</small><h3 id="orderTitle">Захиалга</h3></div><div class="order-summary"><div class="order-box"><small>НЭГЖИЙН ҮНЭ</small><b id="orderPrice">Үнэ</b></div><div class="order-box"><small>ТОО ШИРХЭГ</small><div class="qty"><button type="button" id="qtyMinus">−</button><b id="orderQty">1</b><button type="button" id="qtyPlus">+</button></div></div></div><form id="orderForm" class="order-form"><div><label>CPM NICK *</label><input id="oNick" required></div><div><label>CPM ID *</label><input id="oCpm" required></div><div><label>INSTAGRAM</label><input id="oIg" placeholder="@username"></div><div><label>УТАС</label><input id="oPhone"></div><div class="order-full"><label>НЭМЭЛТ ХҮСЭЛТ</label><textarea id="oNote" placeholder="Build / account / delivery-тэй холбоотой нэмэлт мэдээлэл"></textarea></div><div class="order-total order-full"><span>НИЙТ</span><strong id="orderTotal">0₮</strong></div><div class="order-full"><button class="order-send" id="orderSubmit">ЗАХИАЛГА ИЛГЭЭХ →</button></div></form></div></div>
+<div id="detailModal" class="product-detail-modal" aria-hidden="true"><div id="detailBackdrop" class="product-detail-backdrop"></div><div class="product-detail-card"><button id="detailClose" class="detail-close">×</button><div id="detailVisual" class="detail-visual"></div><small id="detailType">ONI MARKET</small><h3 id="detailTitle">ONI PRODUCT</h3><p id="detailDesc">Premium build.</p><div id="detailMeta" class="detail-meta"></div><div class="detail-buy"><div><small>ҮНЭ</small><strong id="detailPrice">Үнэ</strong></div><button id="detailOrder" class="product-btn primary">ЗАХИАЛАХ →</button></div></div></div>
+<div id="orderModal" class="order-modal" aria-hidden="true"><div id="orderBackdrop" class="order-backdrop"></div><div class="order-card"><button id="orderClose" class="order-close">×</button><div class="order-head"><small id="orderType">ONI MARKET</small><h3 id="orderTitle">Захиалга</h3></div><div class="order-steps"><span data-order-step="1" class="active">01 СОНГОЛТ</span><span data-order-step="2">02 ЗАХИАЛАГЧ</span><span data-order-step="3">03 БАТАЛГАА</span></div><div class="order-pane active" data-pane="1"><div class="order-summary"><div class="order-box"><small>НЭГЖИЙН ҮНЭ</small><b id="orderPrice">Үнэ</b></div><div class="order-box"><small>ТОО ШИРХЭГ</small><div class="qty"><button type="button" id="qtyMinus">−</button><b id="orderQty">1</b><button type="button" id="qtyPlus">+</button></div></div></div><div class="order-total"><span>НИЙТ</span><strong id="orderTotal">0₮</strong></div></div><form id="orderForm" class="order-form"><div class="order-pane" data-pane="2"><div><label>CPM NICK *</label><input id="oNick" required></div><div><label>CPM ID *</label><input id="oCpm" required></div><div><label>INSTAGRAM</label><input id="oIg" placeholder="@username"></div><div><label>УТАС</label><input id="oPhone"></div><div class="order-full"><label>НЭМЭЛТ ХҮСЭЛТ</label><textarea id="oNote" placeholder="Build / account / delivery-тэй холбоотой нэмэлт мэдээлэл"></textarea></div></div><div class="order-pane" data-pane="3"><div id="orderConfirm" class="order-confirm"><div class="receipt-mark">✓</div><small>ONI ORDER RECEIVED</small><h4 id="orderReceiptNo">#ONI-000000</h4><p id="orderReceiptProduct">PRODUCT × 1</p><strong id="orderReceiptTotal">0₮</strong><div id="orderTrackingToken" class="track-token">Tracking code: —</div><div class="tracking-list"><div class="active"><i></i>Захиалга илгээгдсэн</div><div><i></i>Админ шалгаж байна</div><div><i></i>Төлбөр баталгаажсан</div><div><i></i>Захиалга бэлэн</div><div><i></i>Дууссан</div></div><p class="order-note">Төлбөр болон дараагийн алхмыг Instagram-аар баталгаажуулна.</p></div></div><div id="orderStepError" class="order-step-error"></div><div class="order-nav"><button type="button" id="orderBack" class="product-btn hidden">← БУЦАХ</button><button type="button" id="orderNext" class="product-btn primary">ҮРГЭЛЖЛҮҮЛЭХ →</button><button type="submit" id="orderSubmit" class="order-send hidden">ЗАХИАЛГА ИЛГЭЭХ →</button></div></form></div></div>
 <footer>
   <div class="container footer-inner">
     <div class="footer-brand">鬼 ONI <span>&</span> KISHIN</div>
@@ -743,21 +2842,40 @@ footer{border-top:1px solid var(--line);padding:40px 0 95px;color:#62636d}
   <a href="#apply">＋<br>JOIN</a>
 </div>
 
+
+<div id="memberModal" class="member-modal" aria-hidden="true">
+  <div class="member-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalName">
+    <div class="member-modal-top">
+      <button class="member-modal-close" type="button" data-member-close aria-label="Хаах">×</button>
+      <div class="member-modal-kicker">ONI & KISHIN / ГИШҮҮНИЙ ПРОФАЙЛ</div>
+      <div id="modalName" class="member-modal-name">Гишүүн</div>
+      <div id="modalId" class="member-modal-id">CPM ID</div>
+    </div>
+    <div class="member-modal-body">
+      <div class="member-info-row"><span>ҮҮРЭГ</span><strong id="modalRole">MEMBER</strong></div>
+      <div class="member-info-row"><span>КЛАН</span><strong id="modalClan">ONI & KISHIN</strong></div>
+      <div class="member-info-row"><span>ТОГЛООМ</span><strong id="modalGame">CPM 1</strong></div>
+      <div class="member-info-row"><span>СТАТУС</span><strong id="modalStatus" class="member-status"><i></i> РОСТЕРТ БҮРТГЭЛТЭЙ</strong></div>
+      <div class="member-modal-note">Энэ цонхонд зөвхөн кланд бүртгэлтэй гишүүний одоогийн мэдээллийг харуулна. Байхгүй мэдээллийг зохиомлоор нэмэхгүй.</div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-import {getFirestore,collection,addDoc,serverTimestamp,onSnapshot,query,orderBy} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import {getFirestore,collection,doc,addDoc,serverTimestamp,onSnapshot,query,orderBy,runTransaction} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 
-const firebaseConfig={
+const app=initializeApp({
   apiKey:"AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw",
   authDomain:"oni-kishin-f59b4.firebaseapp.com",
   projectId:"oni-kishin-f59b4",
   storageBucket:"oni-kishin-f59b4.firebasestorage.app",
   messagingSenderId:"523789047478",
-  appId:"1:523789047478:web:c7e250d094c38abe61f817"
-};
-const firebaseReady=Object.values(firebaseConfig).every(v=>!String(v).startsWith("PASTE_"));
-const app=firebaseReady?initializeApp(firebaseConfig):null;
-const db=firebaseReady?getFirestore(app):null;
+  appId:"1:523789047478:web:c7e250d094c38abe61f817",
+  measurementId:"G-TCZM9S9ZDT"
+});
+const db=getFirestore(app);
+const firebaseReady=true;
 const $=id=>document.getElementById(id);
 
 function esc(v){
@@ -766,21 +2884,56 @@ function esc(v){
 
 function memberCard(m){
   const role=m.role||"member";
-  const roleName=role==="leader"?"LEADER":role==="co-leader"?"CO-LEADER":role==="special"?"SPECIAL MEMBER":"MEMBER";
-  return `<article class="member-card">
+  const roleName=role==="leader"?"CLAN LEADER":role==="co-leader"?"CO-LEADER":role==="special"?"SPECIAL MEMBER":"MEMBER";
+  const roleClass=role==="leader"?"leader":role==="co-leader"?"co":role==="special"?"special":"";
+  const cardClass=role==="leader"?" leader-card role-leader-card":"";
+  const clan=role==="leader"?"ONI & KISHIN":"ONI & KISHIN";
+  const game="CPM 1";
+  return `<article class="member-card${cardClass}" data-member='${esc(JSON.stringify({nick:m.nick||"Гишүүн",cpmid:m.cpmid||"CPM ID",role,roleName,clan,game}))}'>
+    ${role!=="leader"?'<span class="status-dot" aria-hidden="true"></span><span class="status-label">РОСТЕРТ</span>':''}
     <div class="member-nick">${esc(m.nick||"Гишүүн")}</div>
     <div class="member-id">${esc(m.cpmid||"CPM ID")}</div>
-    <span class="role-pill ${role==="leader"?"leader":role==="co-leader"?"co":role==="special"?"special":""}">${roleName}</span>
+    <span class="role-pill ${roleClass}">${roleName}</span>
+    ${role==="leader"?'<div class="leader-meta"><strong>ONI & KISHIN</strong><span>CPM 1</span></div>':''}
+    <span class="tap-hint">ДАРЖ ДЭЛГЭРЭНГҮЙ</span>
   </article>`;
 }
-function renderGroup(id,title,icon,arr){
+function renderGroup(id,title,icon,arr,role){
   const el=$(id);
   if(!arr.length){el.innerHTML="";return}
-  el.innerHTML=`<div class="group-title">${icon} ${title} <span style="color:#555">• ${arr.length}</span></div>
-  <div class="member-grid">${arr.map(memberCard).join("")}</div>`.replace("<div class","<div class");
+  el.innerHTML=`<div class="group-title">${icon} ${title} <span class="group-count">• ${arr.length}</span></div>
+  <div class="member-grid role-${role}">${arr.map(memberCard).join("")}</div>`;
 }
+function openMemberProfile(data){
+  const modal=$("memberModal");
+  if(!modal)return;
+  $("modalName").textContent=data.nick;
+  $("modalId").textContent=data.cpmid;
+  $("modalRole").textContent=data.roleName;
+  $("modalClan").textContent=data.clan;
+  $("modalGame").textContent=data.game;
+  $("modalStatus").innerHTML='<i></i> РОСТЕРТ БҮРТГЭЛТЭЙ';
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden","false");
+  document.body.classList.add("modal-open");
+}
+function closeMemberProfile(){
+  const modal=$("memberModal");
+  if(!modal)return;
+  modal.classList.remove("open");
+  modal.setAttribute("aria-hidden","true");
+  document.body.classList.remove("modal-open");
+}
+document.addEventListener("click",e=>{
+  const card=e.target.closest(".member-card[data-member]");
+  if(card){
+    try{openMemberProfile(JSON.parse(card.dataset.member))}catch(err){console.error("Profile error",err)}
+  }
+  if(e.target.matches("[data-member-close]")||e.target.id==="memberModal")closeMemberProfile();
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMemberProfile()});
 
-if(firebaseReady){try{
+try{
   const membersQuery=query(collection(db,"members"),orderBy("createdAt","asc"));
   onSnapshot(membersQuery,(snap)=>{
     const members=snap.docs.map(d=>d.data());
@@ -789,12 +2942,12 @@ if(firebaseReady){try{
     $("heroCount").textContent=count;
     $("memberProgress").style.width=Math.min(100,(count/52)*100)+"%";
     $("emptyMembers").style.display=count?"none":"block";
-    renderGroup("leaderGroup","LEADER","👑",members.filter(m=>m.role==="leader"));
-    renderGroup("coLeaderGroup","CO-LEADER","⚔️",members.filter(m=>m.role==="co-leader"));
-    renderGroup("specialGroup","SPECIAL MEMBER","⭐",members.filter(m=>m.role==="special"));
-    renderGroup("memberGroup","MEMBERS","👤",members.filter(m=>m.role==="member"||!m.role));
+    renderGroup("leaderGroup","LEADER","👑",members.filter(m=>m.role==="leader"),"leader");
+    renderGroup("coLeaderGroup","CO-LEADER","⚔️",members.filter(m=>m.role==="co-leader"),"co-leader");
+    renderGroup("specialGroup","SPECIAL MEMBER","⭐",members.filter(m=>m.role==="special"),"special");
+    renderGroup("memberGroup","MEMBERS","👤",members.filter(m=>m.role==="member"||!m.role),"member");
   });
-}catch(e){console.error("Members error:",e)}}
+}catch(e){console.error("Members error:",e)}
 
 $("form").addEventListener("submit",async(e)=>{
   e.preventDefault();
@@ -804,7 +2957,6 @@ $("form").addEventListener("submit",async(e)=>{
   if(age<17){bad.textContent="17 нас хүрсэн байх шаардлагатай.";bad.style.display="block";return}
   btn.disabled=true;btn.textContent="SENDING...";
   try{
-    if(!firebaseReady) throw new Error("Firebase config pending");
     await addDoc(collection(db,"applications"),{
       last:$("last").value.trim(),
       first:$("first").value.trim(),
@@ -814,7 +2966,7 @@ $("form").addEventListener("submit",async(e)=>{
       nick:$("nick").value.trim(),
       direction:$("direction").value,
       contactType:$("contactType").value,
-      contact:$("contactValue").value.trim(),
+      contact:$("contactInfo").value.trim(),
       experience:$("experience").value,
       message:$("message").value.trim(),
       status:"Шинэ",
@@ -833,6 +2985,23 @@ $("form").addEventListener("submit",async(e)=>{
 });
 
 
+/* V15 — Gallery fullscreen lightbox */
+(function(){
+  const lb=$("galleryLightbox"), visual=$("galleryLightboxVisual"), title=$("galleryLbTitle"), kicker=$("galleryLbKicker"), desc=$("galleryLbDesc");
+  function closeGallery(){ if(!lb)return; lb.classList.remove("open"); lb.setAttribute("aria-hidden","true"); document.body.classList.remove("modal-open"); visual.innerHTML=""; }
+  document.addEventListener("click",e=>{
+    const card=e.target.closest(".gallery-card");
+    if(card && !e.target.closest("button")){
+      const img=card.querySelector("img");
+      if(img){ visual.innerHTML=`<img src="${esc(img.src)}" alt="${esc(img.alt)}">`; }
+      const sm=card.querySelector("small"), h=card.querySelector("h3"), p=card.querySelector("p");
+      kicker.textContent=sm?.textContent||"ONI / GALLERY"; title.textContent=h?.textContent||"ONI BUILD"; desc.textContent=p?.textContent||"Featured ONI & KISHIN build.";
+      lb.classList.add("open"); lb.setAttribute("aria-hidden","false"); document.body.classList.add("modal-open");
+    }
+    if(e.target.matches("[data-gallery-close]")) closeGallery();
+  });
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeGallery()});
+})();
 /* ---------- PREMIUM MARKET / GALLERY ---------- */
 const serviceCatalog=[
  {key:"money",name:"Money",mn:"Мөнгө",category:"currency",icon:"💵"},{key:"coins",name:"Coins",mn:"Coin",category:"currency",icon:"🪙"},
@@ -843,25 +3012,75 @@ const serviceCatalog=[
  {key:"smoke-unlocked",name:"Smoke Unlocked",mn:"Smoke unlock",category:"custom",icon:"💨"},{key:"mileage",name:"Mileage",mn:"Mileage тохируулах",category:"service",icon:"🛣️"},
  {key:"front-bumper",name:"Front Bumper",mn:"Урд bumper",category:"custom",icon:"🔧"},{key:"rear-bumper",name:"Rear Bumper",mn:"Арын bumper",category:"custom",icon:"🔧"},
  {key:"bloom",name:"Bloom",mn:"Bloom effect",category:"custom",icon:"✨"},{key:"king-rank",name:"King Rank",mn:"King rank",category:"currency",icon:"👑"},
- {key:"full-unlock",name:"Full Unlock",mn:"Animation • Horns • Gear • Levels",category:"unlock",icon:"⚡"},{key:"change-id",name:"Change ID",mn:"ID солих",category:"account",icon:"🪪"},
+ {key:"full-unlock",name:"Full Unlock",mn:"Animation • Horns • Gear • Levels",category:"unlock",icon:"⚡"},{key:"change-id",name:"Change ID",mn:"CPM ID солих",category:"account",icon:"🪪",variants:["ID солих","нэмэлт ID өөрчлөлт"]},{key:"change-id-2",name:"Change ID",mn:"ID солих • нэмэлт хүсэлт",category:"account",icon:"🪪"},
  {key:"set-stats",name:"Set Wins / Loses",mn:"Wins / Loses тохируулах",category:"account",icon:"🏆"},{key:"name-color",name:"Name Color",mn:"Нэрний өнгө",category:"custom",icon:"🌈"},
  {key:"change-email",name:"Change Email",mn:"Email солих",category:"account",icon:"✉️"},{key:"change-password",name:"Change Password",mn:"Password солих",category:"account",icon:"🔐"}
 ];
-let shopProducts=[],shopFilter="all",galleryItems=[],galleryFilter="all",orderProduct=null,orderQty=1;
+let shopProducts=[],shopFilter="all",shopSearch="",galleryItems=[],galleryFilter="all",gallerySearch="",orderProduct=null,orderQty=1,orderStep=1,currentTrackingUnsub=null;
+const TRACK_STEPS=["Шинэ","Шалгаж байна","Төлбөр баталгаажсан","Бэлдэж байна","Дууссан"];
 function money(v){const n=Number(v||0);return n?new Intl.NumberFormat("mn-MN").format(n)+"₮":"Үнэ тохируулна"}
-function productCard(p,i){const sold=Number(p.stock||0)<=0 && p.stock!==undefined;return `<article class="premium-product" data-cat="${esc(p.category||"service")}"><div class="product-media">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:`<div style="height:100%;display:grid;place-items:center;font-size:54px;opacity:.55">${esc(p.icon||"✦")}</div>`}<span class="product-badge">${esc(String(p.type||p.category||"SERVICE").toUpperCase())}</span><span class="product-no">#${String(i+1).padStart(2,"0")}</span></div><div class="product-body"><div class="product-kicker">${esc(p.subtitle||p.mn||"ONI MARKET")}</div><h3>${esc(p.name||"Untitled")}</h3><p>${esc(p.description||"ONI & KISHIN premium service.")}</p><div class="product-meta"><div class="product-price">${money(p.price)}</div><div class="product-stock ${sold?"sold":"live"}">${sold?"SOLD OUT":(p.stock!==undefined?`Үлдэгдэл ${esc(p.stock)}`:"AVAILABLE")}</div></div><div class="product-actions"><button class="product-btn" data-product-detail="${esc(p.id||p.key||"")}">МЭДЭЭЛЭЛ</button><button class="product-btn primary" ${sold?"disabled":""} data-product-order="${esc(p.id||p.key||"")}">${sold?"ДУУССАН":"ЗАХИАЛАХ →"}</button></div></div></article>`}
-function renderShop(){const grid=$("shopGrid");if(!grid)return;const list=shopProducts.filter(p=>shopFilter==="all"||p.category===shopFilter);$("shopProductCount").textContent=shopProducts.length;if(!list.length){grid.innerHTML='<div class="market-empty">Энэ ангилалд одоогоор бараа алга.<br><small>Admin → Market хэсгээс нэмнэ.</small></div>';return}grid.innerHTML=list.map(productCard).join("");grid.querySelectorAll("[data-product-order]").forEach(b=>b.onclick=()=>openOrder(shopProducts.find(p=>(p.id||p.key)===b.dataset.productOrder)));grid.querySelectorAll("[data-product-detail]").forEach(b=>b.onclick=()=>openOrder(shopProducts.find(p=>(p.id||p.key)===b.dataset.productDetail)))}
-function renderGallery(){const grid=$("galleryGrid");if(!grid)return;const list=galleryItems.filter(x=>galleryFilter==="all"||x.category===galleryFilter);if(!list.length){grid.innerHTML='<div class="market-empty">Энэ ангилалд зураг алга.<br><small>Admin → Gallery хэсгээс нэмнэ.</small></div>';return}grid.innerHTML=list.map((g,i)=>`<article class="gallery-card reveal"><img src="${esc(g.image)}" alt="${esc(g.title||"ONI build")}" loading="lazy"><div class="gallery-copy"><small>${esc(String(g.category||"ANIME").toUpperCase())} · #${String(i+1).padStart(2,"0")}</small><h3>${esc(g.title||"ONI BUILD")}</h3><p>${esc(g.owner||"")} ${g.build?"· "+esc(g.build):""}</p></div></article>`).join("");grid.querySelectorAll(".reveal").forEach(el=>observer.observe(el))}
-function openOrder(p){if(!p)return;orderProduct=p;orderQty=1;$("orderTitle").textContent=p.name||"ONI PRODUCT";$("orderType").textContent=String(p.type||p.category||"SERVICE").toUpperCase();$("orderPrice").textContent=money(p.price);$("orderQty").textContent="1";$("orderTotal").textContent=money(Number(p.price||0));$("orderModal").classList.add("open");$("orderModal").setAttribute("aria-hidden","false")}
-function closeOrder(){$("orderModal").classList.remove("open");orderProduct=null}
-function updateOrder(){if(!orderProduct)return;$("orderQty").textContent=orderQty;$("orderTotal").textContent=money(Number(orderProduct.price||0)*orderQty)}
-$("qtyMinus")?.addEventListener("click",()=>{orderQty=Math.max(1,orderQty-1);updateOrder()});$("qtyPlus")?.addEventListener("click",()=>{orderQty++;updateOrder()});$("orderClose")?.addEventListener("click",closeOrder);$("orderBackdrop")?.addEventListener("click",closeOrder);
-$("orderForm")?.addEventListener("submit",async e=>{e.preventDefault();if(!orderProduct)return;const btn=$("orderSubmit");btn.disabled=true;try{if(!firebaseReady)throw new Error("Firebase config pending");const orderNo="ONI-"+Date.now().toString().slice(-6);await addDoc(collection(db,"orders"),{orderNo,productId:orderProduct.id||orderProduct.key,productName:orderProduct.name||"",unitPrice:Number(orderProduct.price||0),quantity:orderQty,total:Number(orderProduct.price||0)*orderQty,cpmNick:$("oNick").value.trim(),cpmId:$("oCpm").value.trim(),instagram:$("oIg").value.trim(),phone:$("oPhone").value.trim(),note:$("oNote").value.trim(),status:"Шинэ",createdAt:serverTimestamp()});closeOrder();alert(`ЗАХИАЛГА ХҮЛЭЭН АВЛАА\\n\\n${orderNo}\\n\\nАдминтай Instagram-аар холбогдож төлбөрөө баталгаажуулна уу.`);$("orderForm").reset()}catch(err){console.error(err);alert("Захиалга илгээхэд алдаа гарлаа. Firebase тохиргоо болон Rules-ээ шалгана уу.")}finally{btn.disabled=false}});
-function loadMarketData(){if(!firebaseReady)return;try{onSnapshot(query(collection(db,"products"),orderBy("createdAt","desc")),s=>{const live=s.docs.map(d=>({id:d.id,...d.data()}));const byName=new Map(live.map(p=>[String(p.name||p.key||"").toLowerCase(),p]));shopProducts=serviceCatalog.map(x=>byName.get(x.name.toLowerCase())?{...x,...byName.get(x.name.toLowerCase())}:{...x,key:x.key,price:0,stock:null}).concat(live.filter(p=>!serviceCatalog.some(x=>x.name.toLowerCase()===String(p.name||"").toLowerCase())));renderShop()})}catch(e){console.error(e)}try{onSnapshot(query(collection(db,"gallery"),orderBy("createdAt","desc")),s=>{galleryItems=s.docs.map(d=>({id:d.id,...d.data()}));renderGallery()})}catch(e){console.error(e)}}
-serviceCatalog.forEach(x=>shopProducts.push(x));
-renderShop();renderGallery();loadMarketData();
+function trackedStock(p){return p.stock!==undefined&&p.stock!==null&&p.stock!==""&&!Number.isNaN(Number(p.stock))}
+function productCard(p,i){
+ const tracked=trackedStock(p),sold=tracked&&Number(p.stock)<=0,status=sold?"SOLD OUT":(tracked?`Үлдэгдэл ${esc(p.stock)}`:"AVAILABLE");
+ const specs=[p.model,p.style,p.livery,p.build].filter(Boolean).slice(0,4).map(x=>`<span>${esc(x)}</span>`).join("");
+ return `<article class="premium-product" data-cat="${esc(p.category||"service")}"><div class="product-media">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async">`:`<div style="height:100%;display:grid;place-items:center;font-size:54px;opacity:.55">${esc(p.icon||"✦")}</div>`}<span class="product-badge">${esc(String(p.type||p.category||"SERVICE").toUpperCase())}</span><span class="product-no">#${String(i+1).padStart(2,"0")}</span></div><div class="product-body"><div class="product-kicker">${esc(p.subtitle||p.mn||"ONI MARKET")}</div><h3>${esc(p.name||"Untitled")}</h3><p>${esc(p.description||p.mn||"ONI & KISHIN premium service.")}</p>${specs?`<div class="product-specs">${specs}</div>`:""}<div class="product-meta"><div class="product-price">${money(p.price)}</div><div class="product-stock ${sold?"sold":"live"}">${status}</div></div><div class="product-actions"><button class="product-btn" data-product-detail="${esc(p.id||p.key||"")}">МЭДЭЭЛЭЛ</button><button class="product-btn primary" ${sold?"disabled":""} data-product-order="${esc(p.id||p.key||"")}">${sold?"ДУУССАН":"ЗАХИАЛАХ →"}</button></div></div></article>`;
+}
+function matchesText(p,q){if(!q)return true;return `${p.name||""} ${p.mn||""} ${p.category||""} ${p.type||""} ${p.subtitle||""} ${p.description||""} ${p.model||""} ${p.style||""} ${p.livery||""} ${p.build||""}`.toLowerCase().includes(q)}
+function renderShop(){const grid=$("shopGrid");if(!grid)return;const q=shopSearch.trim().toLowerCase();const list=shopProducts.filter(p=>(shopFilter==="all"||p.category===shopFilter)&&matchesText(p,q));$("shopProductCount").textContent=shopProducts.length;if(!list.length){grid.innerHTML='<div class="market-empty">Тохирох бараа олдсонгүй.<br><small>Search эсвэл өөр ангилал сонгоно уу.</small></div>';return}grid.innerHTML=list.map(productCard).join("");grid.querySelectorAll("[data-product-order]").forEach(b=>b.onclick=()=>openOrder(shopProducts.find(p=>(p.id||p.key)===b.dataset.productOrder)));grid.querySelectorAll("[data-product-detail]").forEach(b=>b.onclick=()=>openProductDetail(shopProducts.find(p=>(p.id||p.key)===b.dataset.productDetail)))}
+function renderGallery(){const grid=$("galleryGrid");if(!grid)return;const q=gallerySearch.trim().toLowerCase();const list=galleryItems.filter(x=>(galleryFilter==="all"||x.category===galleryFilter)&&`${x.title||""} ${x.owner||""} ${x.build||""} ${x.description||""}`.toLowerCase().includes(q));if(!list.length){grid.innerHTML='<div class="market-empty">Тохирох gallery зураг алга.<br><small>Admin → Gallery хэсгээс зураг нэмнэ.</small></div>';return}grid.innerHTML=list.map((g,i)=>{const match=shopProducts.find(p=>(g.productId&&String(p.id||p.key)===String(g.productId))||String(p.name||"").toLowerCase()===String(g.title||"").toLowerCase());const pid=match?(match.id||match.key):"";return `<article class="gallery-card reveal"><img src="${esc(g.image)}" alt="${esc(g.title||"ONI build")}" loading="lazy" decoding="async"><div class="gallery-copy"><small>${esc(String(g.category||"ANIME").toUpperCase())} · #${String(i+1).padStart(2,"0")}</small><h3>${esc(g.title||"ONI BUILD")}</h3><p>${esc(g.owner||"")} ${g.build?"· "+esc(g.build):""}</p><div class="gallery-actions"><button class="gallery-action" data-gallery-view="${esc(g.id||"")}">VIEW CAR ↗</button>${pid?`<button class="gallery-action primary" data-gallery-shop="${esc(pid)}">SHOP THIS BUILD →</button>`:""}</div></div></article>`}).join("");grid.querySelectorAll(".reveal").forEach(el=>observer.observe(el));grid.querySelectorAll("[data-gallery-shop]").forEach(b=>b.onclick=e=>{e.stopPropagation();openOrder(shopProducts.find(p=>(p.id||p.key)===b.dataset.galleryShop))});grid.querySelectorAll("[data-gallery-view]").forEach(b=>b.onclick=e=>{e.stopPropagation();const g=galleryItems.find(x=>String(x.id)===String(b.dataset.galleryView));if(g)openGalleryItem(g)});}
+function openGalleryItem(g){const lb=$("galleryLightbox"),visual=$("galleryLightboxVisual"),title=$("galleryLbTitle"),kicker=$("galleryLbKicker"),desc=$("galleryLbDesc");if(!lb)return;visual.innerHTML=g.image?`<img src="${esc(g.image)}" alt="${esc(g.title||"ONI build")}" decoding="async">`:"";kicker.textContent=String(g.category||"ANIME").toUpperCase();title.textContent=g.title||"ONI BUILD";desc.textContent=[g.owner,g.build,g.description].filter(Boolean).join(" · ")||"Featured ONI & KISHIN build.";lb.classList.add("open");lb.setAttribute("aria-hidden","false");document.body.classList.add("modal-open")}
+function openProductDetail(p){if(!p)return;$("detailType").textContent=String(p.type||p.category||"SERVICE").toUpperCase();$("detailTitle").textContent=p.name||"ONI PRODUCT";$("detailVisual").innerHTML=p.image?`<img src="${esc(p.image)}" alt="${esc(p.name||"")}" decoding="async">`:`<div class="detail-icon">${esc(p.icon||"✦")}</div>`;$("detailDesc").textContent=p.description||p.mn||"ONI & KISHIN premium service.";const rows=[["CATEGORY",p.category||"—"],["MODEL",p.model||"—"],["STYLE",p.style||"—"],["LIVERY",p.livery||"—"],["BUILD",p.build||"—"],["STATUS",trackedStock(p)?(Number(p.stock)>0?`AVAILABLE · ${p.stock}`:"SOLD OUT"):"AVAILABLE"]];$("detailMeta").innerHTML=rows.map(r=>`<div><span>${esc(r[0])}</span><b>${esc(r[1])}</b></div>`).join("");$("detailPrice").textContent=money(p.price);$("detailOrder").disabled=trackedStock(p)&&Number(p.stock)<=0;$("detailModal").classList.add("open");$("detailModal").setAttribute("aria-hidden","false");$("detailOrder").onclick=()=>{closeDetail();openOrder(p)}}
+function closeDetail(){$("detailModal")?.classList.remove("open");$("detailModal")?.setAttribute("aria-hidden","true")}
+function openOrder(p){if(!p)return;if(trackedStock(p)&&Number(p.stock)<=0)return;orderProduct=p;orderQty=1;orderStep=1;$("orderTitle").textContent=p.name||"ONI PRODUCT";$("orderType").textContent=String(p.type||p.category||"SERVICE").toUpperCase();$("orderPrice").textContent=money(p.price);$("orderQty").textContent="1";$("orderTotal").textContent=money(Number(p.price||0));resetOrderSteps();$("orderModal").classList.add("open");$("orderModal").setAttribute("aria-hidden","false")}
+function closeOrder(){$("orderModal").classList.remove("open");$("orderModal").setAttribute("aria-hidden","true");orderProduct=null}
+function updateOrder(){$("orderQty").textContent=orderQty;$("orderTotal").textContent=money(Number(orderProduct?.price||0)*orderQty)}
+function resetOrderSteps(){orderStep=1;document.querySelectorAll("[data-order-step]").forEach(x=>x.classList.toggle("active",Number(x.dataset.orderStep)===1));document.querySelectorAll(".order-pane").forEach(x=>x.classList.toggle("active",x.dataset.pane==="1"));$("orderBack")?.classList.add("hidden");$("orderNext")?.classList.remove("hidden");$("orderSubmit")?.classList.add("hidden");$("orderStepError")?.classList.remove("show");$("orderConfirm")?.classList.remove("show")}
+function goOrderStep(step){if(step===2){if(!$("oNick").value.trim())return showOrderError("CPM Nick заавал оруулна уу.");if(!$("oCpm").value.trim())return showOrderError("CPM ID заавал оруулна уу.")}orderStep=step;document.querySelectorAll("[data-order-step]").forEach(x=>x.classList.toggle("active",Number(x.dataset.orderStep)===step));document.querySelectorAll(".order-pane").forEach(x=>x.classList.toggle("active",x.dataset.pane===String(step)));$("orderBack")?.classList.toggle("hidden",step===1);$("orderNext")?.classList.toggle("hidden",step===3);$("orderSubmit")?.classList.toggle("hidden",step!==3)}
+function showOrderError(t){const e=$("orderStepError");if(e){e.textContent=t;e.classList.add("show")}}
+function trackingRows(status){const idx=Math.max(0,TRACK_STEPS.indexOf(status));return TRACK_STEPS.map((x,i)=>`<div class="tracking-status-row ${i<idx?"done":i===idx?"active":""}"><i></i>${esc(x)}</div>`).join("")}
+function renderTracking(data){const r=$("trackingResult");if(!r)return;r.classList.remove("hidden");r.innerHTML=`<div class="tracking-card"><div class="track-head"><div><div class="track-no">${esc(data.orderNo||"ONI ORDER")}</div><small>${esc(data.productName||"")} × ${esc(data.quantity||1)} · ${money(data.total)}</small></div><strong>${esc(data.status||"Шинэ")}</strong></div><div class="tracking-status">${trackingRows(data.status||"Шинэ")}</div><div class="track-token">Tracking code: ${esc(data.trackingToken||"")}</div></div>`}
+function stopTracking(){if(currentTrackingUnsub){currentTrackingUnsub();currentTrackingUnsub=null}}
+function trackOrder(token){stopTracking();const clean=String(token||"").trim();if(!clean){return showTrackingMessage("Tracking code оруулна уу.")}try{const ref=doc(db,"orderTracking",clean);currentTrackingUnsub=onSnapshot(ref,snap=>{if(!snap.exists())showTrackingMessage("Захиалга олдсонгүй. Tracking code-оо шалгана уу.");else renderTracking({id:snap.id,...snap.data(),trackingToken:snap.id})},err=>{console.error(err);showTrackingMessage("Tracking мэдээлэл уншихад алдаа гарлаа.")})}catch(e){showTrackingMessage("Tracking эхлүүлэх боломжгүй байна.")}}
+function showTrackingMessage(t){const r=$("trackingResult");if(r){r.classList.remove("hidden");r.innerHTML=`<div class="tracking-card">${esc(t)}</div>`}}
+function restoreLastTracking(){try{const raw=localStorage.getItem("oniLastOrder");if(raw){const d=JSON.parse(raw);if(d.trackingToken){$("trackToken").value=d.trackingToken;trackOrder(d.trackingToken)}}}catch(e){}}
+$("qtyMinus")?.addEventListener("click",()=>{orderQty=Math.max(1,orderQty-1);updateOrder()});$("qtyPlus")?.addEventListener("click",()=>{if(trackedStock(orderProduct)&&orderQty>=Number(orderProduct.stock))return;orderQty++;updateOrder()});$("orderClose")?.addEventListener("click",closeOrder);$("orderBackdrop")?.addEventListener("click",closeOrder);$("detailClose")?.addEventListener("click",closeDetail);$("detailBackdrop")?.addEventListener("click",closeDetail);$("orderNext")?.addEventListener("click",()=>goOrderStep(Math.min(3,orderStep+1)));$("orderBack")?.addEventListener("click",()=>goOrderStep(Math.max(1,orderStep-1)));$("trackBtn")?.addEventListener("click",()=>trackOrder($("trackToken").value));$("trackToken")?.addEventListener("keydown",e=>{if(e.key==="Enter")trackOrder(e.currentTarget.value)});
+
+document.addEventListener("click",e=>{const d=e.target.closest("[data-product-detail]");if(d){const p=shopProducts.find(x=>(x.id||x.key)===d.dataset.productDetail);if(p)openProductDetail(p)}});
+
+$("orderForm")?.addEventListener("submit",async e=>{
+ e.preventDefault();if(!orderProduct)return;const btn=$("orderSubmit");btn.disabled=true;
+ try{
+  const quantity=Number(orderQty||1),unitPrice=Number(orderProduct.price||0),total=unitPrice*quantity;
+  if(unitPrice<=0)throw new Error("PRICE_NOT_SET");
+  const orderRef=doc(collection(db,"orders")),trackingToken=orderRef.id,productId=orderProduct.id||orderProduct.key;
+  await runTransaction(db,async tx=>{
+    if(!orderProduct.id)throw new Error("PRODUCT_NOT_FOUND");
+    const productRef=doc(db,"products",orderProduct.id);
+    const productSnap=await tx.get(productRef);
+    if(!productSnap.exists())throw new Error("PRODUCT_NOT_FOUND");
+    const pd=productSnap.data();
+    if(Number(pd.price||0)!==unitPrice)throw new Error("PRICE_CHANGED");
+    if(pd.stock!==undefined&&pd.stock!==null&&pd.stock!==""&&Number(pd.stock)<quantity)throw new Error("OUT_OF_STOCK");
+    const orderNo="ONI-"+Date.now().toString().slice(-6);
+    if(pd.stock!==undefined&&pd.stock!==null&&pd.stock!=="")tx.update(productRef,{stock:Number(pd.stock)-quantity,lastOrderId:trackingToken,updatedAt:serverTimestamp()});
+    tx.set(orderRef,{orderNo,trackingToken,productId,productName:orderProduct.name||"",unitPrice,quantity,total,cpmNick:$("oNick").value.trim(),cpmId:$("oCpm").value.trim(),instagram:$("oIg").value.trim(),phone:$("oPhone").value.trim(),note:$("oNote").value.trim(),status:"Шинэ",paymentStatus:"pending",createdAt:serverTimestamp()});
+    tx.set(doc(db,"orderTracking",trackingToken),{trackingToken,orderNo,productId,productName:orderProduct.name||"",quantity,total,status:"Шинэ",updatedAt:serverTimestamp(),createdAt:serverTimestamp()});
+    orderProduct.__createdOrderNo=orderNo;
+  });
+  const orderNo=orderProduct.__createdOrderNo;
+  localStorage.setItem("oniLastOrder",JSON.stringify({orderNo,trackingToken,productName:orderProduct.name,total,status:"Шинэ",createdAt:Date.now()}));
+  $("trackToken").value=trackingToken;$("orderTrackingToken").textContent="Tracking code: "+trackingToken;$("orderReceiptNo").textContent=orderNo;$("orderReceiptProduct").textContent=`${orderProduct.name||"ONI PRODUCT"} × ${orderQty}`;$("orderReceiptTotal").textContent=money(total);goOrderStep(3);$("orderConfirm").classList.add("show");renderTracking({orderNo,trackingToken,productName:orderProduct.name,total,status:"Шинэ",quantity:orderQty});
+  setTimeout(()=>trackOrder(trackingToken),100);
+ }catch(err){console.error(err);showOrderError(err.message==="OUT_OF_STOCK"?"Үлдэгдэл хүрэлцэхгүй байна.":err.message==="PRICE_CHANGED"?"Үнэ шинэчлэгдсэн байна. Дахин оролдоно уу.":err.message==="PRICE_NOT_SET"?"Энэ үйлчилгээний үнэ одоогоор тохируулаагүй байна.":"Захиалга илгээхэд алдаа гарлаа. Firebase Rules / connection-оо шалгана уу.")}finally{btn.disabled=false}
+});
+
+function loadMarketData(){if(!firebaseReady)return;try{onSnapshot(query(collection(db,"products"),orderBy("createdAt","desc")),s=>{const live=s.docs.map(d=>({id:d.id,...d.data()}));const byKey=new Map();live.forEach(p=>{const key=String(p.key||p.name||"").toLowerCase();if(key)byKey.set(key,p)});shopProducts=serviceCatalog.filter(x=>!x.hiddenDuplicate).map(x=>byKey.get(String(x.key).toLowerCase())||byKey.get(x.name.toLowerCase())?{...x,...(byKey.get(String(x.key).toLowerCase())||byKey.get(x.name.toLowerCase()))}:{...x,key:x.key,price:0,stock:null}).concat(live.filter(p=>!serviceCatalog.some(x=>x.name.toLowerCase()===String(p.name||"").toLowerCase()||x.key===p.key)));renderShop()})}catch(e){console.error(e)}try{onSnapshot(query(collection(db,"gallery"),orderBy("createdAt","desc")),s=>{galleryItems=s.docs.map(d=>({id:d.id,...d.data()}));renderGallery()})}catch(e){console.error(e)}}
+serviceCatalog.filter(x=>!x.hiddenDuplicate).forEach(x=>shopProducts.push(x));
+renderShop();renderGallery();loadMarketData();restoreLastTracking();
+$("shopSearch")?.addEventListener("input",e=>{shopSearch=e.target.value;renderShop()});$("gallerySearch")?.addEventListener("input",e=>{gallerySearch=e.target.value;renderGallery()});
 document.querySelectorAll("[data-shop-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-shop-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");shopFilter=b.dataset.shopFilter;renderShop()});
 document.querySelectorAll("[data-gallery-filter]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-gallery-filter]").forEach(x=>x.classList.remove("active"));b.classList.add("active");galleryFilter=b.dataset.galleryFilter;renderGallery()});
+
 
 const header=$("siteHeader");
 window.addEventListener("scroll",()=>header.classList.toggle("scrolled",scrollY>20),{passive:true});
@@ -895,6 +3114,141 @@ $("menuBtn").addEventListener("click",()=>{
     nav.style.background="rgba(10,10,14,.97)";nav.style.border="1px solid rgba(255,255,255,.10)";nav.style.borderRadius="18px";
   }
 });
+
+/* ONI MODE is handled by the independent classic boot script above. */
 </script>
+
+</div>
+<div class="oni-v3-awake" aria-hidden="true">
+  <div class="oni-v3-wave"></div>
+  <div class="oni-v3-giant">鬼</div>
+  <div class="oni-v3-orbit"></div>
+  <div class="oni-v3-shards"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="oni-v3-lightning"></div>
+  <div class="oni-v3-strike"></div>
+</div>
+<div class="oni-v3-message">🔴 ОНЬ ГОРИМ — АМЖИЛТТАЙ ИДЭВХЖЛЭЭ</div>
+
+
+<script>
+(function(){
+  function initPremiumUX(){
+    var links=[].slice.call(document.querySelectorAll('header .nav a[href^="#"]'));
+    var sections=links.map(function(a){
+      var id=a.getAttribute('href');
+      return id ? document.querySelector(id) : null;
+    }).filter(Boolean);
+
+    if('IntersectionObserver' in window){
+      var observer=new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            links.forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id)});
+          }
+        });
+      },{rootMargin:'-35% 0px -55% 0px',threshold:0});
+      sections.forEach(function(s){observer.observe(s)});
+    }
+
+    // Reveal elements only; no dependency for core site or ONI MODE.
+    if('IntersectionObserver' in window){
+      var revealObserver=new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            entry.target.classList.add('visible');
+            revealObserver.unobserve(entry.target);
+          }
+        });
+      },{threshold:.08});
+      document.querySelectorAll('.reveal').forEach(function(el){
+        if(!el.classList.contains('visible')) revealObserver.observe(el);
+      });
+    }else{
+      document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('visible')});
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initPremiumUX);
+  else initPremiumUX();
+})();
+</script>
+
+
+<script>
+(function(){
+  /* V15 — scroll progress + pointer atmosphere */
+  var bar=document.querySelector('.px-progress i');
+  var cursor=document.querySelector('.px-cursor');
+  function progress(){
+    if(!bar)return;
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    bar.style.width=(h>0?(window.scrollY/h)*100:0)+'%';
+  }
+  window.addEventListener('scroll',progress,{passive:true});
+  progress();
+
+  if(window.matchMedia && window.matchMedia('(pointer:fine)').matches){
+    window.addEventListener('pointermove',function(e){
+      if(cursor){
+        cursor.style.left=e.clientX+'px';
+        cursor.style.top=e.clientY+'px';
+      }
+    },{passive:true});
+  }
+
+  /* V15 — Shop/Gallery tabs */
+  var tabs=[].slice.call(document.querySelectorAll('[data-px-tab]'));
+  var panels={shop:document.getElementById('pxShopPanel'),gallery:document.getElementById('pxGalleryPanel')};
+  tabs.forEach(function(tab){
+    tab.addEventListener('click',function(){
+      var key=tab.getAttribute('data-px-tab');
+      tabs.forEach(function(t){t.classList.toggle('active',t===tab)});
+      Object.keys(panels).forEach(function(k){if(panels[k])panels[k].classList.toggle('active',k===key)});
+    });
+  });
+
+  /* V15 — gallery lightbox */
+  var lb=document.getElementById('pxLightbox'), lbClose=document.getElementById('pxLbClose');
+  var lbTitle=document.getElementById('pxLbTitle'), lbKicker=document.getElementById('pxLbKicker');
+  var lbDesc=document.getElementById('pxLbDesc'), lbVisual=document.getElementById('pxLbVisual');
+  function closeLb(){
+    if(!lb)return;
+    lb.classList.remove('open');lb.setAttribute('aria-hidden','true');
+    document.body.classList.remove('modal-open');
+  }
+  document.querySelectorAll('.px-gallery-card').forEach(function(card){
+    card.addEventListener('click',function(){
+      lbTitle.textContent=card.dataset.title||'ONI BUILD';
+      lbKicker.textContent=card.dataset.kicker||'ONI / GALLERY';
+      lbDesc.textContent=card.dataset.desc||'Featured ONI & KISHIN visual.';
+      var cs=getComputedStyle(card);
+      lbVisual.style.setProperty('--g1',cs.getPropertyValue('--g1'));
+      lbVisual.style.setProperty('--g2',cs.getPropertyValue('--g2'));
+      lbVisual.style.setProperty('--accent',cs.getPropertyValue('--accent'));
+      lbVisual.style.setProperty('--glow',cs.getPropertyValue('--glow'));
+      lb.classList.add('open');lb.setAttribute('aria-hidden','false');
+      document.body.classList.add('modal-open');
+    });
+  });
+  if(lbClose)lbClose.addEventListener('click',closeLb);
+  if(lb)lb.addEventListener('click',function(e){if(e.target===lb)closeLb()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLb()});
+
+  /* V15 — restrained 3D tilt on desktop */
+  if(window.matchMedia && window.matchMedia('(pointer:fine)').matches){
+    document.querySelectorAll('.px-tilt').forEach(function(card){
+      card.addEventListener('pointermove',function(e){
+        var r=card.getBoundingClientRect();
+        var x=(e.clientX-r.left)/r.width-.5;
+        var y=(e.clientY-r.top)/r.height-.5;
+        card.style.transform='perspective(900px) rotateX('+(-y*3)+'deg) rotateY('+(x*4)+'deg) translateY(-4px)';
+      });
+      card.addEventListener('pointerleave',function(){
+        card.style.transform='';
+      });
+    });
+  }
+})();
+</script>
+
 </body>
 </html>

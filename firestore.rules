@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "erkaa130@gmail.com";
+    }
+
+    function validOrderBasics() {
+      return request.resource.data.status == "Шинэ"
+        && request.resource.data.paymentStatus == "pending"
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity > 0
+        && request.resource.data.unitPrice is number
+        && request.resource.data.unitPrice > 0
+        && request.resource.data.total == request.resource.data.unitPrice * request.resource.data.quantity
+        && request.resource.data.productId is string
+        && request.resource.data.productName is string
+        && request.resource.data.cpmNick is string
+        && request.resource.data.cpmId is string
+        && request.resource.data.trackingToken == request.resource.id;
+    }
+
+    match /members/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /garage/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /applications/{id} {
+      allow create: if request.resource.data.status == "Шинэ";
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /products/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock", "lastOrderId", "updatedAt"])
+        && request.resource.data.lastOrderId is string
+        && existsAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId))
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data.productId == id
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data.status == "Шинэ"
+        && getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data.trackingToken == request.resource.data.lastOrderId
+        && request.resource.data.stock == resource.data.stock - getAfter(/databases/$(database)/documents/orders/$(request.resource.data.lastOrderId)).data.quantity
+        && request.resource.data.stock >= 0
+      );
+    }
+
+    match /gallery/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{id} {
+      allow create: if validOrderBasics()
+        && exists(/databases/$(database)/documents/products/$(request.resource.data.productId))
+        && getAfter(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.price == request.resource.data.unitPrice
+        && (
+          getAfter(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.stock == null
+          || getAfter(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.stock == get(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.stock - request.resource.data.quantity
+        );
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Public, non-sensitive order status only. Customer tracking never exposes phone/Instagram.
+    match /orderTracking/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.trackingToken == id
+        && request.resource.data.status == "Шинэ"
+        && existsAfter(/databases/$(database)/documents/orders/$(id))
+        && getAfter(/databases/$(database)/documents/orders/$(id)).data.trackingToken == id;
+      allow update, delete: if isAdmin();
+    }
+
+    match /site/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
