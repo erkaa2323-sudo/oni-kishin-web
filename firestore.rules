@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && (
+          request.auth.token.email == "erkaa130@gmail.com"
+          || request.auth.token.email == "kkitsu3@gmail.com"
+        );
+    }
+
+    match /members/{memberId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /applications/{applicationId} {
+      allow create: if
+        request.resource.data.status == "Шинэ"
+        && request.resource.data.last is string
+        && request.resource.data.first is string
+        && request.resource.data.age is int
+        && request.resource.data.age >= 17
+        && request.resource.data.gender is string
+        && request.resource.data.cpmid is string
+        && request.resource.data.nick is string
+        && request.resource.data.direction is string
+        && request.resource.data.contactType is string
+        && request.resource.data.contact is string
+        && request.resource.data.experience is string
+        && request.resource.data.message is string;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /garage/{garageId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /gallery/{galleryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.keys().hasAll([
+        "productId", "productName", "quantity"
+      ]);
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /site/{siteId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ONI MEET
+    match /meets/{meetId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ONI MEET realtime participants
+    match /meetParticipants/{participantId} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.meetId is string
+        && request.resource.data.meetId == "current"
+        && request.resource.data.memberId is string
+        && request.resource.data.nick is string
+        && request.resource.data.cpmId is string
+        && exists(/databases/$(database)/documents/meets/current)
+        && get(/databases/$(database)/documents/meets/current).data.enabled == true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
