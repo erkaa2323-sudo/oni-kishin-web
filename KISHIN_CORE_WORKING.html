@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050507">
+<title>KISHIN CORE — WORKING TEST</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#050507;color:#f5f5f7;font-family:Arial,sans-serif}
+.wrap{width:min(900px,calc(100% - 24px));margin:auto;padding:28px 0 60px}
+h1{font-size:clamp(40px,10vw,76px);line-height:.9;letter-spacing:-.06em;margin:18px 0}h1 b{color:#ff203b}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid #292a31;border-radius:30px;padding:8px 11px;font-size:9px;font-weight:bold;letter-spacing:.12em;color:#aaa}
+.dot{width:7px;height:7px;border-radius:50%;background:#777}
+.dot.ok{background:#42e6a4;box-shadow:0 0 12px #42e6a4}
+.panel{margin-top:20px;border:1px solid #26272e;border-radius:20px;background:#0a0b0f;padding:14px}
+#chat{height:55vh;min-height:330px;max-height:600px;overflow:auto;padding:5px}
+.msg{max-width:88%;padding:12px 14px;border:1px solid #26272e;border-radius:14px;margin:8px 0;white-space:pre-wrap;line-height:1.55;font-size:13px}
+.user{margin-left:auto;background:#180b10;border-color:#51232b}.ai{background:#0b1210;border-color:#254137}
+.label{font-size:8px;font-weight:bold;letter-spacing:.15em;color:#ff6070;margin-bottom:5px}.ai .label{color:#62e5aa}
+.row{display:flex;gap:8px;margin-top:10px}input{flex:1;min-width:0;background:#08090c;color:#fff;border:1px solid #2a2b33;border-radius:12px;padding:14px;outline:none}button{border:1px solid #ff3043;background:#ff2033;color:#fff;border-radius:12px;padding:0 17px;font-weight:900;cursor:pointer}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.chip{padding:8px 10px;background:#101117;border-color:#292a31;color:#bbb;font-size:9px}
+.small{color:#777;font-size:9px;margin-top:9px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="status"><span class="dot" id="dot"></span><span id="status">FIREBASE CONNECTING...</span></div>
+<h1>KISHIN <b>CORE</b></h1>
+<div class="small">WORKING TEST · READ ONLY · Одоогийн Site/Admin-д write хийхгүй.</div>
+
+<div class="panel">
+<div id="chat"></div>
+<div class="chips">
+<button class="chip" data-q="Манай clan хэдэн гишүүнтэй вэ?">MEMBERS</button>
+<button class="chip" data-q="Kitsune-ийн CPM ID юу вэ?">KITSUNE ID</button>
+<button class="chip" data-q="Garage дээр ямар машин байна?">GARAGE</button>
+<button class="chip" data-q="Music дээр ямар дуу байна?">MUSIC</button>
+<button class="chip" data-q="Одоогийн meet ямар байна?">MEET</button>
+</div>
+<div class="row"><input id="q" placeholder="Монгол хэлээр асуу..."><button id="send">SEND</button></div>
+</div>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {getFirestore,collection,getDocs,doc,getDoc} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
+const firebaseConfig = {
+ apiKey:'AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw',authDomain:'oni-kishin-f59b4.firebaseapp.com',projectId:'oni-kishin-f59b4',
+ storageBucket:'oni-kishin-f59b4.firebasestorage.app',messagingSenderId:'523789047478',appId:'1:523789047478:web:c7e250d094c38abe61f817'
+};
+
+const app=initializeApp(firebaseConfig),db=getFirestore(app);
+const chat=document.getElementById("chat"),q=document.getElementById("q");
+let data={members:[],garage:[],music:[],meet:null},ready=false;
+
+function add(role,text){
+ const d=document.createElement("div");d.className="msg "+role;
+ const l=document.createElement("div");l.className="label";l.textContent=role==="user"?"YOU":"KISHIN CORE";
+ d.append(l,document.createTextNode(text));chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
+}
+function norm(v){return String(v||"").toLowerCase().replace(/[?.,!]/g," ").replace(/\s+/g," ").trim()}
+
+async function refresh(){
+ const [m,g,mu,me]=await Promise.all([
+  getDocs(collection(db,"members")),
+  getDocs(collection(db,"garage")),
+  getDocs(collection(db,"music")),
+  getDoc(doc(db,"meets","current"))
+ ]);
+ data.members=m.docs.map(x=>({id:x.id,...x.data()}));
+ data.garage=g.docs.map(x=>({id:x.id,...x.data()}));
+ data.music=mu.docs.map(x=>({id:x.id,...x.data()}));
+ data.meet=me.exists()?{id:me.id,...me.data()}:null;
+ ready=true;
+ document.getElementById("dot").className="dot ok";
+ document.getElementById("status").textContent=`FIREBASE LIVE · ${data.members.length} MEMBERS · ${data.garage.length} GARAGE · ${data.music.length} MUSIC`;
+}
+
+function reply(text){
+ const x=norm(text);
+ if(/гишүүн|member|хэдэн хүн/.test(x))
+   return `Одоогийн members collection: ${data.members.length} гишүүн.\n\n`+
+   data.members.slice(0,20).map((m,i)=>`${i+1}. ${m.nick||"—"} · ${m.cpmid||"—"}`).join("\n");
+ if(/kitsune/.test(x)&&/id|cpm|код/.test(x)){
+   const m=data.members.find(v=>norm(v.nick)==="kitsune");
+   return m?`Kitsune-ийн CPM ID: ${m.cpmid||"бүртгэлгүй"}`:"Kitsune roster-оос олдсонгүй.";
+ }
+ if(/garage|машин|car|build/.test(x)){
+   return data.garage.length?`Garage: ${data.garage.length} record.\n\n`+
+   data.garage.slice(0,20).map((g,i)=>`${i+1}. ${g.name||g.title||g.car||g.model||"Нэргүй build"}`).join("\n")
+   :"Garage collection хоосон байна.";
+ }
+ if(/music|дуу|song|radio/.test(x)){
+   return data.music.length?`Music: ${data.music.length} record.\n\n`+
+   data.music.slice(0,20).map((m,i)=>`${i+1}. ${m.title||m.name||"UNTITLED"}`).join("\n")
+   :"Music collection хоосон байна.";
+ }
+ if(/meet|уулзалт|event|эхлэх|цаг/.test(x)){
+   if(!data.meet||data.meet.enabled===false)return "Одоогоор current Meet байхгүй.";
+   const m=data.meet,t=m.startAt?.toDate?m.startAt.toDate():new Date(m.startAt);
+   return `Meet: ${m.name||"ONI NIGHT MEET"}\nЭхлэх: ${Number.isNaN(t.getTime())?String(m.startAt||"—"):t.toLocaleString("mn-MN")}\nЛимит: ${m.maxPlayers||"—"}`;
+ }
+ return "Одоогоор би Members, Garage, Music, Meet гэсэн LIVE data-г уншиж чадна. Асуултаа дахин тодорхой бичээрэй.";
+}
+
+async function ask(text){
+ text=text.trim();if(!text)return;
+ add("user",text);
+ if(!ready){
+   add("ai","Firebase холболт бэлэн болоогүй байна. Дахин оролдоод үз.");
+   return;
+ }
+ try{add("ai",reply(text));}catch(e){console.error(e);add("ai","Асуултыг боловсруулах үед алдаа гарлаа.");}
+}
+document.getElementById("send").onclick=()=>{const v=q.value;q.value="";ask(v)};
+q.onkeydown=e=>{if(e.key==="Enter")document.getElementById("send").click()};
+document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>ask(b.dataset.q));
+
+refresh().then(()=>add("ai","LIVE Firebase холболт амжилттай. Бодит data дээр асуултаа туршина уу.")).catch(e=>{
+ console.error(e);document.getElementById("status").textContent="FIREBASE ERROR";
+ add("ai","Firebase-ээс data уншиж чадсангүй. Энэ нь Rules эсвэл browser-ийн local-file/module орчноос шалтгаалж болно.");
+});
+</script>
+</body>
+</html>
