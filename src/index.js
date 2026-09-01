@@ -131,14 +131,34 @@ async function toolCall(name,args) {
 }
 
 async function callOpenAI(body, env) {
-  const r=await fetch(OPENAI_URL,{
-    method:"POST",
-    headers:{"Authorization":`Bearer ${env.OPENAI_API_KEY}`,"Content-Type":"application/json"},
-    body:JSON.stringify(body)
+  const key = String(env.OPENAI_API_KEY || "").trim();
+  if (!key) throw new Error("OPENAI_API_KEY is missing in Cloudflare Runtime variables/secrets.");
+
+  const r = await fetch(OPENAI_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      store: false,
+      ...body
+    })
   });
-  const text=await r.text();
-  let j; try { j=JSON.parse(text); } catch { j={error:{message:text}}; }
-  if(!r.ok) throw new Error(j?.error?.message || `OpenAI ${r.status}`);
+
+  const text = await r.text();
+  let j;
+  try {
+    j = JSON.parse(text);
+  } catch {
+    j = { error: { message: text } };
+  }
+
+  if (!r.ok) {
+    const msg = j?.error?.message || `OpenAI HTTP ${r.status}`;
+    throw new Error(`${msg} [HTTP ${r.status}]`);
+  }
+
   return j;
 }
 
@@ -171,20 +191,25 @@ export default {
         clientSnapshot: input.knowledge || {}
       };
 
-      let response=await callOpenAI({
-        model:env.ONI_MODEL || "gpt-5.6-luna",
-        reasoning:{effort:"medium"},
-        instructions:SYSTEM,
-        input:[
+      const model = String(env.ONI_MODEL || "gpt-5.6-luna").trim();
+
+      let response = await callOpenAI({
+        model,
+        reasoning: {effort:"medium"},
+        instructions: SYSTEM,
+        input: [
           ...history,
-          {role:"user",content:`ONI KNOWLEDGE CONTEXT (use tools for authoritative current data): ${JSON.stringify(knowledgeSummary)}\n\nUSER MESSAGE:\n${message}`}
+          {
+            role:"user",
+            content:`ONI KNOWLEDGE CONTEXT (use tools for authoritative current data): ${JSON.stringify(knowledgeSummary)}\n\nUSER MESSAGE:\n${message}`
+          }
         ],
-        tools:[
+        tools: [
           ...tools,
           {type:"web_search"}
         ],
         max_output_tokens:900
-      },env);
+      }, env);
 
       for(let round=0;round<5;round++){
         const calls=(response.output||[]).filter(x=>x.type==="function_call");
@@ -196,18 +221,26 @@ export default {
           catch(e){ result={error:e.message}; }
           outputs.push({type:"function_call_output",call_id:c.call_id,output:JSON.stringify(result)});
         }
-        response=await callOpenAI({
-          model:env.ONI_MODEL || "gpt-5.6-luna",
-          reasoning:{effort:"medium"},
-          instructions:SYSTEM,
-          input:[...history,{role:"user",content:`USER MESSAGE:\n${message}`},...(response.output||[]),...outputs],
-          tools:[...tools,{type:"web_search"}],
+        response = await callOpenAI({
+          model,
+          reasoning: {effort:"medium"},
+          instructions: SYSTEM,
+          input: [
+            ...history,
+            {role:"user",content:`USER MESSAGE:\n${message}`},
+            ...(response.output || []),
+            ...outputs
+          ],
+          tools: [
+            ...tools,
+            {type:"web_search"}
+          ],
           max_output_tokens:900
-        },env);
+        }, env);
       }
 
-      const reply=response.output_text || "Одоогоор хариу үүсгэж чадсангүй.";
-      return json({reply,model:env.ONI_MODEL||"gpt-5.6-luna"});
+      const reply = response.output_text || "Одоогоор хариу үүсгэж чадсангүй.";
+      return json({ok:true, reply, model});
     } catch(e) {
       return json({
         ok:false,
