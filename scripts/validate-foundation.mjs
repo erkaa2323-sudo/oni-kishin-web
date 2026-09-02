@@ -1422,9 +1422,9 @@ function checkAdminModuleContracts() {
 function compileMusicValidationExports() {
   const source = read("v2/js/music.js");
   const transformed = source
-    .replace(/^import\\s.+?;\\s*$/gm, "")
-    .replace(/export function\\s+/g, "function ")
-    + "\\nmodule.exports = { createMusicModule, startMusicIntegration, stopMusicIntegration, subscribeMusicState, getMusicSnapshot, parseMusicCommand, runMusicCommand };";
+    .replace(/^import\s.+?;\s*$/gm, "")
+    .replace(/export function\s+/g, "function ")
+    + "\nmodule.exports = { createMusicModule, startMusicIntegration, stopMusicIntegration, subscribeMusicState, getMusicSnapshot, parseMusicCommand, runMusicCommand };";
 
   let audioInstances = 0;
   let onSnapshotCalls = 0;
@@ -1557,7 +1557,7 @@ function checkOniAiModuleContracts() {
   assert(source.includes("runMusicCommand"), "v2/js/oni-ai.js must execute only allow-listed music commands");
   assert(source.includes("requestToken += 1;"), "v2/js/oni-ai.js must invalidate stale async responses on lifecycle changes");
   assert(!source.includes("OPENAI_API_KEY"), "v2/js/oni-ai.js must not contain provider secrets");
-  assert(!/innerHTML\\s*=\\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
+  assert(!/innerHTML\s*=\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
 }
 
 async function run() {
