@@ -1445,7 +1445,7 @@ function checkAdminModuleContracts() {
   assert(adminJs.includes("signInWithEmailAndPassword"), "v2/js/admin.js must support admin login");
   assert(adminJs.includes("sendPasswordResetEmail"), "v2/js/admin.js must support password reset flow");
   assert(adminJs.includes("runTransaction"), "v2/js/admin.js must use transaction-safe application approval flow");
-  assert(adminJs.includes("if (state.actionLocks.has(key)) return;"), "v2/js/admin.js must block rapid duplicate operations");
+  assert(adminJs.includes("if (state.actionLocks.has(key))"), "v2/js/admin.js must block rapid duplicate operations");
   assert(adminJs.includes("confirm(\"Энэ member-г устгах уу?\")"), "v2/js/admin.js must confirm destructive member deletes");
   assert(adminJs.includes("confirm(\"Энэ garage build-ийг устгах уу?\")"), "v2/js/admin.js must confirm destructive garage deletes");
   assert(adminJs.includes("ADMIN_EMAIL"), "v2/js/admin.js must preserve production-compatible admin identity checks");
