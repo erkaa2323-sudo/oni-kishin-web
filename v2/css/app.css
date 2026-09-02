@@ -155,6 +155,208 @@
   padding: 12px;
 }
 
+.oni-members-view {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-members-controls {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.oni-members-field {
+  display: grid;
+  gap: 6px;
+}
+
+.oni-members-field span {
+  color: var(--oni-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.oni-members-search,
+.oni-members-select {
+  width: 100%;
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--oni-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.oni-members-search::placeholder {
+  color: #797b8b;
+}
+
+.oni-members-search:focus,
+.oni-members-select:focus,
+.oni-btn:focus-visible {
+  outline: 2px solid rgba(255, 32, 51, 0.5);
+  outline-offset: 2px;
+}
+
+.oni-members-state {
+  margin: 0;
+  color: var(--oni-muted);
+  font-size: 12px;
+}
+
+.oni-members-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.oni-member-card {
+  border: 1px solid var(--oni-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(255, 32, 51, 0.14), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px;
+  position: relative;
+  min-height: 92px;
+}
+
+.oni-member-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.oni-member-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oni-member-avatar-fallback {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #f9dce1;
+}
+
+.oni-member-copy {
+  min-width: 0;
+}
+
+.oni-member-copy h3 {
+  margin: 0;
+  font-size: clamp(18px, 4.8vw, 24px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oni-member-id,
+.oni-member-meta {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oni-member-id {
+  margin-top: 7px;
+  font-size: 11px;
+  color: #b6b7c4;
+  letter-spacing: 0.07em;
+}
+
+.oni-member-meta {
+  margin-top: 5px;
+  font-size: 11px;
+  color: #7f8192;
+}
+
+.oni-member-role {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  border: 1px solid var(--oni-line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #ff9ca8;
+  background: rgba(255, 32, 51, 0.09);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.oni-role-leader .oni-member-role {
+  color: #ffd778;
+  border-color: rgba(255, 215, 120, 0.28);
+  background: rgba(255, 215, 120, 0.1);
+}
+
+.oni-role-co-leader .oni-member-role {
+  color: #9fcbff;
+  border-color: rgba(120, 178, 255, 0.3);
+  background: rgba(120, 178, 255, 0.1);
+}
+
+.oni-role-special .oni-member-role {
+  color: #dcb4ff;
+  border-color: rgba(180, 126, 255, 0.32);
+  background: rgba(180, 126, 255, 0.1);
+}
+
+.oni-members-empty {
+  grid-column: 1 / -1;
+}
+
+.oni-members-empty h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.oni-members-empty p {
+  margin-top: 8px;
+}
+
+.oni-member-card-skeleton .oni-member-avatar,
+.oni-member-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.03)
+  );
+  background-size: 200% 100%;
+  animation: oniSkeleton 1.2s linear infinite;
+}
+
+.oni-member-line {
+  height: 12px;
+  border-radius: 8px;
+  margin: 0;
+}
+
+.oni-member-line + .oni-member-line {
+  margin-top: 8px;
+}
+
+.oni-member-line.short {
+  width: 58%;
+}
+
 @media (min-width: 768px) {
   .oni-main {
     width: min(100%, 1080px);
@@ -170,5 +372,20 @@
     right: auto;
     transform: translateX(-50%);
     width: min(640px, calc(100vw - 24px));
+  }
+
+  .oni-members-controls {
+    grid-template-columns: 1fr 220px auto;
+    align-items: end;
+  }
+
+  .oni-members-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1120px) {
+  .oni-members-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

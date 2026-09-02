@@ -18,6 +18,7 @@ const modules = [
   createMarketModule(),
   createOniAiModule()
 ];
+const membersModule = modules.find(module => module.key === "members");
 
 const root = document.getElementById("viewRoot");
 const navLinks = [...document.querySelectorAll(".oni-nav-link")];
@@ -25,6 +26,7 @@ const toast = document.getElementById("oniToast");
 const offlineBanner = document.getElementById("offlineBanner");
 const modal = document.getElementById("oniModal");
 const modalBody = document.getElementById("oniModalBody");
+let activeRouteTeardown = null;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, s => ({
@@ -110,6 +112,16 @@ function renderHome() {
   `;
 }
 
+function clearRouteMount() {
+  if (typeof activeRouteTeardown !== "function") return;
+  try {
+    activeRouteTeardown();
+  } catch (error) {
+    console.warn("route_teardown_failed", error);
+  }
+  activeRouteTeardown = null;
+}
+
 function renderModulePage(routeKey, title) {
   const module = modules.find(item => item.key === routeKey);
   const description = module?.description || "This route is not yet implemented in foundation stage.";
@@ -130,26 +142,37 @@ function renderModulePage(routeKey, title) {
 
 function registerRoutes() {
   registerRoute("home", async () => {
+    clearRouteMount();
     setActive("home");
     renderHome();
   });
 
   registerRoute("members", async () => {
     setActive("members");
+    if (membersModule && typeof membersModule.mount === "function") {
+      clearRouteMount();
+      membersModule.mount(root);
+      activeRouteTeardown = () => membersModule.unmount?.();
+      return;
+    }
+    clearRouteMount();
     renderModulePage("members", "Members");
   });
 
   registerRoute("garage", async () => {
+    clearRouteMount();
     setActive("garage");
     renderModulePage("garage", "Garage");
   });
 
   registerRoute("music", async () => {
+    clearRouteMount();
     setActive("music");
     renderModulePage("music", "Music");
   });
 
   registerRoute("meet", async () => {
+    clearRouteMount();
     setActive("meet");
     renderModulePage("meet", "Meet");
   });
