@@ -4,23 +4,177 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#07070a">
-  <title>ONI HUB v2 Admin Shell</title>
+  <title>ONI HUB v2 Admin</title>
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/components.css">
   <link rel="stylesheet" href="../css/app.css">
 </head>
 <body>
-  <main class="oni-main">
-    <section class="oni-stack">
+  <main class="oni-main oni-admin-main">
+    <section class="oni-admin-auth" data-admin-auth-loading>
       <article class="oni-card">
-        <h1>ONI HUB v2 Admin</h1>
-        <p>Admin foundation shell only. Management workflows will migrate in the next stage.</p>
-      </article>
-      <article class="oni-card">
-        <h2>Current status</h2>
-        <p>Production admin behavior has not been migrated in this PR.</p>
+        <h1>Loading admin auth…</h1>
+        <p>Firebase Authentication state шалгаж байна.</p>
       </article>
     </section>
+
+    <section class="oni-admin-auth" data-admin-auth-signed-out hidden>
+      <article class="oni-card oni-admin-login-card">
+        <h1>ONI HUB v2 Admin</h1>
+        <p>Firebase Auth-оор нэвтэрнэ.</p>
+        <label class="oni-admin-field">
+          <span>Email</span>
+          <input type="email" data-admin-email autocomplete="email" placeholder="admin@example.com">
+        </label>
+        <label class="oni-admin-field">
+          <span>Password</span>
+          <input type="password" data-admin-password autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <div class="oni-admin-actions">
+          <button type="button" class="oni-btn oni-btn-primary" data-admin-login>Login</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-admin-reset>Reset password</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="oni-admin-auth" data-admin-auth-unauthorized hidden>
+      <article class="oni-card">
+        <h1>Unauthorized</h1>
+        <p>Энэ хэрэглэгч admin эрхгүй байна. Production rules дээр зөвшөөрөгдсөн email-ээр нэвтэрнэ үү.</p>
+      </article>
+    </section>
+
+    <section data-admin-shell hidden>
+      <header class="oni-card oni-admin-top">
+        <div>
+          <h1>ONI HUB v2 Admin</h1>
+          <p data-admin-signed-email></p>
+        </div>
+        <div class="oni-admin-actions">
+          <button type="button" class="oni-btn oni-btn-ghost" data-admin-refresh>Refresh</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-admin-logout>Logout</button>
+        </div>
+      </header>
+
+      <p class="oni-admin-status" data-admin-status role="status" aria-live="polite"></p>
+
+      <nav class="oni-card oni-admin-tabs">
+        <button type="button" class="oni-btn oni-btn-ghost is-active" data-admin-tab="dashboard">Dashboard</button>
+        <button type="button" class="oni-btn oni-btn-ghost" data-admin-tab="members">Members</button>
+        <button type="button" class="oni-btn oni-btn-ghost" data-admin-tab="garage">Garage</button>
+        <button type="button" class="oni-btn oni-btn-ghost" data-admin-tab="applications">Applications</button>
+        <button type="button" class="oni-btn oni-btn-ghost" data-admin-tab="meet">Meet</button>
+      </nav>
+
+      <section data-admin-view="dashboard">
+        <div class="oni-admin-stat-grid">
+          <article class="oni-card"><small>Members</small><strong data-admin-stat-members>0</strong></article>
+          <article class="oni-card"><small>Garage</small><strong data-admin-stat-garage>0</strong></article>
+          <article class="oni-card"><small>Pending applications</small><strong data-admin-stat-applications>0</strong></article>
+          <article class="oni-card"><small>Meet</small><strong data-admin-stat-meet>INACTIVE</strong></article>
+          <article class="oni-card"><small>Meet participants</small><strong data-admin-stat-participants>0</strong></article>
+        </div>
+      </section>
+
+      <section data-admin-view="members" hidden>
+        <article class="oni-card">
+          <div class="oni-admin-list-head">
+            <h2>Members (<span data-member-count>0</span>)</h2>
+            <input type="search" data-member-search placeholder="Search member">
+          </div>
+          <div data-member-list class="oni-admin-list"></div>
+        </article>
+        <article class="oni-card">
+          <h3>Member form</h3>
+          <form data-member-form class="oni-admin-form" novalidate>
+            <label class="oni-admin-field"><span>Name</span><input data-member-name></label>
+            <label class="oni-admin-field"><span>Nick *</span><input data-member-nick required></label>
+            <label class="oni-admin-field"><span>CPM ID *</span><input data-member-cpmid required></label>
+            <label class="oni-admin-field"><span>Role</span>
+              <select data-member-role>
+                <option value="member">Member</option>
+                <option value="leader">Leader</option>
+                <option value="co-leader">Co Leader</option>
+                <option value="special">Special</option>
+              </select>
+            </label>
+            <label class="oni-admin-field"><span>Title</span><input data-member-title></label>
+            <div class="oni-admin-actions">
+              <button type="submit" class="oni-btn oni-btn-primary" data-member-save>Add member</button>
+              <button type="button" class="oni-btn oni-btn-ghost" data-member-cancel>Cancel edit</button>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <section data-admin-view="garage" hidden>
+        <article class="oni-card">
+          <div class="oni-admin-list-head">
+            <h2>Garage (<span data-garage-count>0</span>)</h2>
+            <input type="search" data-garage-search placeholder="Search garage">
+          </div>
+          <div data-garage-list class="oni-admin-list"></div>
+        </article>
+        <article class="oni-card">
+          <h3>Garage form</h3>
+          <form data-garage-form class="oni-admin-form" novalidate>
+            <label class="oni-admin-field"><span>Name *</span><input data-garage-name required></label>
+            <label class="oni-admin-field"><span>Owner</span><input data-garage-owner></label>
+            <label class="oni-admin-field"><span>Category</span>
+              <select data-garage-category>
+                <option value="anime">Anime</option>
+                <option value="clean">Clean</option>
+                <option value="drift">Drift</option>
+                <option value="rare">Rare</option>
+              </select>
+            </label>
+            <label class="oni-admin-field"><span>Theme/Anime</span><input data-garage-anime></label>
+            <label class="oni-admin-field"><span>CPM ID</span><input data-garage-cpmid></label>
+            <label class="oni-admin-field"><span>Layer</span><input data-garage-layer></label>
+            <label class="oni-admin-field"><span>Image URL</span><input data-garage-image type="url"></label>
+            <label class="oni-admin-field"><span>Description</span><textarea data-garage-description></textarea></label>
+            <div class="oni-admin-actions">
+              <button type="submit" class="oni-btn oni-btn-primary" data-garage-save>Add build</button>
+              <button type="button" class="oni-btn oni-btn-ghost" data-garage-cancel>Cancel edit</button>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <section data-admin-view="applications" hidden>
+        <article class="oni-card">
+          <h2>Applications (<span data-application-count>0</span>)</h2>
+          <div data-application-list class="oni-admin-list"></div>
+        </article>
+      </section>
+
+      <section data-admin-view="meet" hidden>
+        <article class="oni-card">
+          <h2>Current Meet</h2>
+          <div class="oni-admin-stat-grid oni-admin-stat-grid-small">
+            <article class="oni-card"><small>Status</small><strong data-meet-state>NO ACTIVE MEET</strong></article>
+            <article class="oni-card"><small>Countdown</small><strong data-meet-countdown>—</strong></article>
+            <article class="oni-card"><small>Participants</small><strong data-meet-participants-count>0</strong></article>
+          </div>
+          <form data-meet-form class="oni-admin-form" novalidate>
+            <label class="oni-admin-field"><span>Meet name *</span><input data-meet-name required></label>
+            <label class="oni-admin-field"><span>Room label</span><input data-meet-room-label></label>
+            <label class="oni-admin-field"><span>Date *</span><input type="date" data-meet-date required></label>
+            <label class="oni-admin-field"><span>Start time *</span><input type="time" data-meet-time required></label>
+            <label class="oni-admin-field"><span>Duration (min)</span><input type="number" min="1" max="120" data-meet-duration value="20"></label>
+            <label class="oni-admin-field"><span>Max players</span><input type="number" min="1" max="200" data-meet-max value="20"></label>
+            <label class="oni-admin-field"><span>Room ID *</span><input data-meet-room-id required></label>
+            <label class="oni-admin-field"><span>PASS *</span><input data-meet-password required></label>
+            <div class="oni-admin-actions">
+              <button type="submit" class="oni-btn oni-btn-primary">Save meet</button>
+              <button type="button" class="oni-btn oni-btn-ghost" data-meet-disable>Disable meet</button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </section>
   </main>
+
+  <script type="module" src="../js/admin.js"></script>
 </body>
 </html>

@@ -15,6 +15,7 @@ const APP_SHELL = [
   BASE + "js/router.js",
   BASE + "js/firebase.js",
   BASE + "js/auth.js",
+  BASE + "js/admin.js",
   BASE + "js/members.js",
   BASE + "js/garage.js",
   BASE + "js/music.js",
