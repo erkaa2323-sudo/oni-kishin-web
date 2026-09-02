@@ -39,6 +39,7 @@ const oniAiModule = modules.find(module => module.key === "oni-ai");
 const root = document.getElementById("viewRoot");
 const shell = document.getElementById("oniShell");
 const navLinks = [...document.querySelectorAll(".oni-nav-link[data-route]")];
+const bottomNav = document.querySelector(".oni-bottom-nav");
 const moreButton = document.querySelector("[data-nav-more]");
 const moreSheet = document.getElementById("oniMoreSheet");
 const toast = document.getElementById("oniToast");
@@ -53,6 +54,17 @@ let swControllerReloading = false;
 let homeRenderToken = 0;
 let homeCountdownTimer = 0;
 let adminAuthUnsubscribe = null;
+let navActiveMorph = null;
+let routeSlashTimer = 0;
+
+const ATMOSPHERE_BY_ROUTE = {
+  home: "home",
+  garage: "garage",
+  members: "crew",
+  music: "oni-ai",
+  meet: "meet",
+  join: "join"
+};
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, s => ({
@@ -97,6 +109,32 @@ function roleClass(role) {
   return "is-member";
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+}
+
+function setAtmosphere(route) {
+  const mood = ATMOSPHERE_BY_ROUTE[route] || "home";
+  document.body.dataset.oniAtmosphere = mood;
+}
+
+function playRouteSlash() {
+  if (prefersReducedMotion()) return;
+  let slash = document.getElementById("oniRouteSlash");
+  if (!(slash instanceof HTMLElement)) {
+    slash = document.createElement("div");
+    slash.id = "oniRouteSlash";
+    slash.className = "oni-route-slash";
+    slash.setAttribute("aria-hidden", "true");
+    document.body.appendChild(slash);
+  }
+  slash.classList.remove("is-active");
+  void slash.offsetWidth;
+  slash.classList.add("is-active");
+  clearTimeout(routeSlashTimer);
+  routeSlashTimer = setTimeout(() => slash?.classList.remove("is-active"), 220);
+}
+
 function initials(text) {
   const words = asText(text).split(/\s+/).filter(Boolean).slice(0, 2);
   return words.map(word => word.charAt(0)).join("").toUpperCase() || "ON";
@@ -115,6 +153,20 @@ function setActive(route) {
     const active = mapped === "more";
     moreButton.classList.toggle("is-active", active);
     moreButton.setAttribute("aria-current", active ? "page" : "false");
+  }
+
+  if (navActiveMorph instanceof HTMLElement && bottomNav instanceof HTMLElement) {
+    const activeNode = mapped === "more"
+      ? moreButton
+      : navLinks.find(link => link.dataset.route === mapped);
+    if (!(activeNode instanceof HTMLElement)) return;
+    const navRect = bottomNav.getBoundingClientRect();
+    const nodeRect = activeNode.getBoundingClientRect();
+    const x = nodeRect.left - navRect.left + 4;
+    const y = nodeRect.top - navRect.top + 4;
+    navActiveMorph.style.width = `${Math.max(0, nodeRect.width - 8)}px`;
+    navActiveMorph.style.height = `${Math.max(0, nodeRect.height - 8)}px`;
+    navActiveMorph.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   }
 }
 
@@ -504,12 +556,16 @@ function clearRouteMount() {
 
 function registerRoutes() {
   registerRoute("home", async () => {
+    setAtmosphere("home");
+    playRouteSlash();
     clearRouteMount();
     setActive("home");
     await renderHome();
   });
 
   registerRoute("members", async () => {
+    setAtmosphere("members");
+    playRouteSlash();
     setActive("members");
     if (membersModule && typeof membersModule.mount === "function") {
       clearRouteMount();
@@ -520,6 +576,8 @@ function registerRoutes() {
   });
 
   registerRoute("garage", async () => {
+    setAtmosphere("garage");
+    playRouteSlash();
     setActive("garage");
     if (garageModule && typeof garageModule.mount === "function") {
       clearRouteMount();
@@ -530,6 +588,8 @@ function registerRoutes() {
   });
 
   registerRoute("music", async () => {
+    setAtmosphere("music");
+    playRouteSlash();
     setActive("music");
     if (oniAiModule && typeof oniAiModule.mount === "function") {
       clearRouteMount();
@@ -540,6 +600,8 @@ function registerRoutes() {
   });
 
   registerRoute("meet", async () => {
+    setAtmosphere("meet");
+    playRouteSlash();
     setActive("meet");
     if (meetModule && typeof meetModule.mount === "function") {
       clearRouteMount();
@@ -550,6 +612,8 @@ function registerRoutes() {
   });
 
   registerRoute("join", async () => {
+    setAtmosphere("join");
+    playRouteSlash();
     setActive("join");
     if (joinModule && typeof joinModule.mount === "function") {
       clearRouteMount();
@@ -737,6 +801,63 @@ function setupViewportHandling() {
   update();
 }
 
+function setupParallaxMotion() {
+  if (!(shell instanceof HTMLElement) || prefersReducedMotion()) return;
+  let rafId = 0;
+  let targetX = 0;
+  let targetY = 0;
+
+  const apply = () => {
+    rafId = 0;
+    shell.style.setProperty("--oni-parallax-x", targetX.toFixed(4));
+    shell.style.setProperty("--oni-parallax-y", targetY.toFixed(4));
+  };
+
+  const onMove = event => {
+    const x = (event.clientX / Math.max(1, window.innerWidth)) - 0.5;
+    const y = (event.clientY / Math.max(1, window.innerHeight)) - 0.5;
+    targetX = x * 2;
+    targetY = y * 2;
+    if (!rafId) rafId = requestAnimationFrame(apply);
+  };
+
+  const onLeave = () => {
+    targetX = 0;
+    targetY = 0;
+    if (!rafId) rafId = requestAnimationFrame(apply);
+  };
+
+  window.addEventListener("pointermove", onMove, { passive: true });
+  window.addEventListener("pointerleave", onLeave, { passive: true });
+}
+
+function setupNavMorph() {
+  if (!(bottomNav instanceof HTMLElement)) return;
+  navActiveMorph = document.createElement("span");
+  navActiveMorph.className = "oni-nav-active-morph";
+  navActiveMorph.setAttribute("aria-hidden", "true");
+  bottomNav.prepend(navActiveMorph);
+}
+
+function spawnSuccessBurst(target) {
+  if (!(target instanceof HTMLElement) || prefersReducedMotion()) return;
+  const burst = document.createElement("span");
+  burst.className = "oni-success-burst";
+  burst.setAttribute("aria-hidden", "true");
+  target.appendChild(burst);
+  setTimeout(() => burst.remove(), 320);
+}
+
+function setupMotionUtilities() {
+  setupNavMorph();
+  setupParallaxMotion();
+  window.ONI_MOTION = { successBurst: spawnSuccessBurst };
+  window.addEventListener("oni:success-burst", event => {
+    const target = event?.detail?.target;
+    if (target instanceof HTMLElement) spawnSuccessBurst(target);
+  });
+}
+
 function bootstrap() {
   if (isBootstrapped) return;
   isBootstrapped = true;
@@ -747,6 +868,7 @@ function bootstrap() {
   setupUiActions();
   setupMoreActions();
   setupViewportHandling();
+  setupMotionUtilities();
   registerServiceWorker();
 
   try {
@@ -759,6 +881,8 @@ function bootstrap() {
 
   root.setAttribute("aria-busy", "false");
   root.classList.add("ready");
+  setAtmosphere("home");
+  setActive("home");
 }
 
 addEventListener("beforeunload", () => {
