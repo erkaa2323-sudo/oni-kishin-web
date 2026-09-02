@@ -75,7 +75,7 @@
   bottom: max(8px, var(--oni-safe-bottom));
   min-height: 68px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid var(--oni-line);
   border-radius: 20px;
@@ -556,6 +556,320 @@
   width: 58%;
 }
 
+.oni-meet-view,
+.oni-join-view {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-meet-hero {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(255, 32, 51, 0.26), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.oni-meet-kicker {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: #ff8290;
+  font-weight: 900;
+}
+
+.oni-meet-hero-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.oni-meet-state {
+  margin: 0;
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 32, 51, 0.45);
+  background: rgba(255, 32, 51, 0.12);
+  color: #ffc8ce;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 900;
+  padding: 4px 10px;
+}
+
+.oni-meet-hero h2 {
+  margin: 8px 0 0;
+  font-size: clamp(24px, 7vw, 36px);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.oni-meet-sub {
+  margin: 8px 0 0;
+  color: #aeb0bf;
+  font-size: 12px;
+}
+
+.oni-meet-countdown-box {
+  border: 1px solid var(--oni-line);
+  border-radius: 14px;
+  background: rgba(6, 7, 12, 0.6);
+  padding: 12px;
+}
+
+.oni-meet-countdown-box small {
+  color: #8e91a5;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.oni-meet-countdown-box strong {
+  display: block;
+  margin-top: 4px;
+  font-size: clamp(24px, 9vw, 42px);
+  letter-spacing: -0.05em;
+  color: #fff;
+}
+
+.oni-meet-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.oni-meet-meta-item {
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.oni-meet-meta-item small {
+  color: #8f91a3;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.oni-meet-meta-item b {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.oni-meet-secret-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.oni-meet-secret {
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  background: rgba(8, 9, 14, 0.62);
+  padding: 9px 10px;
+}
+
+.oni-meet-secret small {
+  color: #8f91a3;
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.oni-meet-secret code {
+  display: block;
+  margin-top: 4px;
+  color: #fff;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.oni-meet-form {
+  display: grid;
+  gap: 8px;
+}
+
+.oni-meet-field {
+  display: grid;
+  gap: 6px;
+}
+
+.oni-meet-field span {
+  color: #a0a3b5;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.oni-meet-field input {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--oni-line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--oni-text);
+  padding: 0 12px;
+}
+
+.oni-meet-inline-state,
+.oni-meet-inline-error {
+  margin: 0;
+  min-height: 18px;
+  font-size: 12px;
+}
+
+.oni-meet-inline-state {
+  color: #9decc6;
+}
+
+.oni-meet-inline-error {
+  color: #ff9daa;
+}
+
+.oni-meet-participants-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.oni-meet-participants-head h3 {
+  margin: 0;
+}
+
+.oni-meet-participants-head small {
+  color: #8f91a3;
+}
+
+.oni-meet-participant-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.oni-meet-participant-row {
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.oni-meet-participant-row b {
+  color: #ff9ea9;
+  font-size: 10px;
+}
+
+.oni-meet-participant-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oni-meet-participant-row small {
+  color: #8f91a3;
+}
+
+.oni-meet-empty {
+  margin: 0;
+  color: #8f91a3;
+}
+
+.oni-meet-hero.is-loading {
+  gap: 10px;
+}
+
+.oni-meet-line,
+.oni-meet-grid-skeleton span {
+  height: 12px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
+  background-size: 200% 100%;
+  animation: oniSkeleton 1.2s linear infinite;
+}
+
+.oni-meet-line.wide {
+  width: 75%;
+}
+
+.oni-meet-grid-skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.oni-join-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.oni-join-field {
+  display: grid;
+  gap: 6px;
+}
+
+.oni-join-field span {
+  color: #a0a3b5;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.oni-join-field input,
+.oni-join-field select,
+.oni-join-field textarea {
+  width: 100%;
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--oni-text);
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.oni-join-field textarea {
+  min-height: 120px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.oni-join-actions {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.oni-join-return {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oni-join-state,
+.oni-join-error {
+  margin: 0;
+  min-height: 18px;
+  font-size: 12px;
+}
+
+.oni-join-state {
+  color: #9decc6;
+}
+
+.oni-join-error {
+  color: #ff9daa;
+}
+
 @media (min-width: 768px) {
   .oni-main {
     width: min(100%, 1080px);
@@ -594,6 +908,28 @@
 
   .oni-members-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oni-meet-meta-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oni-meet-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .oni-join-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oni-join-field:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .oni-join-actions {
+    grid-template-columns: auto auto auto;
+    justify-content: start;
   }
 }
 

@@ -1,5 +1,5 @@
 const routes = new Map();
-const ALLOWED_ROUTES = new Set(["home", "members", "garage", "music", "meet"]);
+const ALLOWED_ROUTES = new Set(["home", "members", "garage", "music", "meet", "join"]);
 let currentRoute = "home";
 
 function cleanRoute(hash) {
@@ -49,6 +49,9 @@ export async function navigate(hash) {
       return;
     case "meet":
       await runRoute("meet");
+      return;
+    case "join":
+      await runRoute("join");
       return;
     default:
       await runRoute("home");

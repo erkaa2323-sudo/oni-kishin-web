@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-v2-shell-2";
+const VERSION = "oni-hub-v2-shell-3";
 const BASE = "/oni-kishin-web/v2/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -19,6 +19,7 @@ const APP_SHELL = [
   BASE + "js/garage.js",
   BASE + "js/music.js",
   BASE + "js/meet.js",
+  BASE + "js/join.js",
   BASE + "js/market.js",
   BASE + "js/oni-ai.js",
   BASE + "admin/index.html",
