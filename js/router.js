@@ -1,12 +1,20 @@
 const routes = new Map();
+const ALLOWED_ROUTES = new Set(["home", "members", "garage", "music", "meet"]);
 let currentRoute = "home";
 
 function cleanRoute(hash) {
   const key = String(hash || "home").replace(/^#/, "").trim();
-  return key || "home";
+  if (!key || !ALLOWED_ROUTES.has(key)) return "home";
+  return key;
 }
 
 export function registerRoute(name, handler) {
+  if (!ALLOWED_ROUTES.has(name)) {
+    throw new Error(`Route is not allowed: ${name}`);
+  }
+  if (typeof handler !== "function") {
+    throw new Error(`Route handler must be a function: ${name}`);
+  }
   routes.set(name, handler);
 }
 
@@ -14,17 +22,37 @@ export function getCurrentRoute() {
   return currentRoute;
 }
 
+async function runRoute(name) {
+  const handler = routes.get(name);
+  if (typeof handler !== "function") {
+    throw new Error(`Missing route handler: ${name}`);
+  }
+  await handler({ route: name });
+}
+
 export async function navigate(hash) {
   const route = cleanRoute(hash);
-  const fallback = routes.get("home");
-  const handler = routes.get(route) || fallback;
-  currentRoute = routes.has(route) ? route : "home";
+  currentRoute = route;
 
-  if (!handler) {
-    throw new Error("Missing route handler for home");
+  switch (route) {
+    case "home":
+      await runRoute("home");
+      return;
+    case "members":
+      await runRoute("members");
+      return;
+    case "garage":
+      await runRoute("garage");
+      return;
+    case "music":
+      await runRoute("music");
+      return;
+    case "meet":
+      await runRoute("meet");
+      return;
+    default:
+      await runRoute("home");
   }
-
-  await handler({ route: currentRoute });
 }
 
 export function startRouter() {
