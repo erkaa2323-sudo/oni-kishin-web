@@ -160,6 +160,205 @@
   gap: 12px;
 }
 
+.oni-garage-view {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-garage-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.oni-garage-filter-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.oni-garage-field {
+  display: grid;
+  gap: 6px;
+}
+
+.oni-garage-field span {
+  color: var(--oni-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.oni-garage-search,
+.oni-garage-select {
+  width: 100%;
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--oni-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.oni-garage-search::placeholder {
+  color: #797b8b;
+}
+
+.oni-garage-search:focus,
+.oni-garage-select:focus {
+  outline: 2px solid rgba(255, 32, 51, 0.5);
+  outline-offset: 2px;
+}
+
+.oni-garage-state {
+  margin: 0;
+  color: var(--oni-muted);
+  font-size: 12px;
+}
+
+.oni-garage-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.oni-garage-card {
+  border: 1px solid var(--oni-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 92% 6%, rgba(255, 32, 51, 0.2), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.oni-garage-card:focus-within,
+.oni-garage-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 32, 51, 0.4);
+}
+
+.oni-garage-media {
+  aspect-ratio: 16 / 10;
+  position: relative;
+  background:
+    radial-gradient(circle at 80% 22%, rgba(255, 32, 51, 0.24), transparent 34%),
+    linear-gradient(145deg, #15151f, #08080d);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.oni-garage-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oni-garage-fallback {
+  display: none;
+  color: #ffdce2;
+  letter-spacing: 0.08em;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.oni-garage-media.is-fallback .oni-garage-fallback {
+  display: inline;
+}
+
+.oni-garage-copy {
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.oni-garage-copy h3 {
+  margin: 0;
+  font-size: clamp(18px, 5vw, 23px);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.oni-garage-brand,
+.oni-garage-owner {
+  margin: 0;
+  color: #a5a7b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.oni-garage-owner {
+  color: #ced0df;
+}
+
+.oni-garage-chips {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.oni-garage-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f4fb;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.oni-garage-chip small {
+  color: #8d8f9f;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 8px;
+}
+
+.oni-garage-empty {
+  grid-column: 1 / -1;
+}
+
+.oni-garage-empty h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.oni-garage-empty p {
+  margin-top: 8px;
+}
+
+.oni-garage-card-skeleton .oni-garage-media,
+.oni-garage-line {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.14),
+    rgba(255, 255, 255, 0.03)
+  );
+  background-size: 200% 100%;
+  animation: oniSkeleton 1.2s linear infinite;
+}
+
+.oni-garage-line {
+  margin: 0;
+  height: 12px;
+  border-radius: 8px;
+}
+
+.oni-garage-line.short {
+  width: 62%;
+}
+
+.oni-garage-line + .oni-garage-line {
+  margin-top: 8px;
+}
+
 .oni-members-controls {
   display: grid;
   gap: 10px;
@@ -379,12 +578,30 @@
     align-items: end;
   }
 
+  .oni-garage-controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .oni-garage-filter-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oni-garage-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .oni-members-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1120px) {
+  .oni-garage-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .oni-members-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

@@ -230,6 +230,141 @@ function createFakeMembersRoot(HTMLElementCtor) {
     return new FakeRoot();
   }
 
+function compileGarageValidationExports({ docs = [], getDocsImpl } = {}) {
+    const source = read("v2/js/garage.js");
+    const transformed = source
+        .replace(/^import\s.+?;\s*$/gm, "")
+        .replace(/export function\s+/g, "function ")
+      + "\nmodule.exports = { createGarageModule, normalizeGarageRecord, filterGarageRecords, garageRouteMarkup, renderGarageCards };";
+
+    let getDocsCalls = 0;
+    const collections = [];
+    const context = {
+      module: { exports: {} },
+      exports: {},
+      console,
+      Math,
+      Date,
+      setTimeout,
+      clearTimeout,
+      Element: class Element {},
+      HTMLElement: class HTMLElement {},
+      HTMLSelectElement: class HTMLSelectElement {},
+      HTMLImageElement: class HTMLImageElement {},
+      collection: (_, name) => {
+        collections.push(name);
+        return { name };
+      },
+      getFirestoreDb: () => ({}),
+      getDocs: async (...args) => {
+        getDocsCalls += 1;
+        if (typeof getDocsImpl === "function") {
+          return getDocsImpl(...args);
+        }
+        return {
+          docs: docs.map(item => ({
+            id: item.id,
+            data: () => item.data
+          }))
+        };
+      }
+    };
+
+    vm.runInNewContext(transformed, context, { filename: "v2/js/garage.js" });
+    return {
+      exports: context.module.exports,
+      Element: context.Element,
+      HTMLElement: context.HTMLElement,
+      HTMLSelectElement: context.HTMLSelectElement,
+      getDocsCalls: () => getDocsCalls,
+      collections: () => collections.slice()
+    };
+  }
+
+function createFakeGarageRoot(ElementCtor, HTMLElementCtor, HTMLSelectElementCtor) {
+    class FakeNode extends ElementCtor {
+      constructor() {
+        super();
+        this.value = "";
+        this.textContent = "";
+        this.innerHTML = "";
+        this.listeners = new Map();
+      }
+      addEventListener(type, handler) {
+        if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+        this.listeners.get(type).add(handler);
+      }
+      removeEventListener(type, handler) {
+        const set = this.listeners.get(type);
+        if (!set) return;
+        set.delete(handler);
+        if (!set.size) this.listeners.delete(type);
+      }
+      querySelector() {
+        return null;
+      }
+      listenerCount(type) {
+        return this.listeners.get(type)?.size || 0;
+      }
+      trigger(type, event = {}) {
+        const set = this.listeners.get(type);
+        if (!set) return;
+        for (const handler of [...set]) {
+          handler(event);
+        }
+      }
+    }
+
+    class FakeSelect extends HTMLSelectElementCtor {
+      constructor() {
+        super();
+        this.value = "all";
+        this.innerHTML = "";
+        this.dataset = {};
+      }
+    }
+
+    class FakeFilterGrid extends FakeNode {
+      constructor() {
+        super();
+        this.typeSelect = new FakeSelect();
+        this.typeSelect.dataset.garageFilter = "type";
+        this.categorySelect = new FakeSelect();
+        this.categorySelect.dataset.garageFilter = "category";
+        this.statusSelect = new FakeSelect();
+        this.statusSelect.dataset.garageFilter = "status";
+      }
+      querySelector(selector) {
+        if (selector === '[data-garage-filter="type"]') return this.typeSelect;
+        if (selector === '[data-garage-filter="category"]') return this.categorySelect;
+        if (selector === '[data-garage-filter="status"]') return this.statusSelect;
+        return null;
+      }
+    }
+
+    class FakeRoot extends HTMLElementCtor {
+      constructor() {
+        super();
+        this.innerHTML = "";
+        this.nodes = new Map([
+          ["[data-garage-search]", new FakeNode()],
+          ["[data-garage-filter-grid]", new FakeFilterGrid()],
+          ["[data-garage-retry]", new FakeNode()],
+          ["[data-garage-state]", new FakeNode()],
+          ["[data-garage-grid]", new FakeNode()]
+        ]);
+      }
+      querySelector(selector) {
+        return this.nodes.get(selector) || null;
+      }
+      node(selector) {
+        return this.nodes.get(selector) || null;
+      }
+    }
+
+    return new FakeRoot();
+  }
+
 async function checkMembersModuleBehavior() {
     const sampleDocs = [
       { id: "m1", data: { nick: "KITSUNE", cpmid: "CPM-001", role: "leader", title: "LEADER", direction: "Clean Car", createdAt: { seconds: 1 } } },
@@ -278,6 +413,155 @@ async function checkMembersModuleBehavior() {
 
   assert(getDocsCalls() === 1, "Members route must mount once and avoid duplicate collection reads");
 }
+
+async function checkGarageModuleBehavior() {
+    const sampleDocs = [
+      {
+        id: "g1",
+        data: {
+          name: "AKUMA EVO IX",
+          owner: "KITSUNE",
+          category: "anime",
+          type: "drift",
+          status: "ready",
+          image: "https://example.com/evo.webp",
+          createdAt: { seconds: 4 }
+        }
+      },
+      {
+        id: "g2",
+        data: {
+          title: "Legacy RX7",
+          brand: "Mazda",
+          model: "FD3S",
+          nick: "NOIR",
+          saleStatus: "active",
+          images: ["https://example.com/rx7.webp"],
+          updatedAt: { seconds: 5 }
+        }
+      },
+      {
+        id: "g3",
+        data: {
+          build: "Mystery Build"
+        }
+      }
+    ];
+
+    const {
+      exports,
+      Element,
+      HTMLElement,
+      HTMLSelectElement,
+      getDocsCalls,
+      collections
+    } = compileGarageValidationExports({ docs: sampleDocs });
+
+    const {
+      createGarageModule,
+      normalizeGarageRecord,
+      filterGarageRecords,
+      garageRouteMarkup,
+      renderGarageCards
+    } = exports;
+
+    assert(typeof normalizeGarageRecord === "function", "v2/js/garage.js must export normalizeGarageRecord()");
+    assert(typeof filterGarageRecords === "function", "v2/js/garage.js must export filterGarageRecords()");
+    assert(typeof garageRouteMarkup === "function", "v2/js/garage.js must export garageRouteMarkup()");
+    assert(typeof renderGarageCards === "function", "v2/js/garage.js must export renderGarageCards()");
+    assert(typeof createGarageModule === "function", "v2/js/garage.js must export createGarageModule()");
+
+    const markup = garageRouteMarkup();
+    const idMatches = [...markup.matchAll(/\sid=["']([^"']+)["']/g)].map(match => match[1]);
+    const idCounts = new Map();
+    for (const id of idMatches) idCounts.set(id, (idCounts.get(id) || 0) + 1);
+    for (const [id, count] of idCounts.entries()) {
+      if (count > 1) errors.push(`Duplicate DOM id in garage route markup: ${id} (${count}x)`);
+    }
+
+    const normalizedLegacy = normalizeGarageRecord(sampleDocs[1].data, "legacy-1");
+    assert(normalizedLegacy.buildName === "Legacy RX7", "Legacy garage title must map to buildName");
+    assert(normalizedLegacy.owner === "NOIR", "Legacy garage nick must map to owner");
+    assert(normalizedLegacy.status === "active", "Legacy garage saleStatus must map to status");
+
+    const missing = normalizeGarageRecord({}, "missing-1");
+    assert(missing.buildName.length > 0, "Missing garage build name must fall back safely");
+    assert(Array.isArray(missing.images), "Missing garage images must fall back to an empty array");
+
+    const records = sampleDocs.map(item => normalizeGarageRecord(item.data, item.id));
+    const rendered = renderGarageCards(records);
+    assert(rendered.includes("AKUMA EVO IX"), "Garage rendering must include current schema records");
+    assert(rendered.includes("Legacy RX7"), "Garage rendering must include legacy schema records");
+
+    const bySearch = filterGarageRecords(records, "mazda", { type: "all", category: "all", status: "all" });
+    assert(bySearch.length === 1, "Garage filter must support search text matching");
+
+    const byType = filterGarageRecords(records, "", { type: "drift", category: "all", status: "all" });
+    assert(byType.length === 1, "Garage filter must support type filtering");
+
+    const byStatus = filterGarageRecords(records, "", { type: "all", category: "all", status: "active" });
+    assert(byStatus.length === 1, "Garage filter must support status filtering");
+
+    const module = createGarageModule();
+    const root = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
+    module.mount(root);
+    module.mount(root);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert(getDocsCalls() === 1, "Garage route must mount once and avoid duplicate collection reads");
+    assert(collections().includes("garage"), "Garage route must read from the Firestore garage collection");
+
+    let callIndex = 0;
+    const failingDocs = compileGarageValidationExports({
+      docs: sampleDocs,
+      getDocsImpl: async () => {
+        callIndex += 1;
+        if (callIndex <= 3) throw new Error("forced garage read error");
+        return {
+          docs: sampleDocs.map(item => ({
+            id: item.id,
+            data: () => item.data
+          }))
+        };
+      }
+    });
+
+    const flakyGarage = failingDocs.exports.createGarageModule();
+    const flakyRoot = createFakeGarageRoot(
+      failingDocs.Element,
+      failingDocs.HTMLElement,
+      failingDocs.HTMLSelectElement
+    );
+    flakyGarage.mount(flakyRoot);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const flakyGrid = flakyRoot.node("[data-garage-grid]");
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage inline retry listener must be delegated once");
+
+    const inlineRetryTarget = new failingDocs.Element();
+    inlineRetryTarget.closest = function (selector) {
+      return selector === "[data-garage-inline-retry]" ? this : null;
+    };
+    flakyGrid.trigger("click", { target: inlineRetryTarget });
+    flakyGrid.trigger("click", { target: inlineRetryTarget });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert(failingDocs.getDocsCalls() >= 3, "Garage retry clicks must trigger new read attempts");
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage retry delegation must not accumulate listeners after error cycles");
+
+    flakyGarage.unmount();
+    assert(flakyGrid?.listenerCount("click") === 0, "Garage delegated retry listener must be cleaned up on unmount");
+
+    flakyGarage.mount(flakyRoot);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage delegated retry listener must be reattached once on remount");
+  }
 
 function checkServiceWorkerPrecache() {
   const sw = read("v2/sw.js");
@@ -371,6 +655,7 @@ async function run() {
   checkLocalAssetReferences();
   checkV2Isolation();
   await checkMembersModuleBehavior();
+  await checkGarageModuleBehavior();
   checkProtectedProductionFilesUnchanged();
 
   if (errors.length) {
