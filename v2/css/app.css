@@ -2846,3 +2846,199 @@ body[data-oni-atmosphere="join"] {
     display: none;
   }
 }
+
+/* Stage 3 ONI AI character-first layout */
+.oni-nav-link.is-live {
+  color: #ffd6df;
+  animation: oniMeetPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes oniMeetPulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(255, 33, 70, 0); }
+  50% { box-shadow: inset 0 0 0 1px rgba(255, 33, 70, 0.45); }
+}
+
+.oni-oa-view {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-oa-stage {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(220px, 46vh, 420px);
+  display: grid;
+  align-content: end;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(120, 78, 255, 0.24), transparent 44%),
+    radial-gradient(circle at 50% 100%, rgba(255, 25, 74, 0.18), transparent 52%),
+    linear-gradient(180deg, rgba(6, 9, 19, 0.95), rgba(10, 14, 28, 0.98));
+}
+
+.oni-oa-world {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+}
+
+.oni-oa-character {
+  width: min(72vw, 260px);
+  height: min(72vw, 340px);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  position: relative;
+  cursor: pointer;
+  transform: translateY(calc((1 - var(--oa-intensity, 0.25)) * 2px));
+}
+
+.oni-oa-layer {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.oni-oa-body {
+  bottom: 0;
+  width: 64%;
+  height: 52%;
+  border-radius: 44% 44% 20% 20%;
+  background: linear-gradient(180deg, #0f1628, #070b14);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.oni-oa-head {
+  bottom: 46%;
+  width: 38%;
+  height: 24%;
+  border-radius: 44%;
+  background: linear-gradient(180deg, #1a2136, #0f1525);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.oni-oa-eyes {
+  bottom: 56%;
+  width: 22%;
+  height: 5%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(255, 31, 77, 0.9), rgba(130, 80, 255, 0.92));
+}
+
+.oni-oa-hands {
+  bottom: 30%;
+  width: 76%;
+  height: 18%;
+  border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.oni-oa-horns {
+  bottom: 67%;
+  width: 30%;
+  height: 14%;
+  background:
+    linear-gradient(65deg, transparent 47%, rgba(255, 45, 88, 0.75) 48%, rgba(255, 45, 88, 0.25) 58%, transparent 60%),
+    linear-gradient(-65deg, transparent 47%, rgba(255, 45, 88, 0.75) 48%, rgba(255, 45, 88, 0.25) 58%, transparent 60%);
+}
+
+.oni-oa-aura {
+  position: absolute;
+  inset: 12% 20% 8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 20, 66, calc(var(--oa-aura, 0.2))) 0%, rgba(116, 76, 255, calc(var(--oa-aura, 0.2))) 42%, transparent 74%);
+  filter: blur(14px);
+}
+
+.oni-oa-stage[data-oa-gesture="battle-ready"] .oni-oa-character,
+.oni-oa-stage[data-oa-gesture="cheer"] .oni-oa-character {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.oni-oa-stage[data-oa-emotion="music"] .oni-oa-character {
+  animation: oniDance 1.8s ease-in-out infinite;
+}
+
+@keyframes oniDance {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-2px) rotate(1deg); }
+}
+
+.oni-oa-stage-meta {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+}
+
+.oni-oa-stage-meta small {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #b2bad0;
+}
+
+.oni-oa-stage-meta b {
+  font-size: 13px;
+}
+
+.oni-oa-stage-meta p {
+  margin: 0;
+  color: #ccd2e3;
+  font-size: 12px;
+}
+
+.oni-oa-chat-card {
+  min-height: 42vh;
+}
+
+.oni-oa-chat-body {
+  max-height: 40vh;
+}
+
+.oni-oa-prompts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.oni-oa-source-wrap {
+  margin-top: 8px;
+}
+
+.oni-oa-sources {
+  display: grid;
+  gap: 6px;
+}
+
+.oni-oa-source {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #dce2f0;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.oni-oa-source small {
+  font-size: 10px;
+  color: #9ca7bf;
+  letter-spacing: 0.08em;
+}
+
+.oni-oa-source b {
+  font-size: 12px;
+}
+
+body.oni-keyboard-open .oni-oa-stage {
+  min-height: 160px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oni-nav-link.is-live,
+  .oni-oa-stage[data-oa-emotion="music"] .oni-oa-character {
+    animation: none !important;
+  }
+}

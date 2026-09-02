@@ -229,7 +229,7 @@ export function meetRouteMarkup() {
     <section class="oni-meet-view" data-meet-view>
       <header class="oni-section-head">
         <h1>Meet</h1>
-        <p>Realtime ONI Meet status from Firestore <code>meets/current</code> and <code>meetParticipants</code>.</p>
+        <p>ONI Meet-ийн бодит цагийн төлөв, бүртгэл, болон event мэдээлэл.</p>
       </header>
 
       <article class="oni-card oni-meet-hero" data-meet-hero>
@@ -465,31 +465,31 @@ export function createMeetModule() {
 
     if (nodes.joinButton) {
       nodes.joinButton.disabled = registering || state !== "active" || isFull || !currentMeet;
-      if (registering) nodes.joinButton.textContent = "Joining...";
-      else if (!currentMeet || state === "none") nodes.joinButton.textContent = "No active meet";
-      else if (state === "upcoming") nodes.joinButton.textContent = "Join opens at start";
-      else if (state === "expired") nodes.joinButton.textContent = "Meet ended";
-      else if (isFull) nodes.joinButton.textContent = "Meet full";
-      else if (hasJoinedCurrentMeet) nodes.joinButton.textContent = "Already joined";
-      else nodes.joinButton.textContent = "Join Meet";
+      if (registering) nodes.joinButton.textContent = "Бүртгэж байна...";
+      else if (!currentMeet || state === "none") nodes.joinButton.textContent = "MEET АЛГА";
+      else if (state === "upcoming") nodes.joinButton.textContent = "ЭХЛЭХЭЭР НЭЭГДЭНЭ";
+      else if (state === "expired") nodes.joinButton.textContent = "MEET ДУУССАН";
+      else if (isFull) nodes.joinButton.textContent = "ДҮҮРСЭН";
+      else if (hasJoinedCurrentMeet) nodes.joinButton.textContent = "БҮРТГҮҮЛСЭН";
+      else nodes.joinButton.textContent = "MEET JOIN";
     }
 
     if (nodes.statePill && nodes.countdownLabel && nodes.countdown) {
       if (!currentMeet || state === "none") {
-        nodes.statePill.textContent = loading ? "LOADING" : "NO ACTIVE MEET";
-        nodes.countdownLabel.textContent = "MEET STATUS";
-        nodes.countdown.textContent = loading ? "—" : "WAITING FOR NEXT MEET";
+        nodes.statePill.textContent = loading ? "АЧААЛЖ БАЙНА" : "NONE";
+        nodes.countdownLabel.textContent = "ONI MEET";
+        nodes.countdown.textContent = loading ? "—" : "ДАРААГИЙН MEET ХҮЛЭЭЖ БАЙНА";
       } else if (state === "upcoming") {
         nodes.statePill.textContent = "UPCOMING";
-        nodes.countdownLabel.textContent = "MEET STARTS IN";
+        nodes.countdownLabel.textContent = "ЭХЛЭХ ХУГАЦАА";
         nodes.countdown.textContent = formatCountdown(currentMeet.startAtMs - now);
       } else if (state === "active") {
-        nodes.statePill.textContent = "ACTIVE";
-        nodes.countdownLabel.textContent = "MEET ENDS IN";
+        nodes.statePill.textContent = isFull ? "FULL" : "LIVE";
+        nodes.countdownLabel.textContent = isFull ? "ДҮҮРСЭН" : "ДУУСАХ ХУГАЦАА";
         nodes.countdown.textContent = formatCountdown(currentMeet.endAtMs - now);
       } else {
-        nodes.statePill.textContent = "EXPIRED";
-        nodes.countdownLabel.textContent = "MEET CLOSED";
+        nodes.statePill.textContent = "ENDED";
+        nodes.countdownLabel.textContent = "MEET ДУУССАН";
         nodes.countdown.textContent = "00:00:00";
       }
     }

@@ -143,7 +143,7 @@ function checkProtectedProductionFilesUnchanged() {
     "index.html": "3e638039c5615524f0aa2d6ff53f2085711ccaaff3c9e9f819d6f74ca4115573",
     "sw.js": "89e9905613ba671152fc0f29dbbf7e0e414d0014810ae934d337acd76eb7d47f",
     "manifest.webmanifest": "154b095bb96721f52cf934f3a1218e34659ad7cb4a655170aa836e05441f1dff",
-    "src/index.js": "3dcc488d085add35100306a10ea76cb9110dc6148a31240fd388f4e12f69e20e",
+    "src/index.js": "893d8cc66c82d87cd2a37049c9323cb092de1046f377a1d5a9edf611353bb34a",
     "src/secure-worker.js": "8a421913cfcd58f549e0a8bbf9dfe72369493a28c64918152ca01b3d02e7fff1",
     "firestore.rules": "d9ec1a844dbee1214dd9dbd373d2284ba4a769b8f8a838f46fd69609fe80e6be",
     "storage.rules": "6d7ad803382f334453016eb89d6de8c4bfd33b854c1c9b2c31c2ecb9cb5e1ea9"
@@ -1593,8 +1593,44 @@ function checkOniAiModuleContracts() {
   assert(source.includes("parseMusicCommand"), "v2/js/oni-ai.js must use allow-listed music command parsing");
   assert(source.includes("runMusicCommand"), "v2/js/oni-ai.js must execute only allow-listed music commands");
   assert(source.includes("requestToken += 1;"), "v2/js/oni-ai.js must invalidate stale async responses on lifecycle changes");
+  assert(source.includes("sanitizeEmotion"), "v2/js/oni-ai.js must validate emotion metadata against allow-list");
+  assert(source.includes("sanitizeGesture"), "v2/js/oni-ai.js must validate gesture metadata against allow-list");
+  assert(source.includes("clampIntensity"), "v2/js/oni-ai.js must clamp intensity metadata");
+  assert(source.includes("subscribeMeetWorldState"), "v2/js/oni-ai.js must consume shared meet world state");
+  assert(source.includes("data-oa-character"), "v2/js/oni-ai.js must render character-stage interactions");
+  assert(source.includes("data-oa-typing"), "v2/js/oni-ai.js must provide thinking state before final answer");
   assert(!source.includes("OPENAI_API_KEY"), "v2/js/oni-ai.js must not contain provider secrets");
   assert(!/innerHTML\s*=\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
+}
+
+function checkStage3BackendContracts() {
+  const source = read("src/index.js");
+  assert(source.includes("functionToolsSchema"), "src/index.js must define ONI Brain function tool schema");
+  assert(source.includes("get_clan_stats"), "src/index.js must expose get_clan_stats tool");
+  assert(source.includes("get_members"), "src/index.js must expose get_members tool");
+  assert(source.includes("find_member"), "src/index.js must expose find_member tool");
+  assert(source.includes("get_garage"), "src/index.js must expose get_garage tool");
+  assert(source.includes("find_garage_build"), "src/index.js must expose find_garage_build tool");
+  assert(source.includes("get_current_meet"), "src/index.js must expose get_current_meet tool");
+  assert(source.includes("get_meet_status"), "src/index.js must expose get_meet_status tool");
+  assert(source.includes("control_music"), "src/index.js must expose allow-listed music control tool");
+  assert(source.includes("TOOL_ROUND_LIMIT"), "src/index.js must enforce bounded tool rounds");
+  assert(source.includes("TOOL_TIMEOUT_MS"), "src/index.js must enforce tool timeout");
+  assert(source.includes("extractSources"), "src/index.js must extract structured web citations");
+  assert(source.includes("emotion"), "src/index.js must return structured emotion metadata");
+  assert(source.includes("gesture"), "src/index.js must return structured gesture metadata");
+  assert(source.includes("intensity"), "src/index.js must return structured intensity metadata");
+  assert(source.includes("uiAction"), "src/index.js must return structured UI action metadata");
+}
+
+function checkSharedMeetWorldModule() {
+  const source = read("v2/js/meet-world.js");
+  assert(source.includes("subscribeMeetWorldState"), "v2/js/meet-world.js must expose subscription API");
+  assert(source.includes("NONE"), "v2/js/meet-world.js must include NONE state");
+  assert(source.includes("UPCOMING"), "v2/js/meet-world.js must include UPCOMING state");
+  assert(source.includes("LIVE"), "v2/js/meet-world.js must include LIVE state");
+  assert(source.includes("FULL"), "v2/js/meet-world.js must include FULL state");
+  assert(source.includes("ENDED"), "v2/js/meet-world.js must include ENDED state");
 }
 
 async function run() {
@@ -1611,6 +1647,8 @@ async function run() {
   checkAdminModuleContracts();
   checkMusicModuleBehavior();
   checkOniAiModuleContracts();
+  checkStage3BackendContracts();
+  checkSharedMeetWorldModule();
   await checkMembersModuleBehavior();
   await checkGarageModuleBehavior();
   await checkMeetModuleBehavior();
