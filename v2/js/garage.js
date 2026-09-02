@@ -1,11 +1,5 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
-const HTMLElementRef = globalThis.HTMLElement || class {};
-const HTMLButtonElementRef = globalThis.HTMLButtonElement || class {};
-const HTMLSelectElementRef = globalThis.HTMLSelectElement || class {};
-const HTMLInputElementRef = globalThis.HTMLInputElement || class {};
-const HTMLImageElementRef = globalThis.HTMLImageElement || class {};
-const ElementRef = globalThis.Element || class {};
 
 
 function escapeHtml(value) {
