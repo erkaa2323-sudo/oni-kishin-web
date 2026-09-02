@@ -3,7 +3,7 @@ import app from "./index.js";
 const DEFAULT_ORIGIN = "https://erkaa2323-sudo.github.io";
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 12;
-const MAX_BODY_BYTES = 16 * 1024;
+const MAX_BODY_BYTES = 128 * 1024;
 const MAX_TRACKED_CLIENTS = 10_000;
 const AI_PATH = "/api/oni-ai";
 const buckets = new Map();
