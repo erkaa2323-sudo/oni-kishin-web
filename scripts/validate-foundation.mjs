@@ -230,7 +230,7 @@ function createFakeMembersRoot(HTMLElementCtor) {
     return new FakeRoot();
   }
 
-function compileGarageValidationExports({ docs = [] } = {}) {
+function compileGarageValidationExports({ docs = [], getDocsImpl } = {}) {
     const source = read("v2/js/garage.js");
     const transformed = source
         .replace(/^import\s.+?;\s*$/gm, "")
@@ -247,6 +247,7 @@ function compileGarageValidationExports({ docs = [] } = {}) {
       Date,
       setTimeout,
       clearTimeout,
+      Element: class Element {},
       HTMLElement: class HTMLElement {},
       HTMLSelectElement: class HTMLSelectElement {},
       HTMLImageElement: class HTMLImageElement {},
@@ -255,8 +256,11 @@ function compileGarageValidationExports({ docs = [] } = {}) {
         return { name };
       },
       getFirestoreDb: () => ({}),
-      getDocs: async () => {
+      getDocs: async (...args) => {
         getDocsCalls += 1;
+        if (typeof getDocsImpl === "function") {
+          return getDocsImpl(...args);
+        }
         return {
           docs: docs.map(item => ({
             id: item.id,
@@ -269,6 +273,7 @@ function compileGarageValidationExports({ docs = [] } = {}) {
     vm.runInNewContext(transformed, context, { filename: "v2/js/garage.js" });
     return {
       exports: context.module.exports,
+      Element: context.Element,
       HTMLElement: context.HTMLElement,
       HTMLSelectElement: context.HTMLSelectElement,
       getDocsCalls: () => getDocsCalls,
@@ -276,22 +281,37 @@ function compileGarageValidationExports({ docs = [] } = {}) {
     };
   }
 
-function createFakeGarageRoot(HTMLElementCtor, HTMLSelectElementCtor) {
-    class FakeNode {
+function createFakeGarageRoot(ElementCtor, HTMLElementCtor, HTMLSelectElementCtor) {
+    class FakeNode extends ElementCtor {
       constructor() {
+        super();
         this.value = "";
         this.textContent = "";
         this.innerHTML = "";
         this.listeners = new Map();
       }
       addEventListener(type, handler) {
-        this.listeners.set(type, handler);
+        if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+        this.listeners.get(type).add(handler);
       }
       removeEventListener(type, handler) {
-        if (this.listeners.get(type) === handler) this.listeners.delete(type);
+        const set = this.listeners.get(type);
+        if (!set) return;
+        set.delete(handler);
+        if (!set.size) this.listeners.delete(type);
       }
       querySelector() {
         return null;
+      }
+      listenerCount(type) {
+        return this.listeners.get(type)?.size || 0;
+      }
+      trigger(type, event = {}) {
+        const set = this.listeners.get(type);
+        if (!set) return;
+        for (const handler of [...set]) {
+          handler(event);
+        }
       }
     }
 
@@ -335,6 +355,9 @@ function createFakeGarageRoot(HTMLElementCtor, HTMLSelectElementCtor) {
         ]);
       }
       querySelector(selector) {
+        return this.nodes.get(selector) || null;
+      }
+      node(selector) {
         return this.nodes.get(selector) || null;
       }
     }
@@ -427,6 +450,7 @@ async function checkGarageModuleBehavior() {
 
     const {
       exports,
+      Element,
       HTMLElement,
       HTMLSelectElement,
       getDocsCalls,
@@ -479,7 +503,7 @@ async function checkGarageModuleBehavior() {
     assert(byStatus.length === 1, "Garage filter must support status filtering");
 
     const module = createGarageModule();
-    const root = createFakeGarageRoot(HTMLElement, HTMLSelectElement);
+    const root = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
     module.mount(root);
     module.mount(root);
     await Promise.resolve();
@@ -487,6 +511,52 @@ async function checkGarageModuleBehavior() {
 
     assert(getDocsCalls() === 1, "Garage route must mount once and avoid duplicate collection reads");
     assert(collections().includes("garage"), "Garage route must read from the Firestore garage collection");
+
+    const flakyRoot = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
+    let callIndex = 0;
+    const failingDocs = compileGarageValidationExports({
+      docs: sampleDocs,
+      getDocsImpl: async () => {
+        callIndex += 1;
+        if (callIndex <= 3) throw new Error("forced garage read error");
+        return {
+          docs: sampleDocs.map(item => ({
+            id: item.id,
+            data: () => item.data
+          }))
+        };
+      }
+    });
+
+    const flakyGarage = failingDocs.exports.createGarageModule();
+    flakyGarage.mount(flakyRoot);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const flakyGrid = flakyRoot.node("[data-garage-grid]");
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage inline retry listener must be delegated once");
+
+    const inlineRetryTarget = new failingDocs.Element();
+    inlineRetryTarget.closest = function (selector) {
+      return selector === "[data-garage-inline-retry]" ? this : null;
+    };
+    flakyGrid.trigger("click", { target: inlineRetryTarget });
+    flakyGrid.trigger("click", { target: inlineRetryTarget });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert(failingDocs.getDocsCalls() >= 3, "Garage retry clicks must trigger new read attempts");
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage retry delegation must not accumulate listeners after error cycles");
+
+    flakyGarage.unmount();
+    assert(flakyGrid?.listenerCount("click") === 0, "Garage delegated retry listener must be cleaned up on unmount");
+
+    flakyGarage.mount(flakyRoot);
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(flakyGrid?.listenerCount("click") === 1, "Garage delegated retry listener must be reattached once on remount");
   }
 
 function checkServiceWorkerPrecache() {

@@ -328,8 +328,6 @@ export function createGarageModule() {
           <button type="button" class="oni-btn oni-btn-primary" data-garage-inline-retry>Retry</button>
         </article>
       `;
-      const inlineRetry = gridEl.querySelector("[data-garage-inline-retry]");
-      inlineRetry?.addEventListener("click", loadGarage, { passive: true });
       return;
     }
 
@@ -408,6 +406,15 @@ export function createGarageModule() {
 
     retryButton.addEventListener("click", loadGarage, { passive: true });
     dispose.push(() => retryButton.removeEventListener("click", loadGarage));
+
+    const onGridClick = event => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest("[data-garage-inline-retry]")) return;
+      loadGarage();
+    };
+    gridEl.addEventListener("click", onGridClick);
+    dispose.push(() => gridEl.removeEventListener("click", onGridClick));
 
     const onImageError = event => {
       const target = event.target;
