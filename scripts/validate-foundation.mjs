@@ -1391,10 +1391,12 @@ function checkV2Isolation() {
   const v2Sw = read("v2/sw.js");
 
   assert(v2Index.includes("./manifest.webmanifest"), "v2/index.html must link v2 manifest");
+  assert(v2Index.includes('<link rel="stylesheet" href="./css/components.css">'), "v2/index.html must load v2/css/components.css");
   assert(v2Index.includes('data-route="join"'), "v2/index.html must expose JOIN navigation route");
   assert(v2App.includes('from "./join.js"'), "v2/js/app.js must integrate join module import");
   assert(v2Router.includes('"join"'), "v2/js/router.js must allow join route navigation");
   assert(v2Sw.includes('BASE + "js/join.js"'), "v2/sw.js must precache join module");
+  assert(v2Sw.includes('BASE + "css/components.css"'), "v2/sw.js must precache v2/css/components.css");
   assert(v2App.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/js/app.js must register v2 scope only");
   assert(v2Sw.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/sw.js BASE must stay /oni-kishin-web/v2/");
   assert(v2Sw.includes('url.pathname.startsWith("/oni-kishin-web/v2/")'), "v2/sw.js fetch handling must stay restricted to /v2/");
@@ -1436,6 +1438,7 @@ function checkAdminModuleContracts() {
   const adminHtml = read("v2/admin/index.html");
   const adminJs = read("v2/js/admin.js");
 
+  assert(adminHtml.includes('<link rel="stylesheet" href="../css/components.css">'), "v2/admin/index.html must load v2/css/components.css");
   assert(adminHtml.includes("data-admin-auth-loading"), "v2/admin/index.html must include auth loading state");
   assert(adminHtml.includes("data-admin-auth-signed-out"), "v2/admin/index.html must include signed-out state");
   assert(adminHtml.includes("data-admin-auth-unauthorized"), "v2/admin/index.html must include unauthorized state");

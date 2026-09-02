@@ -10,6 +10,7 @@ const APP_SHELL = [
   BASE + "manifest.webmanifest",
   BASE + "sw.js",
   BASE + "css/tokens.css",
+  BASE + "css/components.css",
   BASE + "css/app.css",
   BASE + "js/app.js",
   BASE + "js/router.js",
