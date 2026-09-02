@@ -35,6 +35,7 @@ function checkRequiredFiles() {
     "v2/js/router.js",
     "v2/js/firebase.js",
     "v2/js/auth.js",
+    "v2/js/admin.js",
     "v2/js/members.js",
     "v2/js/garage.js",
     "v2/js/music.js",
@@ -1399,6 +1400,166 @@ function checkV2Isolation() {
   assert(v2Sw.includes('url.pathname.startsWith("/oni-kishin-web/v2/")'), "v2/sw.js fetch handling must stay restricted to /v2/");
 }
 
+function checkAdminModuleContracts() {
+  const adminHtml = read("v2/admin/index.html");
+  const adminJs = read("v2/js/admin.js");
+
+  assert(adminHtml.includes("data-admin-auth-loading"), "v2/admin/index.html must include auth loading state");
+  assert(adminHtml.includes("data-admin-auth-signed-out"), "v2/admin/index.html must include signed-out state");
+  assert(adminHtml.includes("data-admin-auth-unauthorized"), "v2/admin/index.html must include unauthorized state");
+  assert(adminHtml.includes("<script type=\"module\" src=\"../js/admin.js\"></script>"), "v2/admin/index.html must load v2/js/admin.js");
+
+  assert(adminJs.includes("onAuthStateChanged"), "v2/js/admin.js must subscribe to Firebase auth state");
+  assert(adminJs.includes("signInWithEmailAndPassword"), "v2/js/admin.js must support admin login");
+  assert(adminJs.includes("sendPasswordResetEmail"), "v2/js/admin.js must support password reset flow");
+  assert(adminJs.includes("runTransaction"), "v2/js/admin.js must use transaction-safe application approval flow");
+  assert(adminJs.includes("if (state.actionLocks.has(key)) return;"), "v2/js/admin.js must block rapid duplicate operations");
+  assert(adminJs.includes("confirm(\"Энэ member-г устгах уу?\")"), "v2/js/admin.js must confirm destructive member deletes");
+  assert(adminJs.includes("confirm(\"Энэ garage build-ийг устгах уу?\")"), "v2/js/admin.js must confirm destructive garage deletes");
+  assert(adminJs.includes("ADMIN_EMAIL"), "v2/js/admin.js must preserve production-compatible admin identity checks");
+}
+
+function compileMusicValidationExports() {
+  const source = read("v2/js/music.js");
+  const transformed = source
+    .replace(/^import\s.+?;\s*$/gm, "")
+    .replace(/export function\s+/g, "function ")
+    + "\nmodule.exports = { createMusicModule, startMusicIntegration, stopMusicIntegration, subscribeMusicState, getMusicSnapshot, parseMusicCommand, runMusicCommand };";
+
+  let audioInstances = 0;
+  let onSnapshotCalls = 0;
+  let unsubCalls = 0;
+  let snapshotHandler = null;
+
+  class FakeAudio {
+    constructor() {
+      audioInstances += 1;
+      this.src = "";
+      this.volume = 0.72;
+      this.paused = true;
+      this.currentTime = 0;
+      this.duration = 0;
+      this.listeners = new Map();
+    }
+    addEventListener(type, handler) {
+      this.listeners.set(type, handler);
+    }
+    play() {
+      this.paused = false;
+      this.listeners.get("play")?.();
+      return Promise.resolve();
+    }
+    pause() {
+      this.paused = true;
+      this.listeners.get("pause")?.();
+    }
+    load() {}
+    removeAttribute(name) {
+      if (name === "src") this.src = "";
+    }
+  }
+
+  const context = {
+    module: { exports: {} },
+    exports: {},
+    console,
+    Math,
+    Date,
+    setTimeout,
+    clearTimeout,
+    Audio: FakeAudio,
+    collection: (_, name) => ({ name }),
+    getFirestoreDb: () => ({}),
+    onSnapshot: (_ref, next) => {
+      onSnapshotCalls += 1;
+      snapshotHandler = next;
+      return () => { unsubCalls += 1; };
+    }
+  };
+
+  vm.runInNewContext(transformed, context, { filename: "v2/js/music.js" });
+  return {
+    exports: context.module.exports,
+    pushSnapshot(rows = []) {
+      snapshotHandler?.({
+        docs: rows.map(item => ({
+          id: item.id,
+          data: () => item.data
+        }))
+      });
+    },
+    audioInstances: () => audioInstances,
+    onSnapshotCalls: () => onSnapshotCalls,
+    unsubCalls: () => unsubCalls
+  };
+}
+
+function checkMusicModuleBehavior() {
+  const validation = compileMusicValidationExports();
+  const {
+    createMusicModule,
+    startMusicIntegration,
+    stopMusicIntegration,
+    subscribeMusicState,
+    getMusicSnapshot,
+    parseMusicCommand,
+    runMusicCommand
+  } = validation.exports;
+
+  assert(typeof createMusicModule === "function", "v2/js/music.js must export createMusicModule()");
+  assert(typeof startMusicIntegration === "function", "v2/js/music.js must export startMusicIntegration()");
+  assert(typeof stopMusicIntegration === "function", "v2/js/music.js must export stopMusicIntegration()");
+  assert(typeof subscribeMusicState === "function", "v2/js/music.js must export subscribeMusicState()");
+  assert(typeof getMusicSnapshot === "function", "v2/js/music.js must export getMusicSnapshot()");
+  assert(typeof parseMusicCommand === "function", "v2/js/music.js must export parseMusicCommand()");
+  assert(typeof runMusicCommand === "function", "v2/js/music.js must export runMusicCommand()");
+
+  startMusicIntegration();
+  startMusicIntegration();
+  assert(validation.audioInstances() === 1, "Music integration must use a single Audio instance");
+  assert(validation.onSnapshotCalls() === 1, "Music integration must avoid duplicate Firestore listeners");
+
+  let latestSnapshot = null;
+  const unsubscribe = subscribeMusicState(snapshot => { latestSnapshot = snapshot; });
+  validation.pushSnapshot([
+    { id: "t1", data: { title: "Track 1", artist: "ONI", file: "https://example.com/1.mp3", status: "published", order: 1 } },
+    { id: "t2", data: { title: "Track 2", artist: "ONI", file: "https://example.com/2.mp3", status: "hidden", order: 2 } }
+  ]);
+
+  assert((latestSnapshot?.tracks || []).length === 1, "Music integration must expose only published playable tracks");
+  assert(getMusicSnapshot().tracks.length === 1, "Music snapshot must stay in sync with Firestore updates");
+
+  const songsCommand = parseMusicCommand("what songs are available?");
+  assert(songsCommand?.type === "list", "Music parser must allow-list song listing command");
+  const pauseCommand = parseMusicCommand("pause music");
+  assert(pauseCommand?.type === "pause", "Music parser must allow-list pause command");
+  const unknownCommand = parseMusicCommand("execute javascript alert(1)");
+  assert(unknownCommand === null, "Music parser must reject non-allow-listed commands");
+  assert(runMusicCommand(songsCommand).handled === true, "Music command runner must handle allow-listed commands");
+
+  unsubscribe();
+  stopMusicIntegration();
+  stopMusicIntegration();
+  assert(validation.unsubCalls() === 1, "Music integration must cleanup listener once when ref-count reaches zero");
+}
+
+function checkOniAiModuleContracts() {
+  const source = read("v2/js/oni-ai.js");
+
+  assert(source.includes("createOniAiModule"), "v2/js/oni-ai.js must export createOniAiModule()");
+  assert(source.includes("AbortController"), "v2/js/oni-ai.js must support request cancellation");
+  assert(source.includes("REQUEST_TIMEOUT_MS"), "v2/js/oni-ai.js must define request timeout handling");
+  assert(source.includes("if (sending) return;"), "v2/js/oni-ai.js must block duplicate send actions");
+  assert(source.includes("if (!message)"), "v2/js/oni-ai.js must reject empty messages");
+  assert(source.includes("message.length > MAX_MESSAGE_CHARS"), "v2/js/oni-ai.js must reject oversize messages");
+  assert(source.includes("textContent ="), "v2/js/oni-ai.js must render AI/user text safely");
+  assert(source.includes("parseMusicCommand"), "v2/js/oni-ai.js must use allow-listed music command parsing");
+  assert(source.includes("runMusicCommand"), "v2/js/oni-ai.js must execute only allow-listed music commands");
+  assert(source.includes("requestToken += 1;"), "v2/js/oni-ai.js must invalidate stale async responses on lifecycle changes");
+  assert(!source.includes("OPENAI_API_KEY"), "v2/js/oni-ai.js must not contain provider secrets");
+  assert(!/innerHTML\s*=\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
+}
+
 async function run() {
   checkRequiredFiles();
   checkManifest();
@@ -1409,6 +1570,9 @@ async function run() {
   checkDuplicateIds();
   checkLocalAssetReferences();
   checkV2Isolation();
+  checkAdminModuleContracts();
+  checkMusicModuleBehavior();
+  checkOniAiModuleContracts();
   await checkMembersModuleBehavior();
   await checkGarageModuleBehavior();
   await checkMeetModuleBehavior();

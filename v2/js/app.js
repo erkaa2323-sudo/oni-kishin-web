@@ -24,6 +24,7 @@ const membersModule = modules.find(module => module.key === "members");
 const garageModule = modules.find(module => module.key === "garage");
 const meetModule = modules.find(module => module.key === "meet");
 const joinModule = modules.find(module => module.key === "join");
+const oniAiModule = modules.find(module => module.key === "oni-ai");
 
 const root = document.getElementById("viewRoot");
 const navLinks = [...document.querySelectorAll(".oni-nav-link")];
@@ -177,9 +178,15 @@ function registerRoutes() {
   });
 
   registerRoute("music", async () => {
-    clearRouteMount();
     setActive("music");
-    renderModulePage("music", "Music");
+    if (oniAiModule && typeof oniAiModule.mount === "function") {
+      clearRouteMount();
+      oniAiModule.mount(root);
+      activeRouteTeardown = () => oniAiModule.unmount?.();
+      return;
+    }
+    clearRouteMount();
+    renderModulePage("music", "ONI AI");
   });
 
   registerRoute("meet", async () => {

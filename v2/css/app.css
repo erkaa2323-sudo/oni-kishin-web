@@ -942,3 +942,393 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.oni-admin-main {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-admin-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.oni-admin-top h1 {
+  margin: 0;
+  font-size: clamp(26px, 6vw, 36px);
+}
+
+.oni-admin-top p {
+  margin: 6px 0 0;
+}
+
+.oni-admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.oni-admin-tabs .oni-btn.is-active {
+  border-color: rgba(255, 32, 51, 0.52);
+  background: rgba(255, 32, 51, 0.2);
+}
+
+.oni-admin-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--oni-muted);
+}
+
+.oni-admin-status.ok {
+  color: #9decc6;
+}
+
+.oni-admin-status.error {
+  color: #ff9daa;
+}
+
+.oni-admin-stat-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.oni-admin-stat-grid .oni-card {
+  padding: 12px;
+}
+
+.oni-admin-stat-grid small {
+  color: var(--oni-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.oni-admin-stat-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.oni-admin-list-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.oni-admin-list-head h2 {
+  margin: 0;
+}
+
+.oni-admin-list-head input {
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  min-height: 40px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--oni-text);
+  padding: 0 12px;
+}
+
+.oni-admin-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.oni-admin-item {
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.oni-admin-item.is-vertical {
+  display: grid;
+}
+
+.oni-admin-item b,
+.oni-admin-item p,
+.oni-admin-item small {
+  margin: 0;
+  display: block;
+}
+
+.oni-admin-item small {
+  color: var(--oni-muted);
+  margin-top: 4px;
+}
+
+.oni-admin-empty {
+  border: 1px dashed var(--oni-line);
+  border-radius: 12px;
+  color: var(--oni-muted);
+  padding: 14px;
+}
+
+.oni-admin-badge {
+  border: 1px solid var(--oni-line);
+  border-radius: 999px;
+  min-height: 24px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  color: #ffd7dd;
+}
+
+.oni-admin-form {
+  display: grid;
+  gap: 8px;
+}
+
+.oni-admin-field {
+  display: grid;
+  gap: 5px;
+}
+
+.oni-admin-field span {
+  color: var(--oni-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.oni-admin-field input,
+.oni-admin-field select,
+.oni-admin-field textarea {
+  width: 100%;
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: var(--oni-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.oni-admin-field textarea {
+  min-height: 90px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.oni-admin-auth {
+  display: grid;
+  place-items: center;
+}
+
+.oni-admin-login-card {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 8px;
+}
+
+.oni-admin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.oni-oa-view {
+  display: grid;
+  gap: 12px;
+}
+
+.oni-oa-status-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.oni-oa-status-row small {
+  color: var(--oni-muted);
+  font-size: 10px;
+}
+
+.oni-oa-status-row b {
+  display: block;
+  margin-top: 4px;
+}
+
+.oni-oa-chat-card {
+  display: grid;
+  gap: 10px;
+}
+
+.oni-oa-chat-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.oni-oa-chat-head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.oni-oa-chat-body {
+  min-height: 280px;
+  max-height: 52dvh;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.oni-oa-msg {
+  max-width: 92%;
+  border: 1px solid var(--oni-line);
+  border-radius: 14px;
+  padding: 10px;
+  display: grid;
+  gap: 5px;
+}
+
+.oni-oa-msg.is-user {
+  margin-left: auto;
+  background: rgba(255, 32, 51, 0.12);
+}
+
+.oni-oa-msg.is-ai {
+  background: rgba(79, 224, 161, 0.08);
+}
+
+.oni-oa-msg.is-typing {
+  opacity: 0.78;
+}
+
+.oni-oa-msg-label {
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  color: var(--oni-muted);
+}
+
+.oni-oa-msg-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.oni-oa-compose {
+  display: grid;
+  gap: 8px;
+}
+
+.oni-oa-compose textarea {
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid var(--oni-line);
+  border-radius: 12px;
+  color: var(--oni-text);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 12px;
+  resize: vertical;
+  font: inherit;
+}
+
+.oni-oa-compose-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.oni-oa-inline-error {
+  margin: 0;
+  min-height: 18px;
+  color: #ff9daa;
+  font-size: 12px;
+}
+
+.oni-oa-music-card {
+  display: grid;
+  gap: 10px;
+}
+
+.oni-oa-music-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.oni-oa-music-head small {
+  color: var(--oni-muted);
+}
+
+.oni-oa-music-current b {
+  display: block;
+  font-size: 18px;
+}
+
+.oni-oa-music-current small {
+  color: var(--oni-muted);
+}
+
+.oni-oa-music-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.oni-oa-music-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #ff2033, #4fe0a1);
+}
+
+.oni-oa-music-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.oni-oa-music-meta small {
+  color: var(--oni-muted);
+}
+
+.oni-oa-music-meta label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--oni-muted);
+  font-size: 11px;
+}
+
+.oni-oa-music-actions,
+.oni-oa-music-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .oni-admin-tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .oni-admin-stat-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .oni-admin-stat-grid-small {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oni-oa-compose {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+
+  .oni-oa-compose textarea {
+    min-height: 64px;
+  }
+}
