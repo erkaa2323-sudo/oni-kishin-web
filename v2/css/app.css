@@ -1384,3 +1384,600 @@ body.oni-keyboard-open .oni-bottom-nav {
     transform: translate(-50%, 140%);
   }
 }
+
+/* V3 shell + home overrides */
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  background:
+    radial-gradient(circle at 86% 4%, rgba(121, 104, 255, 0.2), transparent 30rem),
+    radial-gradient(circle at 10% 26%, rgba(255, 34, 73, 0.24), transparent 28rem),
+    linear-gradient(176deg, var(--oni-color-bg-deep), var(--oni-color-bg));
+  color: var(--oni-color-text);
+}
+
+.oni-shell {
+  grid-template-rows: auto auto 1fr;
+  min-height: 100dvh;
+}
+
+.oni-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  min-height: 66px;
+  border-bottom: 1px solid var(--oni-color-line);
+  background: rgba(7, 11, 20, 0.86);
+  backdrop-filter: blur(14px);
+}
+
+.oni-brand {
+  letter-spacing: 0.04em;
+}
+
+.oni-brand b {
+  color: var(--oni-color-hot);
+}
+
+.oni-brand img {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.oni-main {
+  padding: 14px;
+  padding-bottom: calc(104px + var(--oni-safe-bottom));
+}
+
+.oni-view {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity var(--oni-transition-base), transform var(--oni-transition-base);
+}
+
+.oni-view.ready {
+  opacity: 1;
+  transform: none;
+}
+
+.oni-bottom-nav {
+  left: calc(8px + var(--oni-safe-left));
+  right: calc(8px + var(--oni-safe-right));
+  bottom: max(8px, var(--oni-safe-bottom));
+  min-height: 72px;
+  border-radius: 24px;
+  border: 1px solid var(--oni-color-line);
+  background: rgba(9, 14, 25, 0.94);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--oni-shadow-depth);
+}
+
+.oni-nav-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #98a5c5;
+  min-height: 58px;
+  border-radius: 16px;
+  text-decoration: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform var(--oni-transition-fast), color var(--oni-transition-fast), background var(--oni-transition-fast);
+}
+
+.oni-nav-link span {
+  font-size: 18px;
+}
+
+.oni-nav-link:active {
+  transform: scale(0.96);
+}
+
+.oni-nav-link.is-active {
+  color: var(--oni-color-text);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.oni-nav-link-center {
+  position: relative;
+  margin-top: -22px;
+  border-radius: var(--oni-radius-pill);
+  min-height: 76px;
+  background: radial-gradient(circle at 28% 20%, rgba(255, 63, 127, 0.6), rgba(255, 34, 73, 0.9));
+  box-shadow: var(--oni-glow-crimson);
+  color: #fff;
+}
+
+.oni-nav-link-center span {
+  font-size: 21px;
+}
+
+.oni-nav-link-center small {
+  font-size: 9px;
+}
+
+.oni-nav-link-center::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24) inset;
+  animation: oniAIBreathe 2.4s ease-in-out infinite;
+}
+
+.oni-nav-more {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.oni-home-view {
+  display: grid;
+  gap: 14px;
+}
+
+.oni-home-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  min-height: clamp(250px, 55vw, 360px);
+  padding: 16px;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(255, 34, 73, 0.38), transparent 50%),
+    radial-gradient(circle at 86% 14%, rgba(121, 104, 255, 0.38), transparent 46%),
+    linear-gradient(160deg, rgba(10, 15, 30, 0.95), rgba(6, 10, 18, 0.94));
+  box-shadow: var(--oni-shadow-depth);
+  isolation: isolate;
+}
+
+.oni-home-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 12, 22, 0.08), rgba(6, 9, 17, 0.88));
+  z-index: 1;
+}
+
+.oni-home-hero-art {
+  position: absolute;
+  right: -6%;
+  bottom: -14%;
+  width: min(66%, 320px);
+  opacity: 0.34;
+  transform: translateZ(0);
+  z-index: 0;
+}
+
+.oni-home-hero-art img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: saturate(1.06) contrast(1.05);
+}
+
+.oni-home-hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 74%;
+}
+
+.oni-hero-meta {
+  margin: 0;
+  color: #f3b8c4;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.oni-home-hero h1 {
+  margin: 6px 0 0;
+  font: 900 var(--oni-text-display)/0.96 var(--oni-font-display);
+  letter-spacing: -0.03em;
+}
+
+.oni-hero-sub {
+  margin: 10px 0 0;
+  color: #d1d8eb;
+  font-size: 14px;
+  line-height: 1.35;
+  max-width: 22ch;
+}
+
+.oni-stat-row {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oni-stat-pill {
+  display: inline-grid;
+  gap: 3px;
+  min-width: 82px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(8, 11, 21, 0.64);
+  backdrop-filter: blur(6px);
+}
+
+.oni-stat-pill b {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.oni-stat-pill small {
+  font-size: 9px;
+  color: #99a6c5;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.oni-home-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.oni-home-actions-skeleton {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.oni-action-tile {
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--oni-color-line);
+  text-decoration: none;
+  color: var(--oni-color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--oni-color-surface-soft);
+  transition: transform var(--oni-transition-fast), border-color var(--oni-transition-fast), background var(--oni-transition-fast);
+}
+
+.oni-action-tile:active {
+  transform: scale(0.98);
+}
+
+.oni-action-tile.is-ai {
+  background: linear-gradient(135deg, rgba(255, 34, 73, 0.95), rgba(180, 8, 42, 0.94));
+  border-color: rgba(255, 63, 127, 0.74);
+  box-shadow: var(--oni-glow-crimson);
+}
+
+.oni-home-section {
+  display: grid;
+  gap: 8px;
+}
+
+.oni-build-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  min-height: 196px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(8, 12, 20, 0.94);
+  text-decoration: none;
+  color: #fff;
+  box-shadow: var(--oni-shadow-soft);
+  transition: transform var(--oni-transition-fast), border-color var(--oni-transition-fast);
+}
+
+.oni-build-card:active {
+  transform: scale(0.985);
+}
+
+.oni-build-media {
+  position: absolute;
+  inset: 0;
+}
+
+.oni-build-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oni-build-media.is-fallback {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 34, 73, 0.35), transparent 50%), linear-gradient(145deg, #141d31, #090f1d);
+}
+
+.oni-media-fallback {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #ffd3dc;
+}
+
+.oni-build-overlay {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(3, 5, 10, 0), rgba(3, 6, 12, 0.94));
+  display: grid;
+  gap: 5px;
+}
+
+.oni-build-overlay h3 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.oni-build-overlay p {
+  margin: 0;
+  color: #d5dbec;
+  font-size: 12px;
+}
+
+.oni-build-badges {
+  margin-top: 3px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.oni-crew-carousel {
+  grid-auto-columns: minmax(58%, 1fr);
+}
+
+.oni-crew-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(150deg, rgba(20, 27, 44, 0.94), rgba(9, 14, 24, 0.95));
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  min-height: 172px;
+  box-shadow: var(--oni-shadow-soft);
+}
+
+.oni-crew-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.oni-crew-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.oni-crew-avatar.is-fallback {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.oni-crew-card h3 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oni-crew-card p {
+  margin: 0;
+  color: #a8b4d2;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.oni-role-badge {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  padding: 0 10px;
+  width: fit-content;
+}
+
+.oni-crew-card.is-leader .oni-role-badge {
+  color: #ffdd9a;
+  border-color: rgba(255, 208, 122, 0.45);
+  background: rgba(255, 208, 122, 0.14);
+}
+
+.oni-crew-card.is-co-leader .oni-role-badge {
+  color: #c8d8ff;
+  border-color: rgba(121, 104, 255, 0.48);
+  background: rgba(121, 104, 255, 0.18);
+}
+
+.oni-crew-card.is-special .oni-role-badge {
+  color: #ebcfff;
+  border-color: rgba(178, 121, 255, 0.45);
+  background: rgba(178, 121, 255, 0.15);
+}
+
+.oni-crew-card.is-member .oni-role-badge {
+  color: #c7d0e6;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.oni-live-card {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(145deg, rgba(18, 25, 41, 0.95), rgba(8, 13, 23, 0.95));
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--oni-shadow-soft);
+}
+
+.oni-live-card header h3 {
+  margin: 3px 0 0;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.oni-live-kicker {
+  margin: 0;
+  font-size: 10px;
+  color: #ff9eaf;
+  letter-spacing: 0.1em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.oni-live-copy {
+  margin: 0;
+  color: #b8c4df;
+  font-size: 13px;
+}
+
+.oni-live-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #e3e9f9;
+  font-size: 12px;
+}
+
+.oni-live-countdown {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+}
+
+.oni-live-countdown small {
+  color: #98a7ca;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.oni-live-countdown strong {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(24px, 8vw, 38px);
+  letter-spacing: -0.04em;
+}
+
+.oni-live-card.is-live {
+  border-color: rgba(255, 63, 127, 0.5);
+}
+
+.oni-live-card.is-live .oni-live-kicker::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+  background: #ff4f6f;
+  box-shadow: 0 0 0 0 rgba(255, 79, 111, 0.5);
+  animation: oniLivePulse 1.6s ease-out infinite;
+}
+
+.oni-live-card.is-expired .oni-live-kicker {
+  color: #a6b2cf;
+}
+
+.oni-live-card.is-empty {
+  background: rgba(17, 25, 40, 0.76);
+}
+
+.oni-feature-list li {
+  border-color: var(--oni-color-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.oni-keyboard-open .oni-bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(140%);
+}
+
+@keyframes oniAIBreathe {
+  0%, 100% { opacity: 0.46; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes oniLivePulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 79, 111, 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(255, 79, 111, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 79, 111, 0); }
+}
+
+@media (min-width: 768px) {
+  .oni-main {
+    width: min(100%, 1100px);
+    margin: 0 auto;
+    padding-top: 18px;
+  }
+
+  .oni-home-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .oni-carousel {
+    grid-auto-columns: minmax(38%, 1fr);
+  }
+
+  .oni-crew-carousel {
+    grid-auto-columns: minmax(30%, 1fr);
+  }
+
+  .oni-bottom-nav {
+    left: 50%;
+    right: auto;
+    width: min(680px, calc(100vw - 24px));
+    transform: translateX(-50%);
+  }
+
+  body.oni-keyboard-open .oni-bottom-nav {
+    transform: translate(-50%, 140%);
+  }
+}
+
+@media (min-width: 1120px) {
+  .oni-home-view {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .oni-home-hero {
+    grid-column: 1 / -1;
+  }
+
+  .oni-home-actions {
+    grid-column: 1 / -1;
+  }
+
+  .oni-home-hero-copy {
+    max-width: 62%;
+  }
+}

@@ -1,19 +1,75 @@
 :root {
-  --oni-bg: #050507;
-  --oni-bg-2: #0a0a11;
-  --oni-panel: rgba(15, 15, 22, 0.92);
-  --oni-panel-soft: rgba(255, 255, 255, 0.04);
-  --oni-line: rgba(255, 255, 255, 0.11);
-  --oni-text: #f7f7fb;
-  --oni-muted: #999aa9;
-  --oni-red: #ff2033;
-  --oni-violet: #8d5cff;
-  --oni-ok: #52e5ac;
-  --oni-warn: #ffd166;
-  --oni-radius: 18px;
-  --oni-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  --oni-color-bg: #06080f;
+  --oni-color-bg-deep: #070b16;
+  --oni-color-surface: rgba(14, 20, 32, 0.88);
+  --oni-color-surface-2: rgba(18, 25, 38, 0.78);
+  --oni-color-surface-soft: rgba(255, 255, 255, 0.05);
+  --oni-color-line: rgba(190, 210, 255, 0.16);
+  --oni-color-text: #fbfcff;
+  --oni-color-muted: #8f99ad;
+  --oni-color-crimson: #ff2249;
+  --oni-color-hot: #ff3f7f;
+  --oni-color-violet: #7968ff;
+  --oni-color-gold: #ffd07a;
+  --oni-color-ok: #56e5b3;
+  --oni-color-warn: #ffd166;
+
+  --oni-font-display: "Inter", "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --oni-font-body: "Inter", "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --oni-font-meta: "Inter", "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
+
+  --oni-text-display: clamp(30px, 8.4vw, 56px);
+  --oni-text-title: clamp(22px, 6.4vw, 36px);
+  --oni-text-subtitle: clamp(16px, 4.2vw, 22px);
+  --oni-text-body: 14px;
+  --oni-text-meta: 11px;
+
+  --oni-space-1: 4px;
+  --oni-space-2: 8px;
+  --oni-space-3: 12px;
+  --oni-space-4: 16px;
+  --oni-space-5: 20px;
+  --oni-space-6: 24px;
+  --oni-space-7: 30px;
+
+  --oni-radius-sm: 12px;
+  --oni-radius-md: 18px;
+  --oni-radius-lg: 24px;
+  --oni-radius-pill: 999px;
+
+  --oni-shadow-soft: 0 16px 40px rgba(0, 0, 0, 0.28);
+  --oni-shadow-depth: 0 28px 64px rgba(0, 0, 0, 0.45);
+  --oni-glow-crimson: 0 0 0 1px rgba(255, 41, 77, 0.34), 0 8px 30px rgba(255, 34, 73, 0.34);
+  --oni-glow-violet: 0 0 0 1px rgba(121, 104, 255, 0.3), 0 8px 26px rgba(121, 104, 255, 0.2);
+
+  --oni-surface-card: linear-gradient(155deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  --oni-surface-card-heavy: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+
+  --oni-transition-fast: 180ms cubic-bezier(.25, .46, .45, .94);
+  --oni-transition-base: 220ms cubic-bezier(.22, .61, .36, 1);
+  --oni-transition-slow: 280ms cubic-bezier(.2, .7, .2, 1);
+
+  --oni-z-nav: 30;
+  --oni-z-sheet: 45;
+  --oni-z-modal: 50;
+  --oni-z-toast: 60;
+
   --oni-safe-top: env(safe-area-inset-top, 0px);
   --oni-safe-bottom: env(safe-area-inset-bottom, 0px);
   --oni-safe-left: env(safe-area-inset-left, 0px);
   --oni-safe-right: env(safe-area-inset-right, 0px);
+
+  --oni-bg: var(--oni-color-bg);
+  --oni-bg-2: var(--oni-color-bg-deep);
+  --oni-panel: var(--oni-color-surface);
+  --oni-panel-soft: var(--oni-color-surface-soft);
+  --oni-line: var(--oni-color-line);
+  --oni-text: var(--oni-color-text);
+  --oni-muted: var(--oni-color-muted);
+  --oni-red: var(--oni-color-crimson);
+  --oni-violet: var(--oni-color-violet);
+  --oni-ok: var(--oni-color-ok);
+  --oni-warn: var(--oni-color-warn);
+  --oni-radius: var(--oni-radius-md);
+  --oni-shadow: var(--oni-shadow-soft);
 }

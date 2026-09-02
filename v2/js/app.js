@@ -1,20 +1,30 @@
-import { getFirebase } from "./firebase.js";
+import { collection, doc, getDoc, getDocs, limit, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
+import { getFirebase, getFirestoreDb } from "./firebase.js";
 import { registerRoute, startRouter } from "./router.js";
 import { createAuthModule } from "./auth.js";
-import { createMembersModule } from "./members.js";
-import { createGarageModule } from "./garage.js";
-import { createMusicModule } from "./music.js";
-import { createMeetModule } from "./meet.js";
+import { createMembersModule, normalizeMemberRecord } from "./members.js";
+import { createGarageModule, normalizeGarageRecord } from "./garage.js";
+import {
+  createMeetModule,
+  formatCountdown,
+  getMeetState,
+  normalizeMeetParticipant,
+  normalizeMeetRecord,
+  parseTimestampMs
+} from "./meet.js";
 import { createJoinModule } from "./join.js";
 import { createMarketModule } from "./market.js";
 import { createOniAiModule } from "./oni-ai.js";
 
 const BASE = "/oni-kishin-web/v2/";
+const ADMIN_EMAIL = "erkaa130@gmail.com";
+const HOME_BUILD_LIMIT = 12;
+const HOME_CREW_LIMIT = 12;
 const modules = [
   createAuthModule(),
   createMembersModule(),
   createGarageModule(),
-  createMusicModule(),
   createMeetModule(),
   createJoinModule(),
   createMarketModule(),
@@ -28,15 +38,21 @@ const oniAiModule = modules.find(module => module.key === "oni-ai");
 
 const root = document.getElementById("viewRoot");
 const shell = document.getElementById("oniShell");
-const navLinks = [...document.querySelectorAll(".oni-nav-link")];
+const navLinks = [...document.querySelectorAll(".oni-nav-link[data-route]")];
+const moreButton = document.querySelector("[data-nav-more]");
+const moreSheet = document.getElementById("oniMoreSheet");
 const toast = document.getElementById("oniToast");
 const offlineBanner = document.getElementById("offlineBanner");
 const modal = document.getElementById("oniModal");
 const modalBody = document.getElementById("oniModalBody");
+const moreAdminLink = document.querySelector("[data-more-admin]");
 let activeRouteTeardown = null;
 let isBootstrapped = false;
 let modalLastFocus = null;
 let swControllerReloading = false;
+let homeRenderToken = 0;
+let homeCountdownTimer = 0;
+let adminAuthUnsubscribe = null;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, s => ({
@@ -48,12 +64,58 @@ function escapeHtml(value) {
   }[s]));
 }
 
+function asText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function pickFirstText(...values) {
+  for (const value of values) {
+    const text = asText(value);
+    if (text) return text;
+  }
+  return "";
+}
+
+function roleRank(member) {
+  if (member.role === "leader") return 0;
+  if (member.role === "co-leader") return 1;
+  if (member.role === "special") return 2;
+  return 3;
+}
+
+function roleLabel(role) {
+  if (role === "leader") return "LEADER";
+  if (role === "co-leader") return "CO-LEADER";
+  if (role === "special") return "SPECIAL";
+  return "MEMBER";
+}
+
+function roleClass(role) {
+  if (role === "leader") return "is-leader";
+  if (role === "co-leader") return "is-co-leader";
+  if (role === "special") return "is-special";
+  return "is-member";
+}
+
+function initials(text) {
+  const words = asText(text).split(/\s+/).filter(Boolean).slice(0, 2);
+  return words.map(word => word.charAt(0)).join("").toUpperCase() || "ON";
+}
+
 function setActive(route) {
+  const mapped = route === "members" || route === "join" ? "more" : route;
+
   navLinks.forEach(link => {
-    const active = link.dataset.route === route;
+    const active = link.dataset.route === mapped;
     link.classList.toggle("is-active", active);
     link.setAttribute("aria-current", active ? "page" : "false");
   });
+
+  if (moreButton instanceof HTMLButtonElement) {
+    const active = mapped === "more";
+    moreButton.classList.toggle("is-active", active);
+    moreButton.setAttribute("aria-current", active ? "page" : "false");
+  }
 }
 
 function showToast(message, timeout = 2200) {
@@ -65,6 +127,17 @@ function showToast(message, timeout = 2200) {
   }, timeout);
 }
 
+function stopHomeCountdown() {
+  if (!homeCountdownTimer) return;
+  clearInterval(homeCountdownTimer);
+  homeCountdownTimer = 0;
+}
+
+function refreshBodyLock() {
+  const lock = !modal.hidden || !(moreSheet?.hidden ?? true);
+  document.body.classList.toggle("oni-modal-open", lock);
+}
+
 function setBodyScrollLocked(locked) {
   document.body.classList.toggle("oni-modal-open", !!locked);
 }
@@ -74,6 +147,7 @@ function openModal(content) {
   modalBody.innerHTML = content;
   modal.hidden = false;
   setBodyScrollLocked(true);
+  refreshBodyLock();
   const closeButton = modal.querySelector("[data-modal-close]");
   if (closeButton instanceof HTMLElement) closeButton.focus();
 }
@@ -82,62 +156,343 @@ function closeModal() {
   if (modal.hidden) return;
   modal.hidden = true;
   setBodyScrollLocked(false);
-  if (modalLastFocus instanceof HTMLElement) {
-    modalLastFocus.focus();
-  }
+  refreshBodyLock();
+  if (modalLastFocus instanceof HTMLElement) modalLastFocus.focus();
   modalLastFocus = null;
 }
 
-function card(module) {
+function openMoreSheet() {
+  if (!moreSheet || !moreButton) return;
+  moreSheet.hidden = false;
+  moreButton.setAttribute("aria-expanded", "true");
+  refreshBodyLock();
+  const firstLink = moreSheet.querySelector("a, button");
+  if (firstLink instanceof HTMLElement) firstLink.focus();
+}
+
+function closeMoreSheet() {
+  if (!moreSheet || moreSheet.hidden) return;
+  moreSheet.hidden = true;
+  moreButton?.setAttribute("aria-expanded", "false");
+  refreshBodyLock();
+}
+
+function cardBadge(text) {
+  const label = asText(text);
+  if (!label) return "";
+  return `<span class="oni-badge">${escapeHtml(label)}</span>`;
+}
+
+function buildCardsMarkup(records) {
+  if (!records.length) {
+    return `<article class="oni-empty-state"><p>Одоогоор build мэдээлэл алга.</p></article>`;
+  }
+
+  return records.map(record => {
+    const title = pickFirstText(record.buildName, "ONI BUILD");
+    const owner = pickFirstText(record.owner, "ONI MEMBER");
+    const tags = [cardBadge(record.type), cardBadge(record.category)].filter(Boolean).join("");
+    const media = record.image
+      ? `<img src="${escapeHtml(record.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">`
+      : `<span class="oni-media-fallback" aria-hidden="true">${escapeHtml(initials(title))}</span>`;
+
+    return `
+      <a class="oni-build-card" href="#garage" aria-label="${escapeHtml(title)} build-ийг Garage дээр нээх">
+        <div class="oni-build-media${record.image ? "" : " is-fallback"}">${media}</div>
+        <div class="oni-build-overlay">
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(owner)}</p>
+          <div class="oni-build-badges">${tags}</div>
+        </div>
+      </a>
+    `;
+  }).join("");
+}
+
+function crewCardsMarkup(records) {
+  if (!records.length) {
+    return `<article class="oni-empty-state"><p>Одоогоор гишүүний preview алга.</p></article>`;
+  }
+
+  return records.map(member => {
+    const nick = pickFirstText(member.nickname, "ONI MEMBER");
+    const cpmId = pickFirstText(member.cpmId, "CPM ID");
+    const avatar = member.avatarUrl
+      ? `<img src="${escapeHtml(member.avatarUrl)}" alt="${escapeHtml(nick)} avatar" loading="lazy" decoding="async">`
+      : `<span class="oni-media-fallback" aria-hidden="true">${escapeHtml(initials(nick))}</span>`;
+
+    return `
+      <article class="oni-crew-card ${roleClass(member.role)}">
+        <div class="oni-crew-avatar${member.avatarUrl ? "" : " is-fallback"}">${avatar}</div>
+        <h3>${escapeHtml(nick)}</h3>
+        <p>${escapeHtml(cpmId)}</p>
+        <span class="oni-role-badge">${escapeHtml(roleLabel(member.role))}</span>
+      </article>
+    `;
+  }).join("");
+}
+
+function participantBelongsToMeet(participant, meet) {
+  if (!participant || !meet) return false;
+  if (participant.meetId && participant.meetId !== "current") return false;
+
+  if (Number.isFinite(participant.meetStartMs) && Number.isFinite(meet.startAtMs)) {
+    return participant.meetStartMs === meet.startAtMs;
+  }
+
+  const participantRaw = participant.meetStartRaw;
+  if (participantRaw != null && meet.startAtRaw != null) {
+    return String(participantRaw) === String(meet.startAtRaw);
+  }
+
+  return true;
+}
+
+function formatMeetStart(ms) {
+  if (!Number.isFinite(ms)) return "—";
+  return new Date(ms).toLocaleString("mn-MN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
+
+function renderMeetCard(meet, participantsCount) {
+  const state = getMeetState(meet);
+
+  if (!meet || state === "none") {
+    return `
+      <article class="oni-live-card is-empty">
+        <header>
+          <p class="oni-live-kicker">ONI MEET</p>
+          <h3>Идэвхтэй meet алга</h3>
+        </header>
+        <p class="oni-live-copy">Дараагийн meet зарлагдмагц энд автоматаар харагдана.</p>
+        <a class="oni-btn oni-btn-ghost" href="#meet">MEET ХЭСЭГ РҮҮ</a>
+      </article>
+    `;
+  }
+
+  const maxPlayers = Math.max(1, Number(meet.maxPlayers || 20) || 20);
+  const count = Math.min(maxPlayers, Math.max(0, Number(participantsCount || 0)));
+
+  if (state === "expired") {
+    return `
+      <article class="oni-live-card is-expired">
+        <header>
+          <p class="oni-live-kicker">ONI MEET</p>
+          <h3>${escapeHtml(meet.title || "ONI MEET")}</h3>
+        </header>
+        <p class="oni-live-copy">Сүүлд дууссан meet · ${escapeHtml(formatMeetStart(meet.endAtMs))}</p>
+        <div class="oni-live-meta"><span>${count} / ${maxPlayers}</span></div>
+        <a class="oni-btn oni-btn-ghost" href="#meet">MEET ТҮҮХ</a>
+      </article>
+    `;
+  }
+
+  const countdownLabel = state === "active" ? "ДУУСАХ ХУГАЦАА" : "ЭХЛЭХ ХУГАЦАА";
+  const targetMs = state === "active" ? meet.endAtMs : meet.startAtMs;
+  const countdown = Number.isFinite(targetMs) ? formatCountdown(Math.max(0, targetMs - Date.now())) : "00:00:00";
+
   return `
-    <article class="oni-card">
-      <div class="oni-pill">${escapeHtml(module.status)}</div>
-      <h3>${escapeHtml(module.title)}</h3>
-      <p>${escapeHtml(module.description)}</p>
+    <article class="oni-live-card ${state === "active" ? "is-live" : "is-upcoming"}">
+      <header>
+        <p class="oni-live-kicker">ONI MEET ${state === "active" ? "LIVE" : "UPCOMING"}</p>
+        <h3>${escapeHtml(meet.title || "ONI NIGHT MEET")}</h3>
+      </header>
+      <p class="oni-live-copy">${escapeHtml(meet.roomLabel || "ONI & KISHIN")}</p>
+      <div class="oni-live-meta">
+        <span>${count} / ${maxPlayers}</span>
+        <span>${escapeHtml(formatMeetStart(meet.startAtMs))}</span>
+      </div>
+      <div class="oni-live-countdown" data-home-meet-countdown data-home-meet-target="${Number.isFinite(targetMs) ? targetMs : 0}" data-home-meet-state="${state}">
+        <small>${countdownLabel}</small>
+        <strong>${countdown}</strong>
+      </div>
+      <a class="oni-btn oni-btn-primary" href="#meet">${state === "active" ? "MEET РҮҮ ОРОХ" : "MEET ХҮЛЭЭХ"}</a>
     </article>
   `;
 }
 
-function sectionHead(title, description) {
+function updateMeetCountdown() {
+  const node = root.querySelector("[data-home-meet-countdown]");
+  if (!(node instanceof HTMLElement)) return;
+
+  const target = Number(node.dataset.homeMeetTarget || 0);
+  if (!Number.isFinite(target) || target <= 0) return;
+
+  const state = node.dataset.homeMeetState || "upcoming";
+  const strong = node.querySelector("strong");
+  if (strong) strong.textContent = formatCountdown(Math.max(0, target - Date.now()));
+
+  if (target <= Date.now()) {
+    stopHomeCountdown();
+    if (state === "upcoming" || state === "active") {
+      renderHome();
+    }
+  }
+}
+
+async function fetchHomeData() {
+  const db = getFirestoreDb();
+  const [membersSnap, garageSnap, meetSnap, participantsSnap] = await Promise.all([
+    getDocs(collection(db, "members")),
+    getDocs(collection(db, "garage")),
+    getDoc(doc(db, "meets", "current")),
+    getDocs(query(collection(db, "meetParticipants"), where("meetId", "==", "current"), limit(180)))
+  ]);
+
+  const members = membersSnap.docs
+    .map(docSnap => normalizeMemberRecord(docSnap.data(), docSnap.id))
+    .sort((a, b) => {
+      const rankDiff = roleRank(a) - roleRank(b);
+      if (rankDiff) return rankDiff;
+      return a.nickname.localeCompare(b.nickname);
+    });
+
+  const garage = garageSnap.docs
+    .map(docSnap => normalizeGarageRecord(docSnap.data(), docSnap.id))
+    .sort((a, b) => (b.createdAtMs - a.createdAtMs) || a.buildName.localeCompare(b.buildName));
+
+  const meet = meetSnap.exists() ? normalizeMeetRecord(meetSnap.data(), meetSnap.id) : null;
+  const participants = participantsSnap.docs
+    .map(docSnap => normalizeMeetParticipant(docSnap.data(), docSnap.id))
+    .filter(item => item.id !== "__counter__")
+    .filter(item => participantBelongsToMeet(item, meet));
+
+  const meetState = getMeetState(meet);
+  const meetStateLabel = meetState === "active"
+    ? "LIVE"
+    : meetState === "upcoming"
+      ? "ТУН УДАХГҮЙ"
+      : meetState === "expired"
+        ? "ДУУССАН"
+        : "ХҮЛЭЭЛТ";
+
+  return {
+    members,
+    garage,
+    meet,
+    participantsCount: participants.length,
+    stats: {
+      members: membersSnap.size,
+      builds: garageSnap.size,
+      meet: meetStateLabel
+    }
+  };
+}
+
+function homeSkeletonMarkup() {
   return `
-    <header class="oni-section-head">
-      <h1>${escapeHtml(title)}</h1>
-      <p>${escapeHtml(description)}</p>
-    </header>
+    <section class="oni-home-view" aria-busy="true">
+      <article class="oni-home-hero oni-skeleton-card" aria-hidden="true"></article>
+      <section class="oni-home-actions oni-home-actions-skeleton">
+        <span class="oni-skeleton-chip"></span>
+        <span class="oni-skeleton-chip"></span>
+        <span class="oni-skeleton-chip"></span>
+        <span class="oni-skeleton-chip"></span>
+      </section>
+      <article class="oni-card oni-skeleton-card" aria-hidden="true"></article>
+      <article class="oni-card oni-skeleton-card" aria-hidden="true"></article>
+    </section>
   `;
 }
 
-function renderHome() {
-  const moduleCards = modules
-    .filter(module => module.key !== "auth")
-    .map(card)
-    .join("");
+function renderHomeView(data) {
+  const builds = data.garage.slice(0, HOME_BUILD_LIMIT);
+  const crew = data.members.slice(0, HOME_CREW_LIMIT);
 
-  root.innerHTML = `
-    ${sectionHead("ONI HUB v2 Foundation", "Stable app shell is ready. Feature migrations are intentionally deferred.")}
-    <div class="oni-stack">
-      <article class="oni-card">
-        <h2>Architecture readiness</h2>
-        <ul class="oni-feature-list">
-          <li>ES modules + centralized Firebase bootstrap</li>
-          <li>Mobile-first shell with safe-area handling</li>
-          <li>PWA manifest + service-worker offline strategy</li>
-          <li>Legacy v1 page preserved at <code>index.html</code></li>
-        </ul>
+  return `
+    <section class="oni-home-view">
+      <article class="oni-home-hero" aria-label="ONI HUB hero">
+        <div class="oni-home-hero-overlay"></div>
+        <div class="oni-home-hero-art" aria-hidden="true">
+          <img src="../oni-kishin-logo.jpg" alt="" loading="eager" decoding="async">
+        </div>
+        <div class="oni-home-hero-copy">
+          <p class="oni-hero-meta">ONI HUB · 鬼 • KISHIN</p>
+          <h1>ONI &amp; KISHIN</h1>
+          <p class="oni-hero-sub">Монголын CPM Anime Underground Clan</p>
+          <div class="oni-stat-row">
+            <span class="oni-stat-pill"><b>${data.stats.members}</b><small>ГИШҮҮН</small></span>
+            <span class="oni-stat-pill"><b>${data.stats.builds}</b><small>BUILD</small></span>
+            <span class="oni-stat-pill"><b>${escapeHtml(data.stats.meet)}</b><small>MEET</small></span>
+          </div>
+        </div>
       </article>
-      <section class="oni-grid" aria-label="Placeholder modules">${moduleCards}</section>
-      <article class="oni-card">
-        <h2>Admin & Worker</h2>
-        <p>Admin v2 shell: <code>v2/admin/index.html</code></p>
-        <p>Worker placeholder interface: <code>v2/worker/index.js</code></p>
-        <p class="oni-muted">Production Cloudflare worker files in <code>src/</code> are unchanged.</p>
-      </article>
-    </div>
+
+      <section class="oni-home-actions" aria-label="Түргэн үйлдлүүд">
+        <a class="oni-action-tile is-ai" href="#music">ONI AI</a>
+        <a class="oni-action-tile" href="#members">ГИШҮҮД</a>
+        <a class="oni-action-tile" href="#garage">ГАРАЖ</a>
+        <a class="oni-action-tile" href="#join">НЭГДЭХ</a>
+      </section>
+
+      <section class="oni-home-section">
+        <header class="oni-section-header">
+          <h2>ОНЦЛОХ BUILD</h2>
+          <a href="#garage">БҮГДИЙГ ХАРАХ</a>
+        </header>
+        <div class="oni-carousel" data-home-builds>${buildCardsMarkup(builds)}</div>
+      </section>
+
+      <section class="oni-home-section">
+        <header class="oni-section-header">
+          <h2>ONI CREW</h2>
+          <a href="#members">БҮГДИЙГ ХАРАХ</a>
+        </header>
+        <div class="oni-carousel oni-crew-carousel" data-home-crew>${crewCardsMarkup(crew)}</div>
+      </section>
+
+      <section class="oni-home-section">
+        <header class="oni-section-header">
+          <h2>ONI MEET</h2>
+          <a href="#meet">ДЭЛГЭРЭНГҮЙ</a>
+        </header>
+        ${renderMeetCard(data.meet, data.participantsCount)}
+      </section>
+    </section>
   `;
+}
+
+async function renderHome() {
+  stopHomeCountdown();
+  const token = ++homeRenderToken;
+  root.innerHTML = homeSkeletonMarkup();
+
+  try {
+    const data = await fetchHomeData();
+    if (token !== homeRenderToken) return;
+    root.innerHTML = renderHomeView(data);
+
+    if (root.querySelector("[data-home-meet-countdown]")) {
+      updateMeetCountdown();
+      homeCountdownTimer = setInterval(updateMeetCountdown, 1000);
+    }
+  } catch (error) {
+    if (token !== homeRenderToken) return;
+
+    const message = error instanceof Error ? error.message : "Unknown error";
+    root.innerHTML = `
+      <section class="oni-home-view">
+        <article class="oni-error-state" role="alert">
+          <h2>Нүүр мэдээлэл ачаалж чадсангүй</h2>
+          <p>${escapeHtml(message)}</p>
+          <button type="button" class="oni-btn oni-btn-primary" data-home-retry>ДАХИН ОРОЛДОХ</button>
+        </article>
+      </section>
+    `;
+  }
 }
 
 function clearRouteMount() {
   closeModal();
+  closeMoreSheet();
+  stopHomeCountdown();
+  homeRenderToken += 1;
+
   if (typeof activeRouteTeardown !== "function") return;
   try {
     activeRouteTeardown();
@@ -147,29 +502,11 @@ function clearRouteMount() {
   activeRouteTeardown = null;
 }
 
-function renderModulePage(routeKey, title) {
-  const module = modules.find(item => item.key === routeKey);
-  const description = module?.description || "This route is not yet implemented in foundation stage.";
-
-  root.innerHTML = `
-    ${sectionHead(title, "Foundation-only placeholder")}
-    <div class="oni-stack">
-      ${module ? card(module) : ""}
-      <article class="oni-card">
-        <h2>Next migration step</h2>
-        <p>${escapeHtml(description)}</p>
-        <p class="oni-muted">Current production logic remains preserved in <code>index.html</code>.</p>
-        <button class="oni-btn oni-btn-primary" type="button" data-open-modal>Details</button>
-      </article>
-    </div>
-  `;
-}
-
 function registerRoutes() {
   registerRoute("home", async () => {
     clearRouteMount();
     setActive("home");
-    renderHome();
+    await renderHome();
   });
 
   registerRoute("members", async () => {
@@ -180,8 +517,6 @@ function registerRoutes() {
       activeRouteTeardown = () => membersModule.unmount?.();
       return;
     }
-    clearRouteMount();
-    renderModulePage("members", "Members");
   });
 
   registerRoute("garage", async () => {
@@ -192,8 +527,6 @@ function registerRoutes() {
       activeRouteTeardown = () => garageModule.unmount?.();
       return;
     }
-    clearRouteMount();
-    renderModulePage("garage", "Garage");
   });
 
   registerRoute("music", async () => {
@@ -204,8 +537,6 @@ function registerRoutes() {
       activeRouteTeardown = () => oniAiModule.unmount?.();
       return;
     }
-    clearRouteMount();
-    renderModulePage("music", "ONI AI");
   });
 
   registerRoute("meet", async () => {
@@ -216,8 +547,6 @@ function registerRoutes() {
       activeRouteTeardown = () => meetModule.unmount?.();
       return;
     }
-    clearRouteMount();
-    renderModulePage("meet", "Meet");
   });
 
   registerRoute("join", async () => {
@@ -228,8 +557,6 @@ function registerRoutes() {
       activeRouteTeardown = () => joinModule.unmount?.();
       return;
     }
-    clearRouteMount();
-    renderModulePage("join", "Join");
   });
 }
 
@@ -308,6 +635,32 @@ function setupInstallPrompt() {
   });
 }
 
+function setupMoreActions() {
+  if (!(moreButton instanceof HTMLButtonElement) || !(moreSheet instanceof HTMLElement)) return;
+
+  moreButton.addEventListener("click", () => {
+    if (moreSheet.hidden) openMoreSheet();
+    else closeMoreSheet();
+  });
+}
+
+function setupAdminVisibility() {
+  if (!(moreAdminLink instanceof HTMLElement)) return;
+
+  const onAuth = user => {
+    const email = asText(user?.email).toLowerCase();
+    const authorized = !!email && email === ADMIN_EMAIL;
+    moreAdminLink.hidden = !authorized;
+  };
+
+  try {
+    const auth = getAuth(getFirebase().app);
+    adminAuthUnsubscribe = onAuthStateChanged(auth, onAuth, () => onAuth(null));
+  } catch {
+    onAuth(null);
+  }
+}
+
 function setupUiActions() {
   document.addEventListener("click", event => {
     const target = event.target;
@@ -323,15 +676,43 @@ function setupUiActions() {
       return;
     }
 
-    if (target.closest("[data-open-modal]")) {
-      openModal("Module implementation and Firestore-bound feature migration are intentionally deferred to the next PR stage.");
+    if (target === moreSheet) {
+      closeMoreSheet();
+      return;
+    }
+
+    if (target.closest("[data-more-close]")) {
+      closeMoreSheet();
+      return;
+    }
+
+    if (target.closest("[data-more-link]")) {
+      closeMoreSheet();
+      return;
+    }
+
+    if (target.closest("[data-more-info]")) {
+      closeMoreSheet();
+      openModal("<p>ONI &amp; KISHIN бол Монголын CPM anime underground clan. Гишүүн, гараж, meet болон ONI AI бүх өгөгдөл одоогийн production Firestore-оос ачаалж байна.</p>");
+      return;
+    }
+
+    if (target.closest("[data-home-retry]")) {
+      renderHome();
     }
   });
 
   document.addEventListener("keydown", event => {
-    if (event.key !== "Escape" || modal.hidden) return;
-    event.preventDefault();
-    closeModal();
+    if (event.key !== "Escape") return;
+    if (!moreSheet?.hidden) {
+      event.preventDefault();
+      closeMoreSheet();
+      return;
+    }
+    if (!modal.hidden) {
+      event.preventDefault();
+      closeModal();
+    }
   });
 }
 
@@ -364,11 +745,13 @@ function bootstrap() {
   setupOfflineState();
   setupInstallPrompt();
   setupUiActions();
+  setupMoreActions();
   setupViewportHandling();
   registerServiceWorker();
 
   try {
     getFirebase();
+    setupAdminVisibility();
   } catch (error) {
     console.error("firebase_init_failed", error);
     showToast("Firebase bootstrap failed");
@@ -377,5 +760,12 @@ function bootstrap() {
   root.setAttribute("aria-busy", "false");
   root.classList.add("ready");
 }
+
+addEventListener("beforeunload", () => {
+  if (typeof adminAuthUnsubscribe === "function") {
+    adminAuthUnsubscribe();
+    adminAuthUnsubscribe = null;
+  }
+});
 
 bootstrap();
