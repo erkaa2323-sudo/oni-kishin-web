@@ -138,10 +138,15 @@ function refreshBodyLock() {
   document.body.classList.toggle("oni-modal-open", lock);
 }
 
+function setBodyScrollLocked(locked) {
+  document.body.classList.toggle("oni-modal-open", !!locked);
+}
+
 function openModal(content) {
   modalLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   modalBody.innerHTML = content;
   modal.hidden = false;
+  setBodyScrollLocked(true);
   refreshBodyLock();
   const closeButton = modal.querySelector("[data-modal-close]");
   if (closeButton instanceof HTMLElement) closeButton.focus();
@@ -150,6 +155,7 @@ function openModal(content) {
 function closeModal() {
   if (modal.hidden) return;
   modal.hidden = true;
+  setBodyScrollLocked(false);
   refreshBodyLock();
   if (modalLastFocus instanceof HTMLElement) modalLastFocus.focus();
   modalLastFocus = null;
