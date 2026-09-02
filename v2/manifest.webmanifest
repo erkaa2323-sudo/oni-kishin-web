@@ -1,7 +1,7 @@
 {
-  "name": "ONI HUB v2 Preview — ONI & KISHIN",
-  "short_name": "ONI HUB v2",
-  "description": "ONI HUB v2 preview mobile-first PWA shell for ONI & KISHIN.",
+  "name": "ONI HUB — ONI & KISHIN",
+  "short_name": "ONI HUB",
+  "description": "ONI & KISHIN community mobile PWA.",
   "lang": "mn",
   "id": "/oni-kishin-web/v2/",
   "start_url": "/oni-kishin-web/v2/",
@@ -9,8 +9,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "background_color": "#050507",
-  "theme_color": "#07070a",
+  "background_color": "#06080f",
+  "theme_color": "#080b14",
   "prefer_related_applications": false,
   "categories": ["social", "entertainment"],
   "icons": [
