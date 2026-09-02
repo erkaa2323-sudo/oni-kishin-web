@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-app-v1.0.1";
+const VERSION = "oni-hub-v2-shell-1";
 const BASE = "/oni-kishin-web/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -8,7 +8,23 @@ const APP_SHELL = [
   BASE + "index.html",
   BASE + "offline.html",
   BASE + "manifest.webmanifest",
-  BASE + "app/app.css",
+  BASE + "oni-kishin-logo.jpg",
+  BASE + "css/tokens.css",
+  BASE + "css/components.css",
+  BASE + "css/app.css",
+  BASE + "js/app.js",
+  BASE + "js/router.js",
+  BASE + "js/firebase.js",
+  BASE + "js/auth.js",
+  BASE + "js/members.js",
+  BASE + "js/garage.js",
+  BASE + "js/music.js",
+  BASE + "js/meet.js",
+  BASE + "js/market.js",
+  BASE + "js/oni-ai.js",
+  BASE + "admin/index.html",
+  BASE + "worker/index.js",
+  BASE + "legacy/index-v1.html",
   BASE + "icons/icon-192.png",
   BASE + "icons/icon-512.png",
   BASE + "icons/icon-maskable-512.png",
@@ -20,8 +36,10 @@ self.addEventListener("install", event => {
     const cache = await caches.open(STATIC_CACHE);
     await Promise.all(APP_SHELL.map(async asset => {
       try {
-        await cache.add(new Request(asset, {cache: "reload"}));
-      } catch {}
+        await cache.add(new Request(asset, { cache: "reload" }));
+      } catch {
+        // Keep install resilient to partial static failures.
+      }
     }));
     await self.skipWaiting();
   })());
@@ -29,9 +47,9 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
-    const keep = new Set([STATIC_CACHE, RUNTIME_CACHE]);
+    const allowed = new Set([STATIC_CACHE, RUNTIME_CACHE]);
     for (const key of await caches.keys()) {
-      if (!keep.has(key)) await caches.delete(key);
+      if (!allowed.has(key)) await caches.delete(key);
     }
     await self.clients.claim();
   })());
@@ -42,22 +60,22 @@ self.addEventListener("message", event => {
 });
 
 self.addEventListener("fetch", event => {
-  const req = event.request;
-  if (req.method !== "GET") return;
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  const url = new URL(req.url);
+  const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.includes("/api/")) return;
+  if (url.pathname.startsWith("/api/")) return;
 
-  if (req.mode === "navigate") {
+  if (request.mode === "navigate") {
     event.respondWith((async () => {
       try {
-        const fresh = await fetch(req);
+        const response = await fetch(request);
         const cache = await caches.open(RUNTIME_CACHE);
-        cache.put(req, fresh.clone()).catch(() => {});
-        return fresh;
+        cache.put(request, response.clone()).catch(() => {});
+        return response;
       } catch {
-        return (await caches.match(req))
+        return (await caches.match(request))
           || (await caches.match(BASE + "index.html"))
           || (await caches.match(BASE + "offline.html"));
       }
@@ -65,24 +83,17 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  const isCoreAsset =
-    url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".jpg") ||
-    url.pathname.endsWith(".webmanifest");
+  const staticAsset = /\.(?:css|js|png|jpg|jpeg|svg|webmanifest|html)$/i.test(url.pathname);
+  if (!staticAsset) return;
 
-  if (isCoreAsset) {
-    event.respondWith((async () => {
-      const cached = await caches.match(req);
-      const network = fetch(req).then(async response => {
-        if (response.ok) {
-          const cache = await caches.open(RUNTIME_CACHE);
-          cache.put(req, response.clone()).catch(() => {});
-        }
-        return response;
-      }).catch(() => null);
-      return cached || await network || Response.error();
-    })());
-  }
+  event.respondWith((async () => {
+    const cache = await caches.open(RUNTIME_CACHE);
+    const cached = await caches.match(request);
+    const network = fetch(request).then(response => {
+      if (response.ok) cache.put(request, response.clone()).catch(() => {});
+      return response;
+    }).catch(() => null);
+
+    return cached || await network || Response.error();
+  })());
 });
