@@ -1,0 +1,93 @@
+name: PR Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required site files
+        run: |
+          set -euo pipefail
+          required=(
+            "index.html"
+            "sw.js"
+            "manifest.webmanifest"
+            "offline.html"
+            "app/app.css"
+            "icons/icon-192.png"
+            "icons/icon-512.png"
+            "icons/icon-maskable-512.png"
+            "icons/apple-touch-icon.png"
+          )
+          for f in "${required[@]}"; do
+            [ -f "$f" ] || { echo "Missing required file: $f"; exit 1; }
+          done
+
+      - name: Validate manifest JSON
+        run: |
+          node -e 'JSON.parse(require("node:fs").readFileSync("manifest.webmanifest","utf8")); console.log("manifest.webmanifest OK")'
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check sw.js
+          node --check src/index.js
+          node --check src/secure-worker.js
+
+      - name: Verify sw.js precache files exist
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const sw = fs.readFileSync("sw.js", "utf8");
+          const matches = [...sw.matchAll(/BASE\s*\+\s*"([^"]+)"/g)].map(m => m[1]);
+          const unique = [...new Set(matches)];
+          let failed = false;
+          for (const rel of unique) {
+            if (!fs.existsSync(rel)) {
+              console.error(`sw.js precache references missing file: ${rel}`);
+              failed = true;
+            }
+          }
+          if (failed) process.exit(1);
+          console.log(`sw.js precache check OK (${unique.length} assets)`);
+          NODE
+
+      - name: Verify Firestore payload/rules contract
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const html = fs.readFileSync("index.html", "utf8");
+          const rules = fs.readFileSync("firestore.rules", "utf8");
+          const mustContain = [
+            {label:"applications payload keys", parts:['"last"', '"first"', '"age"', '"gender"', '"cpmid"', '"nick"', '"direction"', '"contactType"', '"contact"', '"experience"', '"message"', '"status"']},
+            {label:"orders payload keys", parts:['"orderNo"', '"productId"', '"productName"', '"unitPrice"', '"quantity"', '"total"', '"cpmNick"', '"cpmId"', '"status"']},
+            {label:"meet payload keys", parts:['"meetId"', '"meetStartAt"', '"memberId"', '"nick"', '"name"', '"cpmId"', '"source"']}
+          ];
+          for (const item of mustContain) {
+            for (const p of item.parts) {
+              if (!rules.includes(p)) {
+                console.error(`firestore.rules missing ${p} in ${item.label}`);
+                process.exit(1);
+              }
+            }
+          }
+          if (!html.includes('addDoc(collection(db,"applications"),{')) throw new Error("applications payload not found in index.html");
+          if (!html.includes('addDoc(collection(db,"orders"),{')) throw new Error("orders payload not found in index.html");
+          if (!html.includes('setDoc(doc(db,"meetParticipants",k),{')) throw new Error("meetParticipants payload not found in index.html");
+          console.log("Firestore payload/rules contract checks OK");
+          NODE
+
+      - name: Verify GitHub Pages source files
+        run: |
+          set -euo pipefail
+          [ -f ".github/workflows/main.yml" ] || { echo "Missing Pages workflow"; exit 1; }
+          grep -q '<link rel="manifest" href="manifest.webmanifest">' index.html || { echo "Missing manifest link in index.html"; exit 1; }
+          grep -q 'serviceWorker.register' index.html || { echo "Missing service worker registration in index.html"; exit 1; }
