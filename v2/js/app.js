@@ -13,6 +13,7 @@ import {
   normalizeMeetRecord,
   parseTimestampMs
 } from "./meet.js";
+import { subscribeMeetWorldState } from "./meet-world.js";
 import { createJoinModule } from "./join.js";
 import { createMarketModule } from "./market.js";
 import { createOniAiModule } from "./oni-ai.js";
@@ -56,6 +57,7 @@ let homeCountdownTimer = 0;
 let adminAuthUnsubscribe = null;
 let navActiveMorph = null;
 let routeSlashTimer = 0;
+let meetWorldUnsubscribe = null;
 
 const ATMOSPHERE_BY_ROUTE = {
   home: "home",
@@ -153,6 +155,14 @@ function setActive(route) {
     const active = mapped === "more";
     moreButton.classList.toggle("is-active", active);
     moreButton.setAttribute("aria-current", active ? "page" : "false");
+  }
+
+  function applyMeetWorldState(worldState) {
+    const state = String(worldState || "NONE").toUpperCase();
+    document.body.dataset.oniMeetState = state;
+    const meetLink = navLinks.find(link => link.dataset.route === "meet");
+    if (!(meetLink instanceof HTMLElement)) return;
+    meetLink.classList.toggle("is-live", state === "LIVE" || state === "FULL");
   }
 
   if (navActiveMorph instanceof HTMLElement && bottomNav instanceof HTMLElement) {
@@ -312,9 +322,9 @@ function formatMeetStart(ms) {
 }
 
 function renderMeetCard(meet, participantsCount) {
-  const state = getMeetState(meet);
+  const baseState = getMeetState(meet);
 
-  if (!meet || state === "none") {
+  if (!meet || baseState === "none") {
     return `
       <article class="oni-live-card is-empty">
         <header>
@@ -330,7 +340,7 @@ function renderMeetCard(meet, participantsCount) {
   const maxPlayers = Math.max(1, Number(meet.maxPlayers || 20) || 20);
   const count = Math.min(maxPlayers, Math.max(0, Number(participantsCount || 0)));
 
-  if (state === "expired") {
+  if (baseState === "expired") {
     return `
       <article class="oni-live-card is-expired">
         <header>
@@ -344,14 +354,15 @@ function renderMeetCard(meet, participantsCount) {
     `;
   }
 
-  const countdownLabel = state === "active" ? "ДУУСАХ ХУГАЦАА" : "ЭХЛЭХ ХУГАЦАА";
-  const targetMs = state === "active" ? meet.endAtMs : meet.startAtMs;
+  const state = baseState === "active" ? (count >= maxPlayers ? "full" : "live") : "upcoming";
+  const countdownLabel = state === "live" ? "ДУУСАХ ХУГАЦАА" : state === "full" ? "ДҮҮРСЭН" : "ЭХЛЭХ ХУГАЦАА";
+  const targetMs = state === "upcoming" ? meet.startAtMs : meet.endAtMs;
   const countdown = Number.isFinite(targetMs) ? formatCountdown(Math.max(0, targetMs - Date.now())) : "00:00:00";
 
   return `
-    <article class="oni-live-card ${state === "active" ? "is-live" : "is-upcoming"}">
+    <article class="oni-live-card ${state === "upcoming" ? "is-upcoming" : "is-live"}">
       <header>
-        <p class="oni-live-kicker">ONI MEET ${state === "active" ? "LIVE" : "UPCOMING"}</p>
+        <p class="oni-live-kicker">ONI MEET ${state === "upcoming" ? "UPCOMING" : state === "full" ? "FULL" : "LIVE"}</p>
         <h3>${escapeHtml(meet.title || "ONI NIGHT MEET")}</h3>
       </header>
       <p class="oni-live-copy">${escapeHtml(meet.roomLabel || "ONI & KISHIN")}</p>
@@ -363,7 +374,7 @@ function renderMeetCard(meet, participantsCount) {
         <small>${countdownLabel}</small>
         <strong>${countdown}</strong>
       </div>
-      <a class="oni-btn oni-btn-primary" href="#meet">${state === "active" ? "MEET РҮҮ ОРОХ" : "MEET ХҮЛЭЭХ"}</a>
+      <a class="oni-btn oni-btn-primary" href="#meet">${state === "upcoming" ? "MEET ХҮЛЭЭХ" : state === "full" ? "MEET ДҮҮРСЭН" : "MEET РҮҮ ОРОХ"}</a>
     </article>
   `;
 }
@@ -416,11 +427,11 @@ async function fetchHomeData() {
 
   const meetState = getMeetState(meet);
   const meetStateLabel = meetState === "active"
-    ? "LIVE"
+    ? (participants.length >= Math.max(1, Number(meet?.maxPlayers || 20) || 20) ? "FULL" : "LIVE")
     : meetState === "upcoming"
       ? "ТУН УДАХГҮЙ"
       : meetState === "expired"
-        ? "ДУУССАН"
+        ? "ENDED"
         : "ХҮЛЭЭЛТ";
 
   return {
@@ -874,6 +885,9 @@ function bootstrap() {
   try {
     getFirebase();
     setupAdminVisibility();
+    meetWorldUnsubscribe = subscribeMeetWorldState(snapshot => {
+      applyMeetWorldState(snapshot.state);
+    });
   } catch (error) {
     console.error("firebase_init_failed", error);
     showToast("Firebase bootstrap failed");
@@ -889,6 +903,10 @@ addEventListener("beforeunload", () => {
   if (typeof adminAuthUnsubscribe === "function") {
     adminAuthUnsubscribe();
     adminAuthUnsubscribe = null;
+  }
+  if (typeof meetWorldUnsubscribe === "function") {
+    meetWorldUnsubscribe();
+    meetWorldUnsubscribe = null;
   }
 });
 

@@ -1,24 +1,13 @@
-import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-import { getFirestoreDb } from "./firebase.js";
-import {
-  getMusicSnapshot,
-  nextTrack,
-  parseMusicCommand,
-  pauseMusic,
-  playMusic,
-  playTrackAt,
-  runMusicCommand,
-  setMusicVolume,
-  startMusicIntegration,
-  stopMusicIntegration,
-  subscribeMusicState
-} from "./music.js";
+import { parseMusicCommand, runMusicCommand, startMusicIntegration, stopMusicIntegration, subscribeMusicState } from "./music.js";
+import { subscribeMeetWorldState } from "./meet-world.js";
 
 const DEFAULT_AI_ENDPOINT = "https://oni-kishin-web.erkaa2323.workers.dev/api/oni-ai";
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_MESSAGE_CHARS = 2000;
 const HISTORY_LIMIT = 18;
 const HISTORY_TEXT_LIMIT = 1200;
+const EMOTIONS = new Set(["neutral", "happy", "excited", "thinking", "confused", "serious", "concerned", "sad", "sorry", "proud", "playful", "surprised", "music", "meet-live"]);
+const GESTURES = new Set(["idle", "listen", "talk", "wave", "nod", "shake-head", "think", "point", "cheer", "laugh", "bow", "hands-on-hip", "surprised", "calm", "dance-subtle", "battle-ready"]);
 
 function asText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -29,33 +18,67 @@ function toErrorText(error) {
   return String(error || "Unknown error");
 }
 
-function formatTime(seconds) {
-  const value = Math.max(0, Math.floor(Number(seconds) || 0));
-  const minutes = Math.floor(value / 60);
-  const remain = value % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(remain).padStart(2, "0")}`;
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, s => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[s]));
 }
 
 function aiEndpoint() {
   return asText(window.ONI_AI_CONFIG?.endpoint) || DEFAULT_AI_ENDPOINT;
 }
 
+function clampIntensity(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0.45;
+  return Math.max(0, Math.min(1, num));
+}
+
+function sanitizeEmotion(value) {
+  const key = asText(value).toLowerCase();
+  return EMOTIONS.has(key) ? key : "neutral";
+}
+
+function sanitizeGesture(value) {
+  const key = asText(value).toLowerCase();
+  return GESTURES.has(key) ? key : "talk";
+}
+
+function sanitizeSources(value) {
+  if (!Array.isArray(value)) return [];
+  const unique = new Map();
+  for (const item of value) {
+    const title = asText(item?.title).slice(0, 180);
+    const url = asText(item?.url);
+    if (!title || !/^https?:\/\//i.test(url)) continue;
+    if (!unique.has(url)) unique.set(url, { title, url });
+    if (unique.size >= 6) break;
+  }
+  return [...unique.values()];
+}
+
 function routeMarkup() {
   return `
     <section class="oni-oa-view" data-oa-view>
-      <header class="oni-section-head">
-        <h1>ONI AI</h1>
-        <p>Монгол хэл дээр ONI туслахтай ярилцаж, Music-г нэг player-ээр удирдана.</p>
-      </header>
-
-      <article class="oni-card oni-oa-status-row">
-        <div>
-          <small>BACKEND</small>
-          <b data-oa-backend-state>Connecting…</b>
+      <article class="oni-card oni-oa-stage" data-oa-stage>
+        <div class="oni-oa-world" aria-hidden="true">
+          <span class="oni-oa-aura" data-oa-aura></span>
+          <button type="button" class="oni-oa-character" data-oa-character aria-label="ONI character">
+            <span class="oni-oa-layer oni-oa-body"></span>
+            <span class="oni-oa-layer oni-oa-head"></span>
+            <span class="oni-oa-layer oni-oa-eyes"></span>
+            <span class="oni-oa-layer oni-oa-hands"></span>
+            <span class="oni-oa-layer oni-oa-horns"></span>
+          </button>
         </div>
-        <div>
-          <small>LIVE DATA</small>
-          <b data-oa-knowledge-state>Syncing…</b>
+        <div class="oni-oa-stage-meta">
+          <small data-oa-mood>NEUTRAL</small>
+          <b data-oa-live-state>MEET: NONE</b>
+          <p data-oa-stage-text>ONI AI listening…</p>
         </div>
       </article>
 
@@ -69,6 +92,12 @@ function routeMarkup() {
         </div>
         <div class="oni-oa-chat-body" data-oa-body aria-live="polite"></div>
         <p class="oni-oa-inline-error" data-oa-error role="alert"></p>
+        <div class="oni-oa-prompts" role="list" aria-label="ONI quick prompts">
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Өнөөдөр meet байгаа юу?">MEET</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="2-р дуу тоглуул">MUSIC</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Энэ өгүүлбэрийг англи хэл рүү орчуул">TRANSLATE</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Надад Instagram caption бич">CAPTION</button>
+        </div>
         <form class="oni-oa-compose" data-oa-form novalidate>
           <textarea data-oa-input maxlength="2000" placeholder="ONI AI-д асуу…" aria-label="ONI AI message"></textarea>
           <div class="oni-oa-compose-actions">
@@ -76,36 +105,33 @@ function routeMarkup() {
           </div>
         </form>
       </article>
-
-      <article class="oni-card oni-oa-music-card">
-        <div class="oni-oa-music-head">
-          <strong>ONI Music</strong>
-          <small data-oa-music-count>0 songs</small>
-        </div>
-        <div class="oni-oa-music-current">
-          <b data-oa-music-title>NO MUSIC</b>
-          <small data-oa-music-artist>ADMIN-аас дуу нийтлэнэ</small>
-        </div>
-        <div class="oni-oa-music-progress">
-          <i data-oa-music-progress></i>
-        </div>
-        <div class="oni-oa-music-meta">
-          <small data-oa-music-time>00:00 / 00:00</small>
-          <label>VOL <input data-oa-music-volume type="range" min="0" max="1" step="0.01" value="0.72"></label>
-        </div>
-        <div class="oni-oa-music-actions">
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-music-prev>⏮</button>
-          <button type="button" class="oni-btn oni-btn-primary" data-oa-music-play>▶</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-music-next>⏭</button>
-        </div>
-        <div class="oni-oa-music-quick">
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="what songs are available?">Songs</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="play music">Play</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="pause music">Pause</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="next song">Next</button>
-        </div>
-      </article>
     </section>
+  `;
+}
+
+function normalizeAiPacket(data) {
+  const reply = asText(data?.text || data?.reply);
+  return {
+    text: reply,
+    emotion: sanitizeEmotion(data?.emotion),
+    gesture: sanitizeGesture(data?.gesture),
+    intensity: clampIntensity(data?.intensity),
+    sources: sanitizeSources(data?.sources),
+    uiAction: data?.uiAction && typeof data.uiAction === "object" ? data.uiAction : null
+  };
+}
+
+function sourceCardsMarkup(sources) {
+  if (!sources.length) return "";
+  return `
+    <div class="oni-oa-sources">
+      ${sources.map(source => `
+        <a class="oni-oa-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">
+          <small>SOURCE</small>
+          <b>${escapeHtml(source.title)}</b>
+        </a>
+      `).join("")}
+    </div>
   `;
 }
 
@@ -115,17 +141,12 @@ export function createOniAiModule() {
   let sending = false;
   let abortController = null;
   let requestToken = 0;
-  let lastUserPrompt = "";
   let lastFailurePrompt = "";
   let inlineError = "";
-  let backendState = "Idle";
-  let knowledgeState = "Syncing…";
-  let knowledge = {
-    source: "V2 condensed snapshot; backend tools are authoritative.",
-    counts: { members: 0, garage: 0, participants: 0, tracks: 0 },
-    meet: null,
-    music: []
-  };
+  let meetState = "NONE";
+  let mood = "neutral";
+  let thinkingTimer = 0;
+  let tapLockedUntil = 0;
   const history = [];
   const disposers = [];
 
@@ -137,6 +158,10 @@ export function createOniAiModule() {
       } catch {
         // Ignore cleanup errors.
       }
+    }
+    if (thinkingTimer) {
+      clearTimeout(thinkingTimer);
+      thinkingTimer = 0;
     }
   }
 
@@ -150,17 +175,12 @@ export function createOniAiModule() {
       retryButton: host.querySelector("[data-oa-retry]"),
       cancelButton: host.querySelector("[data-oa-cancel]"),
       error: host.querySelector("[data-oa-error]"),
-      backendState: host.querySelector("[data-oa-backend-state]"),
-      knowledgeState: host.querySelector("[data-oa-knowledge-state]"),
-      musicCount: host.querySelector("[data-oa-music-count]"),
-      musicTitle: host.querySelector("[data-oa-music-title]"),
-      musicArtist: host.querySelector("[data-oa-music-artist]"),
-      musicProgress: host.querySelector("[data-oa-music-progress]"),
-      musicTime: host.querySelector("[data-oa-music-time]"),
-      musicVolume: host.querySelector("[data-oa-music-volume]"),
-      musicPlay: host.querySelector("[data-oa-music-play]"),
-      musicPrev: host.querySelector("[data-oa-music-prev]"),
-      musicNext: host.querySelector("[data-oa-music-next]")
+      stage: host.querySelector("[data-oa-stage]"),
+      stageText: host.querySelector("[data-oa-stage-text]"),
+      mood: host.querySelector("[data-oa-mood]"),
+      liveState: host.querySelector("[data-oa-live-state]"),
+      character: host.querySelector("[data-oa-character]"),
+      aura: host.querySelector("[data-oa-aura]")
     };
   }
 
@@ -169,7 +189,7 @@ export function createOniAiModule() {
     while (history.length > 80) history.shift();
   }
 
-  function appendMessage(role, text, { typing = false } = {}) {
+  function appendMessage(role, text, { typing = false, sources = [] } = {}) {
     const body = nodes().body;
     if (!(body instanceof HTMLElement)) return;
 
@@ -185,6 +205,14 @@ export function createOniAiModule() {
     content.textContent = String(text || "");
 
     wrap.append(label, content);
+
+    if (!typing && role === "ai" && Array.isArray(sources) && sources.length) {
+      const sourceWrap = document.createElement("div");
+      sourceWrap.className = "oni-oa-source-wrap";
+      sourceWrap.innerHTML = sourceCardsMarkup(sources);
+      wrap.appendChild(sourceWrap);
+    }
+
     body.appendChild(wrap);
     body.scrollTop = body.scrollHeight;
 
@@ -207,7 +235,7 @@ export function createOniAiModule() {
 
       const content = document.createElement("p");
       content.className = "oni-oa-msg-text";
-      content.textContent = "Ухаалгаар боловсруулж байна…";
+      content.textContent = "Бодож байна…";
 
       wrap.append(label, content);
       body.appendChild(wrap);
@@ -216,6 +244,24 @@ export function createOniAiModule() {
     }
 
     existing?.remove();
+  }
+
+  function applyCharacterState({ emotion = "neutral", gesture = "idle", intensity = 0.45, text = "" } = {}) {
+    const n = nodes();
+    if (!(n.stage instanceof HTMLElement)) return;
+    const safeEmotion = sanitizeEmotion(emotion);
+    const safeGesture = sanitizeGesture(gesture);
+    const safeIntensity = clampIntensity(intensity);
+
+    n.stage.dataset.oaEmotion = safeEmotion;
+    n.stage.dataset.oaGesture = safeGesture;
+    n.stage.style.setProperty("--oa-intensity", String(safeIntensity.toFixed(2)));
+    if (n.aura instanceof HTMLElement) {
+      n.aura.style.setProperty("--oa-aura", String(Math.max(0.08, safeIntensity).toFixed(2)));
+    }
+    if (n.stageText instanceof HTMLElement && text) n.stageText.textContent = text;
+    if (n.mood instanceof HTMLElement) n.mood.textContent = safeEmotion.toUpperCase();
+    mood = safeEmotion;
   }
 
   function renderUiState() {
@@ -238,57 +284,9 @@ export function createOniAiModule() {
       n.error.textContent = inlineError;
     }
 
-    if (n.backendState instanceof HTMLElement) {
-      n.backendState.textContent = backendState;
+    if (n.liveState instanceof HTMLElement) {
+      n.liveState.textContent = `MEET: ${meetState}`;
     }
-
-    if (n.knowledgeState instanceof HTMLElement) {
-      n.knowledgeState.textContent = knowledgeState;
-    }
-  }
-
-  async function loadKnowledgeSnapshot() {
-    knowledgeState = "Syncing…";
-    renderUiState();
-
-    try {
-      const db = getFirestoreDb();
-      const [members, garage, participants, meetSnap] = await Promise.all([
-        getDocs(collection(db, "members")),
-        getDocs(collection(db, "garage")),
-        getDocs(collection(db, "meetParticipants")),
-        getDoc(doc(db, "meets", "current"))
-      ]);
-
-      if (!mounted) return;
-
-      knowledge = {
-        source: "V2 condensed snapshot; backend tools are authoritative.",
-        counts: {
-          members: members.size,
-          garage: garage.size,
-          participants: participants.size,
-          tracks: getMusicSnapshot().tracks.length
-        },
-        meet: meetSnap.exists() ? {
-          id: meetSnap.id,
-          name: asText(meetSnap.data()?.name),
-          enabled: meetSnap.data()?.enabled !== false,
-          startAt: meetSnap.data()?.startAt || null,
-          maxPlayers: Number(meetSnap.data()?.maxPlayers || 0) || null
-        } : null,
-        music: getMusicSnapshot().tracks.slice(0, 24).map(track => ({
-          title: track.title,
-          artist: track.artist
-        }))
-      };
-
-      knowledgeState = `Ready · ${knowledge.counts.members} members · ${knowledge.counts.tracks} songs`;
-    } catch (error) {
-      knowledgeState = `Sync error: ${toErrorText(error)}`;
-    }
-
-    renderUiState();
   }
 
   function buildPayload(message) {
@@ -297,7 +295,8 @@ export function createOniAiModule() {
       history: history
         .slice(-HISTORY_LIMIT)
         .map(item => ({ role: item.role, text: String(item.text || "").slice(0, HISTORY_TEXT_LIMIT) })),
-      knowledge
+      mood,
+      meetState
     };
   }
 
@@ -334,9 +333,9 @@ export function createOniAiModule() {
         throw new Error(detail);
       }
 
-      const reply = asText(data?.reply || data?.text);
-      if (!reply) throw new Error("Malformed AI response.");
-      return { reply };
+      const packet = normalizeAiPacket(data);
+      if (!packet.text) throw new Error("Malformed AI response.");
+      return packet;
     } finally {
       clearTimeout(timeoutId);
       if (abortController === controller) abortController = null;
@@ -347,6 +346,45 @@ export function createOniAiModule() {
     const command = parseMusicCommand(message);
     if (!command) return null;
     return runMusicCommand(command);
+  }
+
+  function executeUiAction(uiAction) {
+    if (!uiAction || typeof uiAction !== "object") return null;
+    if (uiAction.type !== "music") return null;
+
+    const command = asText(uiAction.command);
+    const index = Number(uiAction.index);
+    if (command === "play_index" && Number.isFinite(index)) {
+      return runMusicCommand({ type: "playByName", query: String(index + 1) });
+    }
+    if (command === "play") return runMusicCommand({ type: "play" });
+    if (command === "pause") return runMusicCommand({ type: "pause" });
+    if (command === "next") return runMusicCommand({ type: "next" });
+    if (command === "prev") return runMusicCommand({ type: "prev" });
+    return null;
+  }
+
+  function startThinkingReaction() {
+    applyCharacterState({ emotion: "neutral", gesture: "listen", intensity: 0.32, text: "Сонсож байна…" });
+    if (thinkingTimer) clearTimeout(thinkingTimer);
+    thinkingTimer = setTimeout(() => {
+      if (!mounted || !sending) return;
+      applyCharacterState({ emotion: "thinking", gesture: "think", intensity: 0.5, text: "Боловсруулж байна…" });
+    }, 220);
+  }
+
+  function finalizeAnswerReaction(packet) {
+    applyCharacterState({
+      emotion: packet.emotion,
+      gesture: packet.gesture === "idle" ? "talk" : packet.gesture,
+      intensity: packet.intensity,
+      text: "Хариулж байна…"
+    });
+
+    setTimeout(() => {
+      if (!mounted || sending) return;
+      applyCharacterState({ emotion: mood, gesture: "idle", intensity: 0.28, text: "ONI AI ready." });
+    }, 1400);
   }
 
   async function sendMessage(rawInput) {
@@ -364,31 +402,30 @@ export function createOniAiModule() {
     if (sending) return;
 
     inlineError = "";
-    lastUserPrompt = message;
     appendMessage("user", message);
 
     const quick = handleMusicQuickCommand(message);
     if (quick?.handled) {
       appendMessage("ai", quick.message || "OK");
       lastFailurePrompt = "";
-      backendState = "Local music command";
+      applyCharacterState({ emotion: "music", gesture: "dance-subtle", intensity: 0.6, text: "Music control done." });
       renderUiState();
       return;
     }
 
     sending = true;
-    backendState = "Requesting secure backend…";
     setTyping(true);
+    startThinkingReaction();
     renderUiState();
 
     try {
-      const result = await callAiBackend(message);
-      if (!mounted || result?.stale) return;
+      const packet = await callAiBackend(message);
+      if (!mounted || packet?.stale) return;
       setTyping(false);
-      appendMessage("ai", result.reply || "Хариу ирсэнгүй.");
-      backendState = "Live";
+      appendMessage("ai", packet.text || "Хариу ирсэнгүй.", { sources: packet.sources });
       lastFailurePrompt = "";
-      await loadKnowledgeSnapshot();
+      executeUiAction(packet.uiAction);
+      finalizeAnswerReaction(packet);
     } catch (error) {
       if (!mounted) return;
       setTyping(false);
@@ -396,75 +433,14 @@ export function createOniAiModule() {
         ? "30 секундийн дотор хариу ирсэнгүй."
         : toErrorText(error);
       inlineError = reason;
-      backendState = "Request failed";
       lastFailurePrompt = message;
       appendMessage("ai", `⚠️ ${reason}`);
+      applyCharacterState({ emotion: "concerned", gesture: "calm", intensity: 0.35, text: "Сүлжээний алдаа гарлаа." });
     } finally {
       if (!mounted) return;
       sending = false;
       renderUiState();
     }
-  }
-
-  function bindMusicUi() {
-    const n = nodes();
-
-    if (n.musicPrev instanceof HTMLButtonElement) {
-      const onPrev = () => {
-        const result = playTrackAt(getMusicSnapshot().index - 1);
-        if (result.message) appendMessage("ai", result.message);
-      };
-      n.musicPrev.addEventListener("click", onPrev);
-      disposers.push(() => n.musicPrev.removeEventListener("click", onPrev));
-    }
-
-    if (n.musicPlay instanceof HTMLButtonElement) {
-      const onPlay = () => {
-        const snap = getMusicSnapshot();
-        const result = snap.paused ? playMusic() : pauseMusic();
-        if (result.message) appendMessage("ai", result.message);
-      };
-      n.musicPlay.addEventListener("click", onPlay);
-      disposers.push(() => n.musicPlay.removeEventListener("click", onPlay));
-    }
-
-    if (n.musicNext instanceof HTMLButtonElement) {
-      const onNext = () => {
-        const result = nextTrack();
-        if (result.message) appendMessage("ai", result.message);
-      };
-      n.musicNext.addEventListener("click", onNext);
-      disposers.push(() => n.musicNext.removeEventListener("click", onNext));
-    }
-
-    if (n.musicVolume instanceof HTMLInputElement) {
-      const onVolume = () => setMusicVolume(n.musicVolume.value);
-      n.musicVolume.addEventListener("input", onVolume, { passive: true });
-      disposers.push(() => n.musicVolume.removeEventListener("input", onVolume));
-    }
-
-    const onMusic = subscribeMusicState(snapshot => {
-      if (!mounted) return;
-      const view = nodes();
-      if (view.musicCount) view.musicCount.textContent = `${snapshot.tracks.length} songs`;
-      if (view.musicTitle) view.musicTitle.textContent = snapshot.current?.title || "NO MUSIC";
-      if (view.musicArtist) view.musicArtist.textContent = snapshot.current?.artist || "ADMIN-аас дуу нийтлэнэ";
-      if (view.musicTime) {
-        view.musicTime.textContent = `${formatTime(snapshot.currentTime)} / ${formatTime(snapshot.duration)}`;
-      }
-      if (view.musicProgress) {
-        const ratio = snapshot.duration > 0 ? Math.min(100, (snapshot.currentTime / snapshot.duration) * 100) : 0;
-        view.musicProgress.style.width = `${ratio}%`;
-      }
-      if (view.musicPlay instanceof HTMLButtonElement) {
-        view.musicPlay.textContent = snapshot.paused ? "▶" : "Ⅱ";
-      }
-      if (snapshot.error) {
-        inlineError = snapshot.error;
-        renderUiState();
-      }
-    });
-    disposers.push(onMusic);
   }
 
   function bindDom() {
@@ -523,13 +499,46 @@ export function createOniAiModule() {
       disposers.push(() => button.removeEventListener("click", onClick));
     });
 
-    bindMusicUi();
+    if (n.character instanceof HTMLButtonElement) {
+      const onTap = () => {
+        const now = Date.now();
+        if (now < tapLockedUntil) return;
+        tapLockedUntil = now + 900;
+        const reactions = [
+          { emotion: "happy", gesture: "wave", text: "👋" },
+          { emotion: "playful", gesture: "nod", text: "🙂" },
+          { emotion: "surprised", gesture: "surprised", text: "!" }
+        ];
+        const pick = reactions[Math.floor(Math.random() * reactions.length)];
+        applyCharacterState({ ...pick, intensity: 0.42 });
+      };
+      n.character.addEventListener("click", onTap);
+      disposers.push(() => n.character.removeEventListener("click", onTap));
+    }
+
+    const onMusic = subscribeMusicState(snapshot => {
+      if (!mounted) return;
+      if (!snapshot.paused && snapshot.current) {
+        applyCharacterState({ emotion: "music", gesture: "dance-subtle", intensity: 0.52, text: `♪ ${snapshot.current.title}` });
+      }
+    });
+    disposers.push(onMusic);
+
+    const onMeet = subscribeMeetWorldState(snapshot => {
+      if (!mounted) return;
+      meetState = snapshot.state;
+      if (snapshot.state === "LIVE") {
+        applyCharacterState({ emotion: "meet-live", gesture: "battle-ready", intensity: 0.68, text: "ONI MEET LIVE" });
+      }
+      renderUiState();
+    });
+    disposers.push(onMeet);
   }
 
   return {
     key: "oni-ai",
     title: "ONI AI",
-    description: "Secure ONI AI chat with Mongolian-first UX and integrated clan music controls.",
+    description: "Secure ONI Brain chat with Mongolian-first UX, citations, and living character states.",
     status: "live",
 
     mount(root) {
@@ -542,17 +551,16 @@ export function createOniAiModule() {
       mounted = true;
       sending = false;
       requestToken += 1;
-      lastUserPrompt = "";
       lastFailurePrompt = "";
       inlineError = "";
-      backendState = "Idle";
-      knowledgeState = "Syncing…";
+      meetState = "NONE";
+      mood = "neutral";
 
       host.innerHTML = routeMarkup();
       bindDom();
       startMusicIntegration();
-      appendMessage("ai", "Сайн уу. Би ONI AI. Монгол хэлээр асуугаарай — clan data болон music control-д тусална.");
-      loadKnowledgeSnapshot();
+      appendMessage("ai", "Сайн уу. Би ONI AI — чөлөөтэй асуугаарай.");
+      applyCharacterState({ emotion: "neutral", gesture: "idle", intensity: 0.25, text: "ONI AI ready." });
       renderUiState();
     },
 
