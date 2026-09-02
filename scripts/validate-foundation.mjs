@@ -39,6 +39,7 @@ function checkRequiredFiles() {
     "v2/js/garage.js",
     "v2/js/music.js",
     "v2/js/meet.js",
+    "v2/js/join.js",
     "v2/js/market.js",
     "v2/js/oni-ai.js",
     "v2/admin/index.html",
@@ -563,6 +564,597 @@ async function checkGarageModuleBehavior() {
     assert(flakyGrid?.listenerCount("click") === 1, "Garage delegated retry listener must be reattached once on remount");
   }
 
+  function createBaseFakeNodeClasses() {
+    class Element {
+      constructor() {
+        this.listeners = new Map();
+        this.dataset = {};
+        this.value = "";
+        this.textContent = "";
+        this.innerHTML = "";
+        this.disabled = false;
+      }
+      addEventListener(type, handler) {
+        if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+        this.listeners.get(type).add(handler);
+      }
+      removeEventListener(type, handler) {
+        const handlers = this.listeners.get(type);
+        if (!handlers) return;
+        handlers.delete(handler);
+        if (!handlers.size) this.listeners.delete(type);
+      }
+      trigger(type, event = {}) {
+        const handlers = this.listeners.get(type);
+        if (!handlers) return;
+        for (const handler of [...handlers]) handler(event);
+      }
+      listenerCount(type) {
+        return this.listeners.get(type)?.size || 0;
+      }
+      closest() {
+        return null;
+      }
+    }
+
+    class HTMLElement extends Element {}
+    class HTMLButtonElement extends HTMLElement {}
+    class HTMLInputElement extends HTMLElement {}
+    class HTMLTextAreaElement extends HTMLElement {}
+    class HTMLSelectElement extends HTMLElement {}
+    class HTMLFormElement extends HTMLElement {
+      reset() {}
+    }
+
+    return {
+      Element,
+      HTMLElement,
+      HTMLButtonElement,
+      HTMLInputElement,
+      HTMLTextAreaElement,
+      HTMLSelectElement,
+      HTMLFormElement
+    };
+  }
+
+  function compileMeetValidationExports({
+    membersDocs = [],
+    meetDoc = null,
+    participantDocs = [],
+    getDocImpl,
+    getDocsImpl,
+    setDocImpl
+  } = {}) {
+    const source = read("v2/js/meet.js");
+    const transformed = source
+      .replace(/^import\s.+?;\s*$/gm, "")
+      .replace(/export function\s+/g, "function ")
+      + "\nmodule.exports = { createMeetModule, normalizeMeetRecord, normalizeMeetParticipant, parseTimestampMs, getMeetState, formatCountdown, meetRouteMarkup };";
+
+    const klasses = createBaseFakeNodeClasses();
+    const snapshotUnsubs = [];
+    const intervalHandles = [];
+    let nextIntervalId = 1;
+    let activeIntervalCount = 0;
+    let setDocCalls = 0;
+    let getDocCalls = 0;
+    let getDocsCalls = 0;
+    let onSnapshotCalls = 0;
+
+    function asDoc(data, id) {
+      return {
+        id,
+        data: () => data
+      };
+    }
+
+    const context = {
+      module: { exports: {} },
+      exports: {},
+      console,
+      Math,
+      Date,
+      navigator: { clipboard: { writeText: async () => {} } },
+      localStorage: {
+        map: new Map(),
+        getItem(key) { return this.map.has(key) ? this.map.get(key) : null; },
+        setItem(key, value) { this.map.set(key, String(value)); },
+        removeItem(key) { this.map.delete(key); }
+      },
+      ...klasses,
+      setInterval(handler) {
+        const id = nextIntervalId++;
+        intervalHandles.push({ id, handler, active: true });
+        activeIntervalCount += 1;
+        return id;
+      },
+      clearInterval(id) {
+        const handle = intervalHandles.find(item => item.id === id && item.active);
+        if (!handle) return;
+        handle.active = false;
+        activeIntervalCount = Math.max(0, activeIntervalCount - 1);
+      },
+      collection: (_, name) => ({ kind: "collection", name }),
+      doc: (_, name, id) => ({ kind: "doc", name, id }),
+      where: (field, op, value) => ({ field, op, value }),
+      query: (...parts) => ({ kind: "query", parts }),
+      getFirestoreDb: () => ({}),
+      serverTimestamp: () => ({ __kind: "serverTimestamp" }),
+      getDoc: async ref => {
+        getDocCalls += 1;
+        if (typeof getDocImpl === "function") return getDocImpl(ref);
+        return {
+          exists: () => false,
+          data: () => ({})
+        };
+      },
+      getDocs: async queryRef => {
+        getDocsCalls += 1;
+        if (typeof getDocsImpl === "function") return getDocsImpl(queryRef);
+        return {
+          docs: participantDocs.map(item => asDoc(item.data, item.id))
+        };
+      },
+      setDoc: async (...args) => {
+        setDocCalls += 1;
+        if (typeof setDocImpl === "function") return setDocImpl(...args);
+      },
+      onSnapshot(ref, next, error) {
+        onSnapshotCalls += 1;
+        if (ref?.kind === "doc" && ref.name === "meets") {
+          const snap = meetDoc
+            ? { exists: () => true, id: ref.id, data: () => meetDoc }
+            : { exists: () => false, id: ref.id, data: () => ({}) };
+          try { next(snap); } catch (err) { error?.(err); }
+        }
+        if (ref?.kind === "collection" && ref.name === "members") {
+          try { next({ docs: membersDocs.map(item => asDoc(item.data, item.id)) }); } catch (err) { error?.(err); }
+        }
+        if (ref?.kind === "query") {
+          try { next({ docs: participantDocs.map(item => asDoc(item.data, item.id)) }); } catch (err) { error?.(err); }
+        }
+        const unsub = () => { unsub.called = true; };
+        unsub.called = false;
+        snapshotUnsubs.push(unsub);
+        return unsub;
+      }
+    };
+
+    vm.runInNewContext(transformed, context, { filename: "v2/js/meet.js" });
+    return {
+      exports: context.module.exports,
+      classes: klasses,
+      getSetDocCalls: () => setDocCalls,
+      getGetDocCalls: () => getDocCalls,
+      getGetDocsCalls: () => getDocsCalls,
+      getOnSnapshotCalls: () => onSnapshotCalls,
+      getActiveIntervals: () => activeIntervalCount,
+      getUnsubs: () => snapshotUnsubs
+    };
+  }
+
+  function createFakeMeetRoot(classes) {
+    const {
+      HTMLElement,
+      HTMLButtonElement,
+      HTMLInputElement,
+      HTMLFormElement
+    } = classes;
+
+    class FakeRoot extends HTMLElement {
+      constructor() {
+        super();
+        this.innerHTML = "";
+        this.nodes = new Map();
+
+        const node = (selector, value) => {
+          this.nodes.set(selector, value);
+          return value;
+        };
+
+        node("[data-meet-state-pill]", new HTMLElement());
+        node("[data-meet-title]", new HTMLElement());
+        node("[data-meet-room-label]", new HTMLElement());
+        node("[data-meet-countdown-label]", new HTMLElement());
+        node("[data-meet-countdown]", new HTMLElement());
+        node("[data-meet-start]", new HTMLElement());
+        node("[data-meet-end]", new HTMLElement());
+        node("[data-meet-capacity]", new HTMLElement());
+        node("[data-meet-participants-count]", new HTMLElement());
+        node("[data-meet-room-id]", new HTMLElement());
+        node("[data-meet-password]", new HTMLElement());
+        node("[data-meet-participant-list]", new HTMLElement());
+        node("[data-meet-registration-state]", new HTMLElement());
+        node("[data-meet-error]", new HTMLElement());
+
+        const form = new HTMLFormElement();
+        form.reset = () => {
+          const nick = this.nodes.get("[data-meet-nick]");
+          const cpm = this.nodes.get("[data-meet-cpm]");
+          if (nick) nick.value = "";
+          if (cpm) cpm.value = "";
+        };
+        node("[data-meet-form]", form);
+        node("[data-meet-retry]", new HTMLButtonElement());
+        node("[data-meet-join]", new HTMLButtonElement());
+        node("[data-meet-nick]", new HTMLInputElement());
+        node("[data-meet-cpm]", new HTMLInputElement());
+      }
+
+      querySelector(selector) {
+        return this.nodes.get(selector) || null;
+      }
+
+      node(selector) {
+        return this.nodes.get(selector) || null;
+      }
+    }
+
+    return new FakeRoot();
+  }
+
+  function compileJoinValidationExports({
+    addDocImpl,
+    getDocsImpl
+  } = {}) {
+    const source = read("v2/js/join.js");
+    const transformed = source
+      .replace(/^import\s.+?;\s*$/gm, "")
+      .replace(/export function\s+/g, "function ")
+      + "\nmodule.exports = { createJoinModule, normalizeApplicationRecord, normalizeJoinDraft, validateJoinDraft, buildApplicationPayload, joinRouteMarkup };";
+
+    const klasses = createBaseFakeNodeClasses();
+    let addDocCalls = 0;
+    let getDocsCalls = 0;
+
+    const context = {
+      module: { exports: {} },
+      exports: {},
+      console,
+      Math,
+      Date,
+      ...klasses,
+      localStorage: {
+        map: new Map(),
+        getItem(key) { return this.map.has(key) ? this.map.get(key) : null; },
+        setItem(key, value) { this.map.set(key, String(value)); },
+        removeItem(key) { this.map.delete(key); }
+      },
+      collection: (_, name) => ({ kind: "collection", name }),
+      where: (field, op, value) => ({ field, op, value }),
+      query: (...parts) => ({ kind: "query", parts }),
+      limit: value => ({ limit: value }),
+      getFirestoreDb: () => ({}),
+      serverTimestamp: () => ({ __kind: "serverTimestamp" }),
+      getDocs: async (...args) => {
+        getDocsCalls += 1;
+        if (typeof getDocsImpl === "function") return getDocsImpl(...args);
+        return { docs: [] };
+      },
+      addDoc: async (...args) => {
+        addDocCalls += 1;
+        if (typeof addDocImpl === "function") return addDocImpl(...args);
+        return { id: "new-app" };
+      }
+    };
+
+    vm.runInNewContext(transformed, context, { filename: "v2/js/join.js" });
+    return {
+      exports: context.module.exports,
+      classes: klasses,
+      getAddDocCalls: () => addDocCalls,
+      getGetDocsCalls: () => getDocsCalls
+    };
+  }
+
+  function createFakeJoinRoot(classes) {
+    const {
+      HTMLElement,
+      HTMLInputElement,
+      HTMLSelectElement,
+      HTMLTextAreaElement,
+      HTMLButtonElement,
+      HTMLFormElement
+    } = classes;
+
+    class FakeRoot extends HTMLElement {
+      constructor() {
+        super();
+        this.innerHTML = "";
+        this.nodes = new Map();
+
+        const field = (name, node) => {
+          this.nodes.set(`[data-join-field="${name}"]`, node);
+          return node;
+        };
+
+        field("first", new HTMLInputElement());
+        field("last", new HTMLInputElement());
+        field("age", new HTMLInputElement());
+        field("gender", new HTMLSelectElement());
+        field("cpmid", new HTMLInputElement());
+        field("nick", new HTMLInputElement());
+        field("direction", new HTMLSelectElement());
+        field("contactType", new HTMLSelectElement());
+        field("contact", new HTMLInputElement());
+        field("experience", new HTMLSelectElement());
+        field("message", new HTMLTextAreaElement());
+
+        this.nodes.set("[data-join-state]", new HTMLElement());
+        this.nodes.set("[data-join-error]", new HTMLElement());
+        this.nodes.set("[data-join-submit]", new HTMLButtonElement());
+        this.nodes.set("[data-join-reset]", new HTMLButtonElement());
+
+        const form = new HTMLFormElement();
+        form.reset = () => {
+          for (const [selector, node] of this.nodes.entries()) {
+            if (!selector.startsWith("[data-join-field=")) continue;
+            node.value = "";
+          }
+        };
+        this.nodes.set("[data-join-form]", form);
+      }
+      querySelector(selector) {
+        return this.nodes.get(selector) || null;
+      }
+      node(selector) {
+        return this.nodes.get(selector) || null;
+      }
+    }
+
+    return new FakeRoot();
+  }
+
+  async function checkMeetModuleBehavior() {
+    const currentMeetDoc = {
+      name: "ONI NIGHT MEET",
+      roomLabel: "ONI & KISHIN · CPM 1",
+      startAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+      durationMinutes: 20,
+      roomId: "ROOM-88",
+      password: "PASS-88",
+      maxPlayers: 20,
+      enabled: true
+    };
+    const membersDocs = [{ id: "m1", data: { nick: "Kitsune", cpmid: "ONI0001" } }];
+    const participantDocs = [{ id: "__counter__", data: { meetId: "current" } }];
+
+    const validation = compileMeetValidationExports({
+      meetDoc: currentMeetDoc,
+      membersDocs,
+      participantDocs,
+      getDocImpl: async () => ({ exists: () => false, data: () => ({}) }),
+      getDocsImpl: async () => ({ docs: [] })
+    });
+
+    const {
+      normalizeMeetRecord,
+      normalizeMeetParticipant,
+      parseTimestampMs,
+      getMeetState,
+      formatCountdown,
+      meetRouteMarkup,
+      createMeetModule
+    } = validation.exports;
+
+    assert(typeof createMeetModule === "function", "v2/js/meet.js must export createMeetModule()");
+    assert(typeof normalizeMeetRecord === "function", "v2/js/meet.js must export normalizeMeetRecord()");
+    assert(typeof normalizeMeetParticipant === "function", "v2/js/meet.js must export normalizeMeetParticipant()");
+    assert(typeof parseTimestampMs === "function", "v2/js/meet.js must export parseTimestampMs()");
+    assert(typeof getMeetState === "function", "v2/js/meet.js must export getMeetState()");
+    assert(typeof formatCountdown === "function", "v2/js/meet.js must export formatCountdown()");
+    assert(typeof meetRouteMarkup === "function", "v2/js/meet.js must export meetRouteMarkup()");
+
+    const current = normalizeMeetRecord(currentMeetDoc, "current");
+    assert(current.roomId === "ROOM-88", "Meet current schema normalization must preserve roomId");
+    assert(current.password === "PASS-88", "Meet current schema normalization must preserve password");
+
+    const legacy = normalizeMeetRecord({
+      meetName: "LEGACY MEET",
+      start: { seconds: 2_000_000_000 },
+      pass: "LEGACY-PASS",
+      roomCode: "LEGACY-ID",
+      duration: 15,
+      maxParticipants: 8,
+      active: true
+    }, "current");
+    assert(legacy.title === "LEGACY MEET", "Meet legacy schema normalization must map legacy name field");
+    assert(legacy.password === "LEGACY-PASS", "Meet legacy schema normalization must map legacy pass field");
+    assert(legacy.roomId === "LEGACY-ID", "Meet legacy schema normalization must map legacy room identifier");
+    assert(legacy.maxPlayers === 8, "Meet legacy schema normalization must map legacy participant limit");
+
+    const missing = normalizeMeetRecord({}, "current");
+    assert(missing.maxPlayers >= 1, "Meet normalization must provide fallback max players");
+    assert(Number.isNaN(missing.startAtMs), "Malformed meet records must not create fake start timestamps");
+
+    const normalizedParticipant = normalizeMeetParticipant({ nick: "Alpha", cpmid: "CPM-1", meetStartAt: { seconds: 123 } }, "p-1");
+    assert(normalizedParticipant.cpmId === "CPM-1", "Meet participant normalization must support legacy cpmid field");
+
+    const startMs = Date.now() + 60_000;
+    const activeMeet = { enabled: true, startAtMs: startMs - 30_000, endAtMs: startMs + 30_000 };
+    assert(getMeetState({ enabled: true, startAtMs: startMs, endAtMs: startMs + 60_000 }, startMs - 1) === "upcoming", "Meet state must detect upcoming state");
+    assert(getMeetState(activeMeet, startMs) === "active", "Meet state must detect active state");
+    assert(getMeetState(activeMeet, startMs + 31_000) === "expired", "Meet state must detect expired state");
+    assert(formatCountdown(-1000) === "00:00:00", "Meet countdown must never show negative values");
+    assert(formatCountdown(3700_000).startsWith("01:01"), "Meet countdown should format absolute remaining time");
+
+    const routeMarkup = meetRouteMarkup();
+    assert(routeMarkup.includes("data-meet-form"), "Meet route markup must include registration form");
+
+    let setDocCalls = 0;
+    const registerValidation = compileMeetValidationExports({
+      meetDoc: { ...currentMeetDoc, startAt: new Date(Date.now() - 60_000).toISOString() },
+      membersDocs,
+      participantDocs: [],
+      getDocImpl: async () => ({ exists: () => false, data: () => ({}) }),
+      getDocsImpl: async () => ({ docs: [] }),
+      setDocImpl: async () => { setDocCalls += 1; }
+    });
+
+    const meetModule = registerValidation.exports.createMeetModule();
+    const meetRoot = createFakeMeetRoot(registerValidation.classes);
+    meetRoot.node("[data-meet-nick]").value = "Kitsune";
+    meetRoot.node("[data-meet-cpm]").value = "ONI0001";
+    meetModule.mount(meetRoot);
+    meetModule.mount(meetRoot);
+
+    const form = meetRoot.node("[data-meet-form]");
+    const event = { preventDefault() {} };
+    form.trigger("submit", event);
+    form.trigger("submit", event);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert(setDocCalls === 1, "Meet registration must block duplicate/double-tap writes");
+    assert(registerValidation.getOnSnapshotCalls() >= 2, "Meet module must subscribe to meet and member/participant snapshots");
+    assert(registerValidation.getActiveIntervals() === 1, "Meet module must keep a single active timer");
+
+    meetModule.unmount();
+    assert(registerValidation.getActiveIntervals() === 0, "Meet module must cleanup timer on unmount");
+    assert(registerValidation.getUnsubs().every(unsub => unsub.called), "Meet module must cleanup snapshot listeners on unmount");
+  }
+
+  async function checkJoinModuleBehavior() {
+    const validation = compileJoinValidationExports();
+    const {
+      createJoinModule,
+      normalizeApplicationRecord,
+      normalizeJoinDraft,
+      validateJoinDraft,
+      buildApplicationPayload,
+      joinRouteMarkup
+    } = validation.exports;
+
+    assert(typeof createJoinModule === "function", "v2/js/join.js must export createJoinModule()");
+    assert(typeof normalizeApplicationRecord === "function", "v2/js/join.js must export normalizeApplicationRecord()");
+    assert(typeof normalizeJoinDraft === "function", "v2/js/join.js must export normalizeJoinDraft()");
+    assert(typeof validateJoinDraft === "function", "v2/js/join.js must export validateJoinDraft()");
+    assert(typeof buildApplicationPayload === "function", "v2/js/join.js must export buildApplicationPayload()");
+    assert(typeof joinRouteMarkup === "function", "v2/js/join.js must export joinRouteMarkup()");
+
+    const current = normalizeApplicationRecord({ first: "A", last: "B", nick: "K", cpmid: "CPM-1", status: "Шинэ" }, "1");
+    assert(current.firstName === "A", "Join current schema normalization must keep first field");
+    assert(current.cpmId === "CPM-1", "Join current schema normalization must keep cpmid field");
+
+    const legacy = normalizeApplicationRecord({ firstName: "L", lastName: "G", nickname: "Old", cpmId: "LEG-1" }, "2");
+    assert(legacy.firstName === "L", "Join legacy normalization must map firstName");
+    assert(legacy.nickname === "Old", "Join legacy normalization must map nickname");
+
+    const draft = normalizeJoinDraft({
+      first: " First ",
+      last: " Last ",
+      age: "19",
+      gender: "Эрэгтэй",
+      cpmid: " oni-7 ",
+      nick: " Kitsune ",
+      direction: "Clean Car",
+      contactType: "Instagram",
+      contact: "@oni",
+      experience: "1 – 2 жил",
+      message: "hello"
+    });
+    assert(draft.cpmid === "ONI-7", "Join draft normalization must uppercase CPM ID");
+
+    const invalid = validateJoinDraft(normalizeJoinDraft({}));
+    assert(!invalid.valid, "Join validation must reject missing required fields");
+
+    const wsInvalid = validateJoinDraft(normalizeJoinDraft({
+      first: "   ",
+      last: "   ",
+      age: "19",
+      gender: "Эрэгтэй",
+      cpmid: "  ",
+      nick: "  ",
+      direction: "",
+      contactType: "",
+      contact: " ",
+      experience: ""
+    }));
+    assert(!wsInvalid.valid, "Join validation must reject whitespace-only values");
+
+    const cpmInvalid = validateJoinDraft(normalizeJoinDraft({
+      first: "A",
+      last: "B",
+      age: "19",
+      gender: "Эрэгтэй",
+      cpmid: "A",
+      nick: "Nick",
+      direction: "Clean Car",
+      contactType: "Instagram",
+      contact: "@x",
+      experience: "6 сараас бага"
+    }));
+    assert(!cpmInvalid.valid, "Join validation must enforce CPM ID compatibility length rules");
+
+    const payload = buildApplicationPayload(draft);
+    assert(payload.status === "Шинэ", "Join payload must preserve default application status");
+    assert(payload.firstName === draft.first && payload.lastName === draft.last, "Join payload must preserve admin-compatible legacy aliases");
+    assert(payload.cpmid === payload.cpmId, "Join payload must include both cpmid and cpmId fields");
+
+    assert(joinRouteMarkup().includes("data-join-form"), "Join route markup must include application form");
+
+    let addDocCalls = 0;
+    let shouldFailFirstSubmit = true;
+    const moduleValidation = compileJoinValidationExports({
+      getDocsImpl: async () => ({ docs: [] }),
+      addDocImpl: async () => {
+        addDocCalls += 1;
+        if (shouldFailFirstSubmit) {
+          shouldFailFirstSubmit = false;
+          throw new Error("forced write failure");
+        }
+        return { id: "new-application" };
+      }
+    });
+    const joinModule = moduleValidation.exports.createJoinModule();
+    const joinRoot = createFakeJoinRoot(moduleValidation.classes);
+    joinModule.mount(joinRoot);
+    joinModule.mount(joinRoot);
+
+    const set = (name, value) => {
+      const node = joinRoot.node(`[data-join-field="${name}"]`);
+      if (node) node.value = value;
+    };
+    set("first", "Erkaa");
+    set("last", "Sudo");
+    set("age", "21");
+    set("gender", "Эрэгтэй");
+    set("cpmid", "ONI001");
+    set("nick", "Kitsune");
+    set("direction", "Clean Car");
+    set("contactType", "Instagram");
+    set("contact", "@oni");
+    set("experience", "1 – 2 жил");
+    set("message", "Ready");
+
+    const submitEvent = { preventDefault() {} };
+    const form = joinRoot.node("[data-join-form]");
+
+    form.trigger("submit", submitEvent);
+    form.trigger("submit", submitEvent);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(addDocCalls === 1, "Join must allow one Firestore write per intentional submit action");
+
+    form.trigger("submit", submitEvent);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(addDocCalls === 2, "Join must allow safe retry after a failed submit");
+
+    const submitButton = joinRoot.node("[data-join-submit]");
+    assert(submitButton?.disabled === true, "Join submit button must lock after successful submission to prevent immediate duplicate resubmits");
+
+    joinModule.unmount();
+    const resetButton = joinRoot.node("[data-join-reset]");
+    assert(resetButton?.listenerCount("click") === 0, "Join module must cleanup listeners on unmount");
+
+    joinModule.mount(joinRoot);
+    assert(resetButton?.listenerCount("click") === 1, "Join module must rebind listeners exactly once on remount");
+  }
+
 function checkServiceWorkerPrecache() {
   const sw = read("v2/sw.js");
   const shellMatch = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
@@ -636,9 +1228,14 @@ function checkLocalAssetReferences() {
 function checkV2Isolation() {
   const v2Index = read("v2/index.html");
   const v2App = read("v2/js/app.js");
+  const v2Router = read("v2/js/router.js");
   const v2Sw = read("v2/sw.js");
 
   assert(v2Index.includes("./manifest.webmanifest"), "v2/index.html must link v2 manifest");
+  assert(v2Index.includes('data-route="join"'), "v2/index.html must expose JOIN navigation route");
+  assert(v2App.includes('from "./join.js"'), "v2/js/app.js must integrate join module import");
+  assert(v2Router.includes('"join"'), "v2/js/router.js must allow join route navigation");
+  assert(v2Sw.includes('BASE + "js/join.js"'), "v2/sw.js must precache join module");
   assert(v2App.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/js/app.js must register v2 scope only");
   assert(v2Sw.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/sw.js BASE must stay /oni-kishin-web/v2/");
   assert(v2Sw.includes('url.pathname.startsWith("/oni-kishin-web/v2/")'), "v2/sw.js fetch handling must stay restricted to /v2/");
@@ -656,6 +1253,8 @@ async function run() {
   checkV2Isolation();
   await checkMembersModuleBehavior();
   await checkGarageModuleBehavior();
+  await checkMeetModuleBehavior();
+  await checkJoinModuleBehavior();
   checkProtectedProductionFilesUnchanged();
 
   if (errors.length) {

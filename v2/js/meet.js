@@ -1,8 +1,801 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  setDoc,
+  where
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+import { getFirestoreDb } from "./firebase.js";
+
+const MEET_DOC_ID = "current";
+const DEFAULT_DURATION_MINUTES = 20;
+const DEFAULT_MAX_PLAYERS = 20;
+const JOINED_KEY_STORAGE = "oni.v2.meet.joinedKey";
+const JOINED_TOKEN_STORAGE = "oni.v2.meet.joinedToken";
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[ch]));
+}
+
+function asText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function pickFirstText(...values) {
+  for (const value of values) {
+    const text = asText(value);
+    if (text) return text;
+  }
+  return "";
+}
+
+function toPositiveNumber(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return fallback;
+  return number;
+}
+
+export function parseTimestampMs(value) {
+  if (value == null || value === "") return NaN;
+  if (typeof value?.toMillis === "function") return value.toMillis();
+  if (typeof value?.seconds === "number") {
+    return value.seconds * 1000 + Math.floor(Number(value.nanoseconds || 0) / 1e6);
+  }
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === "number") return value < 1e12 ? value * 1000 : value;
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
+function normalizeMeetToken(rawMeet = {}) {
+  const startSource = rawMeet.startAt ?? rawMeet.start ?? rawMeet.startTime ?? rawMeet.startsAt;
+  const startMs = parseTimestampMs(startSource);
+  if (Number.isFinite(startMs)) return `start:${startMs}`;
+  const endSource = rawMeet.endAt ?? rawMeet.end ?? rawMeet.endTime ?? rawMeet.endsAt;
+  const endMs = parseTimestampMs(endSource);
+  if (Number.isFinite(endMs)) return `end:${endMs}`;
+  const updatedMs = parseTimestampMs(rawMeet.updatedAt);
+  if (Number.isFinite(updatedMs)) return `updated:${updatedMs}`;
+  return MEET_DOC_ID;
+}
+
+export function normalizeMeetRecord(raw = {}, docId = MEET_DOC_ID) {
+  const durationMinutes = toPositiveNumber(raw.durationMinutes ?? raw.duration ?? raw.durationMin, DEFAULT_DURATION_MINUTES);
+  const startRaw = raw.startAt ?? raw.start ?? raw.startTime ?? raw.startsAt;
+  const startMs = parseTimestampMs(startRaw);
+  const endRaw = raw.endAt ?? raw.end ?? raw.endTime ?? raw.endsAt;
+  const explicitEndMs = parseTimestampMs(endRaw);
+  const endMs = Number.isFinite(explicitEndMs)
+    ? explicitEndMs
+    : (Number.isFinite(startMs) ? startMs + durationMinutes * 60_000 : NaN);
+
+  const statusText = String(raw.status ?? "").toLowerCase();
+  const enabled = raw.enabled === false
+    ? false
+    : raw.active === false
+      ? false
+      : statusText === "disabled" || statusText === "hidden" || statusText === "inactive"
+        ? false
+        : true;
+
+  const maxPlayers = Math.max(1, Math.min(200, toPositiveNumber(
+    raw.maxPlayers ?? raw.maxParticipants ?? raw.participantLimit ?? raw.capacity ?? raw.max,
+    DEFAULT_MAX_PLAYERS
+  )));
+
+  const roomId = pickFirstText(raw.roomId, raw.meetId, raw.id, raw.roomCode, raw.code);
+  const password = pickFirstText(raw.password, raw.pass, raw.roomPass, raw.roomPassword, raw.PASS);
+
+  return {
+    id: asText(docId) || MEET_DOC_ID,
+    enabled,
+    title: pickFirstText(raw.name, raw.title, raw.meetName, "ONI NIGHT MEET"),
+    roomLabel: pickFirstText(raw.roomLabel, raw.description, raw.label, "ONI & KISHIN · CPM 1"),
+    roomId,
+    password,
+    maxPlayers,
+    durationMinutes,
+    startAtRaw: startRaw ?? null,
+    endAtRaw: endRaw ?? null,
+    startAtMs: startMs,
+    endAtMs: endMs,
+    token: normalizeMeetToken(raw),
+    raw
+  };
+}
+
+export function normalizeMeetParticipant(raw = {}, docId = "") {
+  const nick = pickFirstText(raw.nick, raw.nickname, raw.name, raw.memberNick, "ONI MEMBER");
+  const cpmId = pickFirstText(raw.cpmId, raw.cpmid, raw.memberCpmId);
+  const memberId = pickFirstText(raw.memberId, raw.playerId, raw.uid, raw.id);
+  const meetStartMs = parseTimestampMs(raw.meetStartAt ?? raw.startAt);
+  const joinedAtMs = parseTimestampMs(raw.joinedAt ?? raw.createdAt);
+
+  return {
+    id: asText(docId),
+    nick,
+    cpmId,
+    memberId,
+    meetId: pickFirstText(raw.meetId, raw.eventId, MEET_DOC_ID),
+    meetStartMs,
+    meetStartRaw: raw.meetStartAt ?? raw.startAt ?? null,
+    joinedAtMs,
+    raw
+  };
+}
+
+export function getMeetState(meet, nowMs = Date.now()) {
+  if (!meet || meet.enabled === false) return "none";
+  if (!Number.isFinite(meet.startAtMs)) return "none";
+  if (!Number.isFinite(meet.endAtMs)) return "none";
+  if (nowMs < meet.startAtMs) return "upcoming";
+  if (nowMs < meet.endAtMs) return "active";
+  return "expired";
+}
+
+export function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = value => String(Math.max(0, value)).padStart(2, "0");
+
+  if (days > 0) return `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function formatDateTime(ms) {
+  if (!Number.isFinite(ms)) return "—";
+  return new Date(ms).toLocaleString("mn-MN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+}
+
+function memberNick(record = {}) {
+  return pickFirstText(record.nick, record.nickname, record.cpmNick, record.name, record.first, "");
+}
+
+function memberCpmId(record = {}) {
+  return pickFirstText(record.cpmid, record.cpmId, record.cpm_id, record.cpm, record.playerId, record.id, "");
+}
+
+function participantBelongsToMeet(participant, meet) {
+  if (!participant || !meet) return false;
+  if (participant.meetId && participant.meetId !== MEET_DOC_ID) return false;
+
+  const participantStart = participant.meetStartMs;
+  if (Number.isFinite(participantStart) && Number.isFinite(meet.startAtMs)) {
+    return participantStart === meet.startAtMs;
+  }
+
+  const participantRaw = participant.meetStartRaw;
+  if (participantRaw != null && meet.startAtRaw != null) {
+    return String(participantRaw) === String(meet.startAtRaw);
+  }
+
+  return true;
+}
+
+function computeParticipantDocId(meetToken, memberId) {
+  return `${meetToken}__${String(memberId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+}
+
+function skeletonMarkup() {
+  return `
+    <section class="oni-meet-view" data-meet-view>
+      <header class="oni-section-head">
+        <h1>Meet</h1>
+        <p>Live ONI &amp; KISHIN meet status.</p>
+      </header>
+      <article class="oni-card oni-meet-hero is-loading" aria-hidden="true">
+        <div class="oni-meet-line"></div>
+        <div class="oni-meet-line wide"></div>
+        <div class="oni-meet-line"></div>
+        <div class="oni-meet-grid-skeleton">
+          <span></span><span></span><span></span>
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+export function meetRouteMarkup() {
+  return `
+    <section class="oni-meet-view" data-meet-view>
+      <header class="oni-section-head">
+        <h1>Meet</h1>
+        <p>Realtime ONI Meet status from Firestore <code>meets/current</code> and <code>meetParticipants</code>.</p>
+      </header>
+
+      <article class="oni-card oni-meet-hero" data-meet-hero>
+        <p class="oni-meet-kicker">ONI / KISHIN LIVE EVENT</p>
+        <div class="oni-meet-hero-head">
+          <div>
+            <p class="oni-meet-state" data-meet-state-pill>NO ACTIVE MEET</p>
+            <h2 data-meet-title>ONI NIGHT MEET</h2>
+            <p class="oni-meet-sub" data-meet-room-label>ONI &amp; KISHIN · CPM 1</p>
+          </div>
+          <button type="button" class="oni-btn oni-btn-ghost" data-meet-retry>Retry</button>
+        </div>
+
+        <div class="oni-meet-countdown-box">
+          <small data-meet-countdown-label>MEET STARTS IN</small>
+          <strong data-meet-countdown>00:00:00</strong>
+        </div>
+
+        <div class="oni-meet-meta-grid">
+          <div class="oni-meet-meta-item"><small>START</small><b data-meet-start>—</b></div>
+          <div class="oni-meet-meta-item"><small>END</small><b data-meet-end>—</b></div>
+          <div class="oni-meet-meta-item"><small>PLAYERS</small><b data-meet-capacity>0 / ${DEFAULT_MAX_PLAYERS}</b></div>
+        </div>
+
+        <div class="oni-meet-secret-grid">
+          <label class="oni-meet-secret">
+            <small>MEET ID</small>
+            <code data-meet-room-id>—</code>
+          </label>
+          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="roomId">Copy ID</button>
+          <label class="oni-meet-secret">
+            <small>PASS</small>
+            <code data-meet-password>LOCKED</code>
+          </label>
+          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="password">Copy PASS</button>
+        </div>
+
+        <form class="oni-meet-form" data-meet-form novalidate>
+          <label class="oni-meet-field">
+            <span>CPM Nick</span>
+            <input data-meet-nick type="text" maxlength="50" autocomplete="nickname" required placeholder="Kitsune">
+          </label>
+          <label class="oni-meet-field">
+            <span>CPM ID</span>
+            <input data-meet-cpm type="text" maxlength="40" autocomplete="off" required placeholder="ONI0001">
+          </label>
+          <button type="submit" class="oni-btn oni-btn-primary" data-meet-join>Join Meet</button>
+        </form>
+
+        <p class="oni-meet-inline-state" data-meet-registration-state role="status" aria-live="polite"></p>
+        <p class="oni-meet-inline-error" data-meet-error role="alert"></p>
+      </article>
+
+      <article class="oni-card oni-meet-participants" data-meet-participants-card>
+        <div class="oni-meet-participants-head">
+          <h3>Participants</h3>
+          <small data-meet-participants-count>0 / ${DEFAULT_MAX_PLAYERS}</small>
+        </div>
+        <div class="oni-meet-participant-list" data-meet-participant-list></div>
+      </article>
+    </section>
+  `;
+}
+
 export function createMeetModule() {
+  let host = null;
+  let isMounted = false;
+  let requestId = 0;
+  let timerId = 0;
+
+  let meet = null;
+  let members = [];
+  let participants = [];
+  let joinedKey = "";
+  let joinedMeetToken = "";
+  let loading = true;
+  let registering = false;
+  let errorMessage = "";
+  let registrationMessage = "";
+
+  let unsubscribeMeet = null;
+  let unsubscribeParticipants = null;
+  let unsubscribeMembers = null;
+
+  const dispose = [];
+
+  function clearListeners() {
+    while (dispose.length) {
+      const fn = dispose.pop();
+      try {
+        fn();
+      } catch {
+        // Ignore cleanup failures.
+      }
+    }
+  }
+
+  function stopTimer() {
+    if (!timerId) return;
+    clearInterval(timerId);
+    timerId = 0;
+  }
+
+  function startTimer() {
+    stopTimer();
+    timerId = setInterval(() => {
+      if (!isMounted) return;
+      render();
+    }, 1000);
+  }
+
+  function clearSnapshots() {
+    if (typeof unsubscribeMeet === "function") unsubscribeMeet();
+    if (typeof unsubscribeParticipants === "function") unsubscribeParticipants();
+    if (typeof unsubscribeMembers === "function") unsubscribeMembers();
+    unsubscribeMeet = null;
+    unsubscribeParticipants = null;
+    unsubscribeMembers = null;
+  }
+
+  function readJoinedState() {
+    try {
+      const storedKey = localStorage.getItem(JOINED_KEY_STORAGE) || "";
+      const storedToken = localStorage.getItem(JOINED_TOKEN_STORAGE) || "";
+      joinedKey = storedKey;
+      joinedMeetToken = storedToken;
+    } catch {
+      joinedKey = "";
+      joinedMeetToken = "";
+    }
+  }
+
+  function saveJoinedState() {
+    try {
+      if (joinedKey && joinedMeetToken) {
+        localStorage.setItem(JOINED_KEY_STORAGE, joinedKey);
+        localStorage.setItem(JOINED_TOKEN_STORAGE, joinedMeetToken);
+      } else {
+        localStorage.removeItem(JOINED_KEY_STORAGE);
+        localStorage.removeItem(JOINED_TOKEN_STORAGE);
+      }
+    } catch {
+      // Ignore storage failure.
+    }
+  }
+
+  function updateJoinedForCurrentMeet() {
+    if (!meet || !joinedKey || !joinedMeetToken) return;
+    if (joinedMeetToken !== meet.token) {
+      joinedKey = "";
+      joinedMeetToken = "";
+      saveJoinedState();
+    }
+  }
+
+  function resolveNodes() {
+    if (!(host instanceof HTMLElement)) return {};
+    return {
+      statePill: host.querySelector("[data-meet-state-pill]"),
+      title: host.querySelector("[data-meet-title]"),
+      roomLabel: host.querySelector("[data-meet-room-label]"),
+      countdownLabel: host.querySelector("[data-meet-countdown-label]"),
+      countdown: host.querySelector("[data-meet-countdown]"),
+      start: host.querySelector("[data-meet-start]"),
+      end: host.querySelector("[data-meet-end]"),
+      capacity: host.querySelector("[data-meet-capacity]"),
+      participantsCount: host.querySelector("[data-meet-participants-count]"),
+      roomId: host.querySelector("[data-meet-room-id]"),
+      password: host.querySelector("[data-meet-password]"),
+      participantList: host.querySelector("[data-meet-participant-list]"),
+      registrationState: host.querySelector("[data-meet-registration-state]"),
+      error: host.querySelector("[data-meet-error]"),
+      form: host.querySelector("[data-meet-form]"),
+      joinButton: host.querySelector("[data-meet-join]"),
+      nickInput: host.querySelector("[data-meet-nick]"),
+      cpmInput: host.querySelector("[data-meet-cpm]")
+    };
+  }
+
+  function renderParticipantList(container, list) {
+    if (!(container instanceof HTMLElement)) return;
+    if (!list.length) {
+      container.innerHTML = '<p class="oni-meet-empty">No participants yet.</p>';
+      return;
+    }
+
+    container.innerHTML = list
+      .slice(0, 120)
+      .map((item, index) => `
+        <article class="oni-meet-participant-row">
+          <b>${String(index + 1).padStart(2, "0")}</b>
+          <span>${escapeHtml(item.nick)}</span>
+          <small>${escapeHtml(item.cpmId || "CPM ID")}</small>
+        </article>
+      `)
+      .join("");
+  }
+
+  function render() {
+    if (!(host instanceof HTMLElement) || !isMounted) return;
+
+    const nodes = resolveNodes();
+    const currentMeet = meet;
+    const state = getMeetState(currentMeet);
+    const now = Date.now();
+    const hasJoinedCurrentMeet = !!(joinedKey && currentMeet && joinedMeetToken === currentMeet.token);
+
+    const maxPlayers = currentMeet ? currentMeet.maxPlayers : DEFAULT_MAX_PLAYERS;
+    const visibleParticipants = state === "expired" ? [] : participants;
+    const count = Math.min(maxPlayers, visibleParticipants.length);
+    const isFull = count >= maxPlayers;
+
+    if (nodes.title) nodes.title.textContent = currentMeet?.title || "ONI NIGHT MEET";
+    if (nodes.roomLabel) nodes.roomLabel.textContent = currentMeet?.roomLabel || "ONI & KISHIN · CPM 1";
+    if (nodes.start) nodes.start.textContent = formatDateTime(currentMeet?.startAtMs);
+    if (nodes.end) nodes.end.textContent = formatDateTime(currentMeet?.endAtMs);
+    if (nodes.capacity) nodes.capacity.textContent = `${count} / ${maxPlayers}`;
+    if (nodes.participantsCount) nodes.participantsCount.textContent = `${count} / ${maxPlayers}`;
+
+    if (nodes.roomId) nodes.roomId.textContent = currentMeet?.roomId || "—";
+    if (nodes.password) {
+      nodes.password.textContent = hasJoinedCurrentMeet && currentMeet?.password ? currentMeet.password : "LOCKED";
+    }
+
+    if (nodes.registrationState) {
+      if (registrationMessage) nodes.registrationState.textContent = registrationMessage;
+      else if (hasJoinedCurrentMeet) nodes.registrationState.textContent = "You are already registered for this meet.";
+      else nodes.registrationState.textContent = "";
+    }
+
+    if (nodes.error) nodes.error.textContent = errorMessage;
+
+    if (nodes.joinButton) {
+      nodes.joinButton.disabled = registering || state !== "active" || isFull || !currentMeet;
+      if (registering) nodes.joinButton.textContent = "Joining...";
+      else if (!currentMeet || state === "none") nodes.joinButton.textContent = "No active meet";
+      else if (state === "upcoming") nodes.joinButton.textContent = "Join opens at start";
+      else if (state === "expired") nodes.joinButton.textContent = "Meet ended";
+      else if (isFull) nodes.joinButton.textContent = "Meet full";
+      else if (hasJoinedCurrentMeet) nodes.joinButton.textContent = "Already joined";
+      else nodes.joinButton.textContent = "Join Meet";
+    }
+
+    if (nodes.statePill && nodes.countdownLabel && nodes.countdown) {
+      if (!currentMeet || state === "none") {
+        nodes.statePill.textContent = loading ? "LOADING" : "NO ACTIVE MEET";
+        nodes.countdownLabel.textContent = "MEET STATUS";
+        nodes.countdown.textContent = loading ? "—" : "WAITING FOR NEXT MEET";
+      } else if (state === "upcoming") {
+        nodes.statePill.textContent = "UPCOMING";
+        nodes.countdownLabel.textContent = "MEET STARTS IN";
+        nodes.countdown.textContent = formatCountdown(currentMeet.startAtMs - now);
+      } else if (state === "active") {
+        nodes.statePill.textContent = "ACTIVE";
+        nodes.countdownLabel.textContent = "MEET ENDS IN";
+        nodes.countdown.textContent = formatCountdown(currentMeet.endAtMs - now);
+      } else {
+        nodes.statePill.textContent = "EXPIRED";
+        nodes.countdownLabel.textContent = "MEET CLOSED";
+        nodes.countdown.textContent = "00:00:00";
+      }
+    }
+
+    renderParticipantList(nodes.participantList, visibleParticipants);
+  }
+
+  function findMemberByInputs(nickInput, cpmInput) {
+    const targetNick = asText(nickInput).toLowerCase();
+    const targetCpm = asText(cpmInput).toLowerCase();
+    if (!targetNick || !targetCpm) return null;
+
+    return members.find(member => {
+      return memberNick(member).toLowerCase() === targetNick
+        && memberCpmId(member).toLowerCase() === targetCpm;
+    }) || null;
+  }
+
+  async function handleRegister(event) {
+    event.preventDefault();
+    if (registering || !isMounted || !host) return;
+
+    const token = ++requestId;
+    const nodes = resolveNodes();
+    const nick = asText(nodes.nickInput?.value);
+    const cpmId = asText(nodes.cpmInput?.value).toUpperCase();
+
+    registrationMessage = "";
+    errorMessage = "";
+
+    if (!nick || !cpmId) {
+      errorMessage = "CPM Nick and CPM ID are required.";
+      render();
+      return;
+    }
+
+    const currentMeet = meet;
+    if (!currentMeet || getMeetState(currentMeet) !== "active") {
+      errorMessage = "Meet is not active right now.";
+      render();
+      return;
+    }
+
+    const member = findMemberByInputs(nick, cpmId);
+    if (!member) {
+      errorMessage = "Nick + CPM ID does not match the current members roster.";
+      render();
+      return;
+    }
+
+    const resolvedMemberId = asText(member.id);
+    if (!resolvedMemberId) {
+      errorMessage = "Member record is malformed (missing ID).";
+      render();
+      return;
+    }
+
+    const participantKey = computeParticipantDocId(currentMeet.token, resolvedMemberId);
+
+    if (participants.some(item => item.id === participantKey)) {
+      joinedKey = participantKey;
+      joinedMeetToken = currentMeet.token;
+      saveJoinedState();
+      registrationMessage = "Already registered. Meet access is active.";
+      render();
+      return;
+    }
+
+    registering = true;
+    render();
+
+    try {
+      const db = getFirestoreDb();
+      const participantRef = doc(db, "meetParticipants", participantKey);
+      const existing = await getDoc(participantRef);
+      if (token !== requestId || !isMounted) return;
+
+      if (existing.exists()) {
+        joinedKey = participantKey;
+        joinedMeetToken = currentMeet.token;
+        saveJoinedState();
+        registrationMessage = "Already registered. Meet access is active.";
+        errorMessage = "";
+        return;
+      }
+
+      const latestParticipants = await getDocs(query(collection(db, "meetParticipants"), where("meetId", "==", MEET_DOC_ID)));
+      if (token !== requestId || !isMounted) return;
+
+      const normalized = latestParticipants.docs
+        .map(snapshot => normalizeMeetParticipant(snapshot.data(), snapshot.id))
+        .filter(item => participantBelongsToMeet(item, currentMeet));
+
+      if (normalized.some(item => item.id === participantKey)) {
+        joinedKey = participantKey;
+        joinedMeetToken = currentMeet.token;
+        saveJoinedState();
+        registrationMessage = "Already registered. Meet access is active.";
+        errorMessage = "";
+        return;
+      }
+
+      if (normalized.length >= currentMeet.maxPlayers) {
+        throw new Error("MEET_FULL");
+      }
+
+      if (getMeetState(currentMeet) !== "active") {
+        throw new Error("MEET_CLOSED");
+      }
+
+      await setDoc(participantRef, {
+        meetId: MEET_DOC_ID,
+        meetStartAt: currentMeet.startAtRaw ?? currentMeet.startAtMs,
+        memberId: resolvedMemberId,
+        nick: memberNick(member) || nick,
+        name: memberNick(member) || nick,
+        cpmId: memberCpmId(member) || cpmId,
+        joinedAt: serverTimestamp(),
+        source: "website"
+      });
+
+      if (token !== requestId || !isMounted) return;
+
+      joinedKey = participantKey;
+      joinedMeetToken = currentMeet.token;
+      saveJoinedState();
+      registrationMessage = "Join successful. Meet credentials unlocked.";
+      errorMessage = "";
+      if (nodes.form) nodes.form.reset();
+    } catch (error) {
+      if (token !== requestId || !isMounted) return;
+
+      if (error instanceof Error && error.message === "MEET_FULL") {
+        errorMessage = "Meet is full. Please wait for the next meet.";
+      } else if (error instanceof Error && error.message === "MEET_CLOSED") {
+        errorMessage = "Meet is already closed.";
+      } else {
+        errorMessage = "Unable to complete registration right now.";
+      }
+    } finally {
+      if (token !== requestId || !isMounted) return;
+      registering = false;
+      render();
+    }
+  }
+
+  function handleCopyClick(event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const copyButton = target.closest("[data-copy-target]");
+    if (!(copyButton instanceof HTMLButtonElement)) return;
+
+    const kind = copyButton.dataset.copyTarget;
+    const value = kind === "roomId"
+      ? (meet?.roomId || "")
+      : kind === "password"
+        ? ((joinedKey && joinedMeetToken === meet?.token) ? (meet?.password || "") : "")
+        : "";
+
+    if (!value || !navigator.clipboard?.writeText) {
+      registrationMessage = "Nothing to copy yet.";
+      render();
+      return;
+    }
+
+    navigator.clipboard.writeText(value)
+      .then(() => {
+        if (!isMounted) return;
+        registrationMessage = kind === "roomId" ? "Meet ID copied." : "PASS copied.";
+        errorMessage = "";
+        render();
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        registrationMessage = "Copy failed. Please copy manually.";
+        render();
+      });
+  }
+
+  function bindDomListeners() {
+    const retryButton = host?.querySelector("[data-meet-retry]");
+    const form = host?.querySelector("[data-meet-form]");
+
+    if (retryButton instanceof HTMLButtonElement) {
+      const onRetry = () => {
+        errorMessage = "";
+        registrationMessage = "";
+        render();
+      };
+      retryButton.addEventListener("click", onRetry, { passive: true });
+      dispose.push(() => retryButton.removeEventListener("click", onRetry));
+    }
+
+    if (form instanceof HTMLFormElement) {
+      form.addEventListener("submit", handleRegister);
+      dispose.push(() => form.removeEventListener("submit", handleRegister));
+    }
+
+    const onClick = event => handleCopyClick(event);
+    host?.addEventListener("click", onClick);
+    dispose.push(() => host?.removeEventListener("click", onClick));
+  }
+
+  function watchMeet() {
+    const db = getFirestoreDb();
+
+    unsubscribeMembers = onSnapshot(collection(db, "members"), snapshot => {
+      if (!isMounted) return;
+      members = snapshot.docs.map(record => ({ id: record.id, ...record.data() }));
+    }, () => {
+      if (!isMounted) return;
+      members = [];
+    });
+
+    unsubscribeMeet = onSnapshot(doc(db, "meets", MEET_DOC_ID), snapshot => {
+      if (!isMounted) return;
+
+      const next = snapshot.exists() ? normalizeMeetRecord(snapshot.data(), snapshot.id) : null;
+      const previousToken = meet?.token || "";
+      meet = next;
+      loading = false;
+      updateJoinedForCurrentMeet();
+
+      if (typeof unsubscribeParticipants === "function") {
+        unsubscribeParticipants();
+        unsubscribeParticipants = null;
+      }
+
+      participants = [];
+
+      if (meet && meet.enabled) {
+        unsubscribeParticipants = onSnapshot(
+          query(collection(db, "meetParticipants"), where("meetId", "==", MEET_DOC_ID)),
+          joinedSnapshot => {
+            if (!isMounted) return;
+
+            participants = joinedSnapshot.docs
+              .map(item => normalizeMeetParticipant(item.data(), item.id))
+              .filter(item => item.id !== "__counter__")
+              .filter(item => participantBelongsToMeet(item, meet))
+              .sort((a, b) => (a.joinedAtMs || 0) - (b.joinedAtMs || 0));
+
+            if (meet?.token !== previousToken && joinedKey && joinedMeetToken !== meet?.token) {
+              joinedKey = "";
+              joinedMeetToken = "";
+              saveJoinedState();
+            }
+            render();
+          },
+          () => {
+            if (!isMounted) return;
+            participants = [];
+            render();
+          }
+        );
+      }
+
+      render();
+    }, error => {
+      if (!isMounted) return;
+      loading = false;
+      meet = null;
+      participants = [];
+      errorMessage = error instanceof Error ? error.message : "Failed to read meet.";
+      render();
+    });
+  }
+
   return {
     key: "meet",
     title: "Meet",
-    description: "Meet participant flow is deferred to next stage with existing Firestore schema preserved.",
-    status: "placeholder"
+    description: "Meet route with production-compatible meets/current and meetParticipants integration.",
+    status: "live",
+
+    mount(root) {
+      if (!(root instanceof HTMLElement)) return;
+      if (isMounted && host === root) return;
+
+      this.unmount();
+
+      host = root;
+      isMounted = true;
+      requestId += 1;
+      loading = true;
+      registering = false;
+      errorMessage = "";
+      registrationMessage = "";
+      meet = null;
+      participants = [];
+      members = [];
+      readJoinedState();
+
+      host.innerHTML = skeletonMarkup();
+      host.innerHTML = meetRouteMarkup();
+      bindDomListeners();
+      startTimer();
+      watchMeet();
+      render();
+    },
+
+    unmount() {
+      isMounted = false;
+      requestId += 1;
+      stopTimer();
+      clearListeners();
+      clearSnapshots();
+
+      host = null;
+      meet = null;
+      participants = [];
+      members = [];
+      loading = true;
+      registering = false;
+      errorMessage = "";
+      registrationMessage = "";
+    }
   };
 }

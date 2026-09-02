@@ -5,6 +5,7 @@ import { createMembersModule } from "./members.js";
 import { createGarageModule } from "./garage.js";
 import { createMusicModule } from "./music.js";
 import { createMeetModule } from "./meet.js";
+import { createJoinModule } from "./join.js";
 import { createMarketModule } from "./market.js";
 import { createOniAiModule } from "./oni-ai.js";
 
@@ -15,11 +16,14 @@ const modules = [
   createGarageModule(),
   createMusicModule(),
   createMeetModule(),
+  createJoinModule(),
   createMarketModule(),
   createOniAiModule()
 ];
 const membersModule = modules.find(module => module.key === "members");
 const garageModule = modules.find(module => module.key === "garage");
+const meetModule = modules.find(module => module.key === "meet");
+const joinModule = modules.find(module => module.key === "join");
 
 const root = document.getElementById("viewRoot");
 const navLinks = [...document.querySelectorAll(".oni-nav-link")];
@@ -179,9 +183,27 @@ function registerRoutes() {
   });
 
   registerRoute("meet", async () => {
-    clearRouteMount();
     setActive("meet");
+    if (meetModule && typeof meetModule.mount === "function") {
+      clearRouteMount();
+      meetModule.mount(root);
+      activeRouteTeardown = () => meetModule.unmount?.();
+      return;
+    }
+    clearRouteMount();
     renderModulePage("meet", "Meet");
+  });
+
+  registerRoute("join", async () => {
+    setActive("join");
+    if (joinModule && typeof joinModule.mount === "function") {
+      clearRouteMount();
+      joinModule.mount(root);
+      activeRouteTeardown = () => joinModule.unmount?.();
+      return;
+    }
+    clearRouteMount();
+    renderModulePage("join", "Join");
   });
 }
 
