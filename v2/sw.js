@@ -1,7 +1,8 @@
-const VERSION = "oni-hub-v2-shell-3";
+const VERSION = "oni-hub-v2-shell-4";
 const BASE = "/oni-kishin-web/v2/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
+const MAX_RUNTIME_ENTRIES = 120;
 
 const APP_SHELL = [
   BASE,
@@ -9,7 +10,6 @@ const APP_SHELL = [
   BASE + "manifest.webmanifest",
   BASE + "sw.js",
   BASE + "css/tokens.css",
-  BASE + "css/components.css",
   BASE + "css/app.css",
   BASE + "js/app.js",
   BASE + "js/router.js",
@@ -53,6 +53,9 @@ self.addEventListener("activate", event => {
     for (const key of await caches.keys()) {
       if (!allowed.has(key)) await caches.delete(key);
     }
+    if ("navigationPreload" in self.registration) {
+      await self.registration.navigationPreload.enable().catch(() => {});
+    }
     await self.clients.claim();
   })());
 });
@@ -73,7 +76,10 @@ self.addEventListener("fetch", event => {
   if (request.mode === "navigate") {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request);
+        const preload = await event.preloadResponse;
+        if (preload) return preload;
+
+        const response = await fetch(request, { cache: "no-store" });
         const cache = await caches.open(RUNTIME_CACHE);
         cache.put(request, response.clone()).catch(() => {});
         return response;
@@ -91,12 +97,40 @@ self.addEventListener("fetch", event => {
 
   event.respondWith((async () => {
     const cache = await caches.open(RUNTIME_CACHE);
-    const cached = await caches.match(request);
-    const network = fetch(request).then(response => {
-      if (response.ok) cache.put(request, response.clone()).catch(() => {});
+    const cached = await cache.match(request);
+    const isFastChanging = request.destination === "script"
+      || request.destination === "style"
+      || url.pathname.endsWith(".html")
+      || url.pathname.endsWith(".webmanifest");
+
+    if (isFastChanging) {
+      try {
+        const fresh = await fetch(request, { cache: "no-store" });
+        if (fresh.ok) {
+          cache.put(request, fresh.clone()).catch(() => {});
+          trimCache(cache).catch(() => {});
+        }
+        return fresh;
+      } catch {
+        return cached || Response.error();
+      }
+    }
+
+    const networkPromise = fetch(request).then(response => {
+      if (response.ok) {
+        cache.put(request, response.clone()).catch(() => {});
+        trimCache(cache).catch(() => {});
+      }
       return response;
     }).catch(() => null);
 
-    return cached || await network || Response.error();
+    return cached || await networkPromise || Response.error();
   })());
 });
+
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= MAX_RUNTIME_ENTRIES) return;
+  const stale = keys.slice(0, keys.length - MAX_RUNTIME_ENTRIES);
+  await Promise.all(stale.map(key => cache.delete(key)));
+}

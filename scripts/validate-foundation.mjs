@@ -1400,6 +1400,38 @@ function checkV2Isolation() {
   assert(v2Sw.includes('url.pathname.startsWith("/oni-kishin-web/v2/")'), "v2/sw.js fetch handling must stay restricted to /v2/");
 }
 
+function checkV2AppShellContracts() {
+  const v2Index = read("v2/index.html");
+  const v2App = read("v2/js/app.js");
+  const v2Css = read("v2/css/app.css");
+  const v2Sw = read("v2/sw.js");
+
+  assert((v2Index.match(/class="oni-shell"/g) || []).length === 1, "v2/index.html must keep a single app shell root");
+  assert((v2Index.match(/class="oni-bottom-nav"/g) || []).length === 1, "v2/index.html must keep a single bottom navigation shell");
+  assert(v2Index.includes('id="oniModal"'), "v2/index.html must include the app modal container");
+  assert(v2Index.includes("data-modal-close"), "v2/index.html must include modal close control");
+
+  assert(v2App.includes("target.closest(\"[data-modal-close]\")"), "v2/js/app.js must support delegated modal close interactions");
+  assert(v2App.includes("target === modal"), "v2/js/app.js must allow closing modal by tapping overlay");
+  assert(v2App.includes("event.key !== \"Escape\""), "v2/js/app.js must support Escape-based modal close behavior");
+  assert(v2App.includes("setBodyScrollLocked(true)"), "v2/js/app.js must lock body scroll while modal is open");
+  assert(v2App.includes("if (isBootstrapped) return;"), "v2/js/app.js must guard against duplicate bootstrap listeners");
+  assert(v2App.includes("setupViewportHandling"), "v2/js/app.js must handle viewport/keyboard transitions");
+  assert(v2App.includes("navigator.serviceWorker.register"), "v2/js/app.js must register the v2 service worker");
+  assert(v2App.includes("registration.addEventListener(\"updatefound\""), "v2/js/app.js must handle service-worker update events");
+  assert(v2App.includes("registration.update()"), "v2/js/app.js must re-check service-worker updates on resume/online");
+
+  const routeCleanupCalls = (v2App.match(/clearRouteMount\(\);/g) || []).length;
+  assert(routeCleanupCalls >= 6, "v2/js/app.js routes must cleanup previous route mounts before rendering next route");
+
+  assert(v2Css.includes("body.oni-modal-open"), "v2/css/app.css must include modal-open scroll locking styles");
+  assert(v2Css.includes("body.oni-keyboard-open .oni-bottom-nav"), "v2/css/app.css must prevent keyboard overlap with bottom nav");
+  assert(v2Css.includes(".oni-modal[hidden]"), "v2/css/app.css must force hidden modals to not intercept touch input");
+
+  assert(v2Sw.includes("MAX_RUNTIME_ENTRIES"), "v2/sw.js must cap runtime cache growth");
+  assert(v2Sw.includes("cache: \"no-store\""), "v2/sw.js must network-refresh fast-changing assets to avoid stale cache");
+}
+
 function checkAdminModuleContracts() {
   const adminHtml = read("v2/admin/index.html");
   const adminJs = read("v2/js/admin.js");
@@ -1417,6 +1449,8 @@ function checkAdminModuleContracts() {
   assert(adminJs.includes("confirm(\"Энэ member-г устгах уу?\")"), "v2/js/admin.js must confirm destructive member deletes");
   assert(adminJs.includes("confirm(\"Энэ garage build-ийг устгах уу?\")"), "v2/js/admin.js must confirm destructive garage deletes");
   assert(adminJs.includes("ADMIN_EMAIL"), "v2/js/admin.js must preserve production-compatible admin identity checks");
+  assert(adminJs.includes("setButtonBusy"), "v2/js/admin.js must expose per-action loading button states");
+  assert(adminJs.includes("Action is already in progress."), "v2/js/admin.js must surface duplicate-action safety feedback");
 }
 
 function compileMusicValidationExports() {
@@ -1570,6 +1604,7 @@ async function run() {
   checkDuplicateIds();
   checkLocalAssetReferences();
   checkV2Isolation();
+  checkV2AppShellContracts();
   checkAdminModuleContracts();
   checkMusicModuleBehavior();
   checkOniAiModuleContracts();

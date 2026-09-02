@@ -27,12 +27,16 @@ const joinModule = modules.find(module => module.key === "join");
 const oniAiModule = modules.find(module => module.key === "oni-ai");
 
 const root = document.getElementById("viewRoot");
+const shell = document.getElementById("oniShell");
 const navLinks = [...document.querySelectorAll(".oni-nav-link")];
 const toast = document.getElementById("oniToast");
 const offlineBanner = document.getElementById("offlineBanner");
 const modal = document.getElementById("oniModal");
 const modalBody = document.getElementById("oniModalBody");
 let activeRouteTeardown = null;
+let isBootstrapped = false;
+let modalLastFocus = null;
+let swControllerReloading = false;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, s => ({
@@ -61,13 +65,27 @@ function showToast(message, timeout = 2200) {
   }, timeout);
 }
 
+function setBodyScrollLocked(locked) {
+  document.body.classList.toggle("oni-modal-open", !!locked);
+}
+
 function openModal(content) {
+  modalLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   modalBody.innerHTML = content;
   modal.hidden = false;
+  setBodyScrollLocked(true);
+  const closeButton = modal.querySelector("[data-modal-close]");
+  if (closeButton instanceof HTMLElement) closeButton.focus();
 }
 
 function closeModal() {
+  if (modal.hidden) return;
   modal.hidden = true;
+  setBodyScrollLocked(false);
+  if (modalLastFocus instanceof HTMLElement) {
+    modalLastFocus.focus();
+  }
+  modalLastFocus = null;
 }
 
 function card(module) {
@@ -119,6 +137,7 @@ function renderHome() {
 }
 
 function clearRouteMount() {
+  closeModal();
   if (typeof activeRouteTeardown !== "function") return;
   try {
     activeRouteTeardown();
@@ -229,8 +248,39 @@ function setupOfflineState() {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
+  const triggerWaitingWorker = registration => {
+    if (!registration?.waiting) return;
+    showToast("Update available. Reloading…", 2600);
+    registration.waiting.postMessage({ type: "SKIP_WAITING" });
+  };
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (swControllerReloading) return;
+    swControllerReloading = true;
+    location.reload();
+  });
+
   try {
-    await navigator.serviceWorker.register(`${BASE}sw.js`, { scope: BASE });
+    const registration = await navigator.serviceWorker.register(`${BASE}sw.js`, { scope: BASE });
+
+    if (registration.waiting) {
+      triggerWaitingWorker(registration);
+    }
+
+    registration.addEventListener("updatefound", () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener("statechange", () => {
+        if (worker.state !== "installed" || !navigator.serviceWorker.controller) return;
+        triggerWaitingWorker(registration);
+      });
+    });
+
+    const refreshRegistration = () => registration.update().catch(() => {});
+    addEventListener("online", refreshRegistration, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refreshRegistration();
+    }, { passive: true });
   } catch (error) {
     console.warn("sw_register_failed", error);
   }
@@ -263,23 +313,58 @@ function setupUiActions() {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
-    if (target.matches("[data-modal-close]")) {
+    if (target.closest("[data-modal-close]")) {
       closeModal();
       return;
     }
 
-    if (target.matches("[data-open-modal]")) {
+    if (target === modal) {
+      closeModal();
+      return;
+    }
+
+    if (target.closest("[data-open-modal]")) {
       openModal("Module implementation and Firestore-bound feature migration are intentionally deferred to the next PR stage.");
     }
   });
+
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || modal.hidden) return;
+    event.preventDefault();
+    closeModal();
+  });
+}
+
+function setupViewportHandling() {
+  if (!shell || !window.visualViewport) return;
+
+  let initialHeight = window.visualViewport.height;
+  const update = () => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    if (viewport.height > initialHeight) initialHeight = viewport.height;
+    const keyboardOpen = initialHeight - viewport.height > 120;
+    document.body.classList.toggle("oni-keyboard-open", keyboardOpen);
+  };
+
+  window.visualViewport.addEventListener("resize", update, { passive: true });
+  window.visualViewport.addEventListener("scroll", update, { passive: true });
+  addEventListener("orientationchange", () => {
+    initialHeight = window.visualViewport?.height || initialHeight;
+    update();
+  }, { passive: true });
+  update();
 }
 
 function bootstrap() {
+  if (isBootstrapped) return;
+  isBootstrapped = true;
   registerRoutes();
   startRouter();
   setupOfflineState();
   setupInstallPrompt();
   setupUiActions();
+  setupViewportHandling();
   registerServiceWorker();
 
   try {
