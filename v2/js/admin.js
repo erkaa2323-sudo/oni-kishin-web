@@ -164,13 +164,26 @@ function isAuthorizedUser(user) {
   return !!user?.email && user.email.toLowerCase() === ADMIN_EMAIL;
 }
 
-async function withActionLock(key, action) {
-  if (state.actionLocks.has(key)) return;
+function setButtonBusy(button, busy, busyText) {
+  if (!(button instanceof HTMLButtonElement)) return;
+  if (!button.dataset.idleText) button.dataset.idleText = button.textContent || "";
+  button.disabled = !!busy;
+  button.textContent = busy ? busyText : button.dataset.idleText;
+}
+
+async function withActionLock(key, action, onBusyChange = null) {
+  if (state.actionLocks.has(key)) {
+    setStatus("Action is already in progress.", "error");
+    return false;
+  }
   state.actionLocks.add(key);
+  if (typeof onBusyChange === "function") onBusyChange(true);
   try {
     await action();
+    return true;
   } finally {
     state.actionLocks.delete(key);
+    if (typeof onBusyChange === "function") onBusyChange(false);
   }
 }
 
@@ -492,7 +505,7 @@ async function submitMember(event) {
     await refreshMembers();
     renderDashboard();
     renderMembers();
-  });
+  }, busy => setButtonBusy(refs.memberSave, busy, "Saving…"));
 }
 
 async function deleteMember(id) {
@@ -581,7 +594,7 @@ async function submitGarage(event) {
     await refreshGarage();
     renderDashboard();
     renderGarage();
-  });
+  }, busy => setButtonBusy(refs.garageSave, busy, "Saving…"));
 }
 
 function openGarageEditor(id) {
@@ -723,6 +736,9 @@ async function saveMeet(event) {
     renderDashboard();
     renderMeet();
     setStatus("Meet хадгалагдлаа.", "ok");
+  }, busy => {
+    const submitButton = refs.meetForm?.querySelector('button[type="submit"]');
+    setButtonBusy(submitButton, busy, "Saving meet…");
   });
 }
 
@@ -739,7 +755,7 @@ async function disableMeet() {
     renderDashboard();
     renderMeet();
     setStatus("Meet inactive боллоо.", "ok");
-  });
+  }, busy => setButtonBusy(refs.meetDisable, busy, "Disabling…"));
 }
 
 function collectRefs() {
@@ -822,7 +838,7 @@ function bindEvents() {
     await withActionLock("auth:login", async () => {
       await signInWithEmailAndPassword(getAuth(getFirebase().app), email, password);
       setStatus("Signed in.", "ok");
-    }).catch(error => {
+    }, busy => setButtonBusy(refs.loginButton, busy, "Signing in…")).catch(error => {
       setStatus(`Login failed: ${toErrorText(error)}`, "error");
     });
   });
@@ -833,8 +849,10 @@ function bindEvents() {
       setStatus("Reset хийх email оруулна уу.", "error");
       return;
     }
-    await sendPasswordResetEmail(getAuth(getFirebase().app), email)
-      .then(() => setStatus("Reset email илгээлээ.", "ok"))
+    await withActionLock("auth:reset", async () => {
+      await sendPasswordResetEmail(getAuth(getFirebase().app), email);
+      setStatus("Reset email илгээлээ.", "ok");
+    }, busy => setButtonBusy(refs.resetButton, busy, "Sending…"))
       .catch(error => setStatus(`Reset failed: ${toErrorText(error)}`, "error"));
   });
 

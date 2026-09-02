@@ -1,10 +1,17 @@
+html,
+body {
+  overflow-x: clip;
+}
+
 .oni-shell {
+  width: 100%;
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   padding-top: var(--oni-safe-top);
   padding-left: var(--oni-safe-left);
   padding-right: var(--oni-safe-right);
+  overflow-x: clip;
 }
 
 .oni-topbar {
@@ -54,6 +61,8 @@
 .oni-main {
   padding: 14px;
   padding-bottom: calc(90px + var(--oni-safe-bottom));
+  min-width: 0;
+  overscroll-behavior-y: contain;
 }
 
 .oni-view {
@@ -82,6 +91,7 @@
   background: rgba(9, 9, 13, 0.95);
   backdrop-filter: blur(14px);
   padding: 5px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .oni-nav-link {
@@ -93,10 +103,11 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-height: 56px;
+  min-height: 58px;
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.04em;
+  touch-action: manipulation;
 }
 
 .oni-nav-link span {
@@ -1135,6 +1146,41 @@
   align-items: center;
 }
 
+.oni-modal[hidden] {
+  display: none !important;
+}
+
+.oni-modal {
+  padding:
+    max(16px, var(--oni-safe-top))
+    max(14px, var(--oni-safe-right))
+    max(16px, var(--oni-safe-bottom))
+    max(14px, var(--oni-safe-left));
+  overscroll-behavior: contain;
+}
+
+.oni-modal-card {
+  max-height: calc(100dvh - 32px - var(--oni-safe-top) - var(--oni-safe-bottom));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.oni-modal-body {
+  overflow: auto;
+}
+
+body.oni-modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+body.oni-keyboard-open .oni-bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(140%);
+}
+
 .oni-oa-view {
   display: grid;
   gap: 12px;
@@ -1166,6 +1212,7 @@
   justify-content: space-between;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .oni-oa-chat-head-actions {
@@ -1182,7 +1229,7 @@
 }
 
 .oni-oa-msg {
-  max-width: 92%;
+  max-width: min(100%, 92%);
   border: 1px solid var(--oni-line);
   border-radius: 14px;
   padding: 10px;
@@ -1254,6 +1301,7 @@
   justify-content: space-between;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .oni-oa-music-head small {
@@ -1330,5 +1378,9 @@
 
   .oni-oa-compose textarea {
     min-height: 64px;
+  }
+
+  body.oni-keyboard-open .oni-bottom-nav {
+    transform: translate(-50%, 140%);
   }
 }
