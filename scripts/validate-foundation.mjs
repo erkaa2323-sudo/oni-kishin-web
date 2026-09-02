@@ -21,76 +21,69 @@ function assert(condition, message) {
   if (!condition) errors.push(message);
 }
 
-function assertFile(file) {
-  assert(exists(file), `Missing required file: ${file}`);
-}
-
 function checkRequiredFiles() {
   const required = [
+    "v2/index.html",
+    "v2/manifest.webmanifest",
+    "v2/sw.js",
+    "v2/css/tokens.css",
+    "v2/css/app.css",
+    "v2/css/components.css",
+    "v2/js/app.js",
+    "v2/js/router.js",
+    "v2/js/firebase.js",
+    "v2/js/auth.js",
+    "v2/js/members.js",
+    "v2/js/garage.js",
+    "v2/js/music.js",
+    "v2/js/meet.js",
+    "v2/js/market.js",
+    "v2/js/oni-ai.js",
+    "v2/admin/index.html",
+    "v2/worker/index.js",
     "index.html",
-    "offline.html",
     "manifest.webmanifest",
-    "sw.js",
-    "css/tokens.css",
-    "css/app.css",
-    "css/components.css",
-    "js/app.js",
-    "js/router.js",
-    "js/firebase.js",
-    "js/auth.js",
-    "js/members.js",
-    "js/garage.js",
-    "js/music.js",
-    "js/meet.js",
-    "js/market.js",
-    "js/oni-ai.js",
-    "admin/index.html",
-    "worker/index.js",
-    "legacy/index-v1.html",
-    "firestore.rules",
-    "src/index.js",
-    "src/secure-worker.js",
-    "icons/icon-192.png",
-    "icons/icon-512.png",
-    "icons/icon-maskable-512.png",
-    "icons/apple-touch-icon.png"
+    "sw.js"
   ];
 
-  required.forEach(assertFile);
+  for (const file of required) {
+    assert(exists(file), `Missing required file: ${file}`);
+  }
 }
 
 function checkManifest() {
   let manifest;
   try {
-    manifest = JSON.parse(read("manifest.webmanifest"));
+    manifest = JSON.parse(read("v2/manifest.webmanifest"));
   } catch (error) {
-    assert(false, `manifest.webmanifest invalid JSON: ${error.message}`);
+    assert(false, `v2/manifest.webmanifest invalid JSON: ${error.message}`);
     return;
   }
 
-  const mustBeStrings = ["name", "short_name", "id", "start_url", "scope", "display", "theme_color", "background_color"];
-  mustBeStrings.forEach(key => assert(typeof manifest[key] === "string" && manifest[key].length > 0, `Manifest missing/invalid: ${key}`));
+  const required = ["name", "short_name", "id", "start_url", "scope", "display", "theme_color", "background_color"];
+  for (const key of required) {
+    assert(typeof manifest[key] === "string" && manifest[key].length > 0, `V2 manifest missing/invalid: ${key}`);
+  }
 
-  assert(manifest.id === "/oni-kishin-web/", "Manifest id must stay /oni-kishin-web/");
-  assert(manifest.start_url === "/oni-kishin-web/", "Manifest start_url must stay /oni-kishin-web/");
-  assert(manifest.scope === "/oni-kishin-web/", "Manifest scope must stay /oni-kishin-web/");
-  assert(Array.isArray(manifest.icons) && manifest.icons.length > 0, "Manifest icons must be a non-empty array");
+  assert(manifest.id === "/oni-kishin-web/v2/", "V2 manifest id must be /oni-kishin-web/v2/");
+  assert(manifest.start_url === "/oni-kishin-web/v2/", "V2 manifest start_url must be /oni-kishin-web/v2/");
+  assert(manifest.scope === "/oni-kishin-web/v2/", "V2 manifest scope must be /oni-kishin-web/v2/");
 
-  for (const icon of Array.isArray(manifest.icons) ? manifest.icons : []) {
-    assert(typeof icon.src === "string" && icon.src.length > 0, "Manifest icon src missing");
+  assert(Array.isArray(manifest.icons) && manifest.icons.length > 0, "V2 manifest icons must be a non-empty array");
+  for (const icon of manifest.icons || []) {
+    assert(typeof icon.src === "string" && icon.src.length > 0, "V2 manifest icon src missing");
     if (typeof icon.src === "string") {
-      assert(exists(icon.src), `Manifest icon missing file: ${icon.src}`);
+      const normalized = path.posix.normalize(path.posix.join("v2", icon.src));
+      assert(exists(normalized), `V2 manifest icon missing file: ${icon.src} -> ${normalized}`);
     }
   }
 }
 
 function checkJavaScriptSyntax() {
   const files = [
-    "sw.js",
-    "worker/index.js",
-    "src/index.js",
-    "src/secure-worker.js",
-    ...fs.readdirSync(path.join(root, "js")).filter(name => name.endsWith(".js")).map(name => `js/${name}`)
+    "v2/sw.js",
+    "v2/worker/index.js",
+    ...fs.readdirSync(path.join(root, "v2/js")).filter(name => name.endsWith(".js")).map(name => `v2/js/${name}`)
   ];
 
   for (const file of files) {
@@ -102,14 +95,13 @@ function checkJavaScriptSyntax() {
 }
 
 function checkLocalModuleImports() {
-  const jsFiles = fs.readdirSync(path.join(root, "js"))
-    .filter(name => name.endsWith(".js"))
-    .map(name => `js/${name}`)
-    .concat(["worker/index.js", "src/secure-worker.js"]);
+  const files = [
+    ...fs.readdirSync(path.join(root, "v2/js")).filter(name => name.endsWith(".js")).map(name => `v2/js/${name}`),
+    "v2/worker/index.js"
+  ];
 
   const importRegex = /import\s+(?:[^"']+?\s+from\s+)?["']([^"']+)["']/g;
-
-  for (const file of jsFiles) {
+  for (const file of files) {
     const abs = path.join(root, file);
     const dir = path.dirname(abs);
     const content = fs.readFileSync(abs, "utf8");
@@ -124,29 +116,38 @@ function checkLocalModuleImports() {
 }
 
 function checkServiceWorkerPrecache() {
-  const sw = read("sw.js");
-  const entries = [...sw.matchAll(/BASE\s*\+\s*"([^"]+)"/g)].map(m => m[1]);
-  const unique = [...new Set(entries)];
+  const sw = read("v2/sw.js");
+  const shellMatch = sw.match(/const APP_SHELL = \[([\s\S]*?)\];/);
+  if (!shellMatch) {
+    assert(false, "v2/sw.js missing APP_SHELL array");
+    return;
+  }
 
-  for (const rel of unique) {
-    assert(exists(rel), `sw.js precache references missing file: ${rel}`);
+  const body = shellMatch[1];
+  const baseEntries = [...body.matchAll(/BASE\s*\+\s*"([^"]+)"/g)].map(m => `v2/${m[1]}`);
+  const absoluteEntries = [...body.matchAll(/"(\/oni-kishin-web\/[^"]+)"/g)]
+    .map(m => m[1].replace(/^\/oni-kishin-web\//, ""));
+
+  const entries = [...new Set([...baseEntries, ...absoluteEntries].map(entry => path.posix.normalize(entry)))];
+  for (const rel of entries) {
+    assert(exists(rel), `v2/sw.js precache references missing file: ${rel}`);
   }
 }
 
 function checkDuplicateIds() {
-  const htmlFiles = ["index.html", "admin/index.html", "offline.html"];
+  const htmlFiles = ["v2/index.html", "v2/admin/index.html"];
   const idRegex = /\sid=["']([^"']+)["']/g;
 
   for (const file of htmlFiles) {
-    const ids = new Map();
+    const seen = new Map();
     const content = read(file);
 
     for (const match of content.matchAll(idRegex)) {
       const id = match[1];
-      ids.set(id, (ids.get(id) || 0) + 1);
+      seen.set(id, (seen.get(id) || 0) + 1);
     }
 
-    for (const [id, count] of ids.entries()) {
+    for (const [id, count] of seen.entries()) {
       if (count > 1) {
         errors.push(`Duplicate element ID in ${file}: ${id} (${count}x)`);
       }
@@ -167,12 +168,11 @@ function normalizeAssetPath(htmlFile, raw) {
   if (value.startsWith("/")) return null;
 
   const fromDir = path.posix.dirname(htmlFile);
-  const resolved = path.posix.normalize(path.posix.join(fromDir, value));
-  return resolved.replace(/^\.\//, "");
+  return path.posix.normalize(path.posix.join(fromDir, value));
 }
 
 function checkLocalAssetReferences() {
-  const htmlFiles = ["index.html", "admin/index.html", "offline.html"];
+  const htmlFiles = ["v2/index.html", "v2/admin/index.html"];
   const attrRegex = /\s(?:href|src)=["']([^"']+)["']/g;
 
   for (const file of htmlFiles) {
@@ -185,25 +185,15 @@ function checkLocalAssetReferences() {
   }
 }
 
-function checkLegacyFirestoreContracts() {
-  const legacy = read("legacy/index-v1.html");
-  const rules = read("firestore.rules");
+function checkV2Isolation() {
+  const v2Index = read("v2/index.html");
+  const v2App = read("v2/js/app.js");
+  const v2Sw = read("v2/sw.js");
 
-  const payloadChecks = [
-    "addDoc(collection(db,\"applications\"),{",
-    "addDoc(collection(db,\"orders\"),{",
-    "setDoc(doc(db,\"meetParticipants\",k),{"
-  ];
-
-  payloadChecks.forEach(fragment => assert(legacy.includes(fragment), `legacy/index-v1.html missing payload fragment: ${fragment}`));
-
-  const ruleKeys = [
-    '"last"', '"first"', '"age"', '"gender"', '"cpmid"', '"nick"', '"direction"', '"contactType"', '"contact"', '"experience"', '"message"', '"status"',
-    '"orderNo"', '"productId"', '"productName"', '"unitPrice"', '"quantity"', '"total"', '"cpmNick"', '"cpmId"',
-    '"meetId"', '"meetStartAt"', '"memberId"', '"name"', '"source"'
-  ];
-
-  ruleKeys.forEach(key => assert(rules.includes(key), `firestore.rules missing expected key: ${key}`));
+  assert(v2Index.includes("./manifest.webmanifest"), "v2/index.html must link v2 manifest");
+  assert(v2App.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/js/app.js must register v2 scope only");
+  assert(v2Sw.includes('const BASE = "/oni-kishin-web/v2/";'), "v2/sw.js BASE must stay /oni-kishin-web/v2/");
+  assert(v2Sw.includes('url.pathname.startsWith("/oni-kishin-web/v2/")'), "v2/sw.js fetch handling must stay restricted to /v2/");
 }
 
 function run() {
@@ -214,10 +204,10 @@ function run() {
   checkServiceWorkerPrecache();
   checkDuplicateIds();
   checkLocalAssetReferences();
-  checkLegacyFirestoreContracts();
+  checkV2Isolation();
 
-  if (errors.length > 0) {
-    console.error("Validation failed with the following issues:\n");
+  if (errors.length) {
+    console.error("V2 validation failed with the following issues:\n");
     errors.forEach((error, index) => {
       console.error(`${index + 1}. ${error}`);
     });

@@ -8,7 +8,7 @@ import { createMeetModule } from "./meet.js";
 import { createMarketModule } from "./market.js";
 import { createOniAiModule } from "./oni-ai.js";
 
-const BASE = "/oni-kishin-web/";
+const BASE = "/oni-kishin-web/v2/";
 const modules = [
   createAuthModule(),
   createMembersModule(),
@@ -96,14 +96,14 @@ function renderHome() {
           <li>ES modules + centralized Firebase bootstrap</li>
           <li>Mobile-first shell with safe-area handling</li>
           <li>PWA manifest + service-worker offline strategy</li>
-          <li>Legacy v1 page preserved at <code>legacy/index-v1.html</code></li>
+          <li>Legacy v1 page preserved at <code>index.html</code></li>
         </ul>
       </article>
       <section class="oni-grid" aria-label="Placeholder modules">${moduleCards}</section>
       <article class="oni-card">
         <h2>Admin & Worker</h2>
-        <p>Admin v2 shell: <code>admin/index.html</code></p>
-        <p>Worker placeholder interface: <code>worker/index.js</code></p>
+        <p>Admin v2 shell: <code>v2/admin/index.html</code></p>
+        <p>Worker placeholder interface: <code>v2/worker/index.js</code></p>
         <p class="oni-muted">Production Cloudflare worker files in <code>src/</code> are unchanged.</p>
       </article>
     </div>
@@ -121,7 +121,7 @@ function renderModulePage(routeKey, title) {
       <article class="oni-card">
         <h2>Next migration step</h2>
         <p>${escapeHtml(description)}</p>
-        <p class="oni-muted">Current production logic remains preserved in <code>legacy/index-v1.html</code>.</p>
+        <p class="oni-muted">Current production logic remains preserved in <code>index.html</code>.</p>
         <button class="oni-btn oni-btn-primary" type="button" data-open-modal>Details</button>
       </article>
     </div>

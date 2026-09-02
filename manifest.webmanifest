@@ -1,18 +1,25 @@
 {
-  "name": "ONI HUB v2 — ONI & KISHIN",
+  "name": "ONI HUB — ONI & KISHIN",
   "short_name": "ONI HUB",
-  "description": "ONI HUB v2 mobile-first PWA shell for ONI & KISHIN.",
+  "description": "ONI & KISHIN CPM community hub — AI, cars, players, clans and events.",
   "lang": "mn",
   "id": "/oni-kishin-web/",
   "start_url": "/oni-kishin-web/",
   "scope": "/oni-kishin-web/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait-primary",
   "background_color": "#050507",
-  "theme_color": "#07070a",
+  "theme_color": "#050507",
   "prefer_related_applications": false,
-  "categories": ["social", "entertainment"],
+  "categories": [
+    "social",
+    "games",
+    "entertainment"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",
