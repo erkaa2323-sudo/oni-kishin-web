@@ -16,6 +16,8 @@ const DEFAULT_MAX_PLAYERS = 20;
 const COUNTER_DOC_ID = "__counter__";
 const JOINED_KEY_STORAGE = "oni.v2.meet.joinedKey";
 const JOINED_TOKEN_STORAGE = "oni.v2.meet.joinedToken";
+const LOAD_TIMEOUT_MS = 12_000;
+const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -240,7 +242,7 @@ export function meetRouteMarkup() {
             <h2 data-meet-title>ONI NIGHT MEET</h2>
             <p class="oni-meet-sub" data-meet-room-label>ONI &amp; KISHIN · CPM 1</p>
           </div>
-          <button type="button" class="oni-btn oni-btn-ghost" data-meet-retry>Retry</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-meet-retry>ДАХИН ОРОЛДОХ</button>
         </div>
 
         <div class="oni-meet-countdown-box">
@@ -299,6 +301,7 @@ export function createMeetModule() {
   let isMounted = false;
   let requestId = 0;
   let timerId = 0;
+  let loadWatchdogId = 0;
 
   let meet = null;
   let members = [];
@@ -332,6 +335,22 @@ export function createMeetModule() {
     if (!timerId) return;
     clearInterval(timerId);
     timerId = 0;
+  }
+
+  function clearLoadWatchdog() {
+    if (!loadWatchdogId) return;
+    clearTimeout(loadWatchdogId);
+    loadWatchdogId = 0;
+  }
+
+  function startLoadWatchdog() {
+    clearLoadWatchdog();
+    loadWatchdogId = setTimeout(() => {
+      if (!isMounted || !loading) return;
+      loading = false;
+      errorMessage = LOAD_ERROR_MESSAGE;
+      render();
+    }, LOAD_TIMEOUT_MS);
   }
 
   function startTimer() {
@@ -413,7 +432,7 @@ export function createMeetModule() {
   function renderParticipantList(container, list) {
     if (!(container instanceof HTMLElement)) return;
     if (!list.length) {
-      container.innerHTML = '<p class="oni-meet-empty">No participants yet.</p>';
+      container.innerHTML = '<p class="oni-meet-empty">Одоогоор бүртгэл алга.</p>';
       return;
     }
 
@@ -457,7 +476,7 @@ export function createMeetModule() {
 
     if (nodes.registrationState) {
       if (registrationMessage) nodes.registrationState.textContent = registrationMessage;
-      else if (hasJoinedCurrentMeet) nodes.registrationState.textContent = "You are already registered for this meet.";
+      else if (hasJoinedCurrentMeet) nodes.registrationState.textContent = "Та энэ meet-д бүртгэлтэй байна.";
       else nodes.registrationState.textContent = "";
     }
 
@@ -534,28 +553,28 @@ export function createMeetModule() {
     errorMessage = "";
 
     if (!nick || !cpmId) {
-      errorMessage = "CPM Nick and CPM ID are required.";
+      errorMessage = "CPM Nick болон CPM ID-аа бөглөнө үү.";
       render();
       return;
     }
 
     const currentMeet = meet;
     if (!currentMeet || getMeetState(currentMeet) !== "active") {
-      errorMessage = "Meet is not active right now.";
+      errorMessage = "Одоогоор meet идэвхгүй байна.";
       render();
       return;
     }
 
     const member = findMemberByInputs(nick, cpmId);
     if (!member) {
-      errorMessage = "Nick + CPM ID does not match the current members roster.";
+      errorMessage = "Nick болон CPM ID тохирсонгүй.";
       render();
       return;
     }
 
     const resolvedMemberId = asText(member.id);
     if (!resolvedMemberId) {
-      errorMessage = "Member record is malformed (missing ID).";
+      errorMessage = "Гишүүний мэдээлэл дутуу байна.";
       render();
       return;
     }
@@ -566,7 +585,7 @@ export function createMeetModule() {
       joinedKey = participantKey;
       joinedMeetToken = currentMeet.token;
       saveJoinedState();
-      registrationMessage = "Already registered. Meet access is active.";
+      registrationMessage = "Та аль хэдийн бүртгүүлсэн байна.";
       render();
       return;
     }
@@ -635,21 +654,21 @@ export function createMeetModule() {
       joinedMeetToken = joinResult.meetToken;
       saveJoinedState();
       registrationMessage = joinResult.duplicate
-        ? "Already registered. Meet access is active."
-        : "Join successful. Meet credentials unlocked.";
+        ? "Та аль хэдийн бүртгүүлсэн байна."
+        : "Амжилттай бүртгэгдлээ.";
       errorMessage = "";
       if (!joinResult.duplicate && nodes.form) nodes.form.reset();
     } catch (error) {
       if (token !== requestId || !isMounted) return;
 
       if (error instanceof Error && error.message === "MEET_FULL") {
-        errorMessage = "Meet is full. Please wait for the next meet.";
+        errorMessage = "Meet дүүрсэн байна. Дараагийнхыг хүлээнэ үү.";
       } else if (error instanceof Error && error.message === "MEET_CLOSED") {
-        errorMessage = "Meet is already closed.";
+        errorMessage = "Meet аль хэдийн дууссан байна.";
       } else if (error instanceof Error && error.message === "MEET_CHANGED") {
-        errorMessage = "Meet changed while joining. Please retry.";
+        errorMessage = "Meet шинэчлэгдсэн байна. Дахин оролдоно уу.";
       } else {
-        errorMessage = "Unable to complete registration right now.";
+        errorMessage = LOAD_ERROR_MESSAGE;
       }
     } finally {
       if (token !== requestId || !isMounted) return;
@@ -672,7 +691,7 @@ export function createMeetModule() {
         : "";
 
     if (!value || !navigator.clipboard?.writeText) {
-      registrationMessage = "Nothing to copy yet.";
+      registrationMessage = "Одоогоор хуулах мэдээлэл алга.";
       render();
       return;
     }
@@ -680,13 +699,13 @@ export function createMeetModule() {
     navigator.clipboard.writeText(value)
       .then(() => {
         if (!isMounted) return;
-        registrationMessage = kind === "roomId" ? "Meet ID copied." : "PASS copied.";
+        registrationMessage = kind === "roomId" ? "Meet ID хуулагдлаа." : "PASS хуулагдлаа.";
         errorMessage = "";
         render();
       })
       .catch(() => {
         if (!isMounted) return;
-        registrationMessage = "Copy failed. Please copy manually.";
+        registrationMessage = "Хуулахад алдаа гарлаа. Гараар хуулна уу.";
         render();
       });
   }
@@ -718,6 +737,7 @@ export function createMeetModule() {
   function watchMeet() {
     const generation = ++watcherGeneration;
     const db = getFirestoreDb();
+    startLoadWatchdog();
 
     unsubscribeMembers = onSnapshot(collection(db, "members"), snapshot => {
       if (!isMounted || generation !== watcherGeneration) return;
@@ -734,6 +754,7 @@ export function createMeetModule() {
       const previousToken = meet?.token || "";
       meet = next;
       loading = false;
+      clearLoadWatchdog();
       updateJoinedForCurrentMeet();
 
       if (typeof unsubscribeParticipants === "function") {
@@ -774,9 +795,11 @@ export function createMeetModule() {
     }, error => {
       if (!isMounted || generation !== watcherGeneration) return;
       loading = false;
+      clearLoadWatchdog();
       meet = null;
       participants = [];
-      errorMessage = error instanceof Error ? error.message : "Failed to read meet.";
+      errorMessage = LOAD_ERROR_MESSAGE;
+      if (error instanceof Error) console.error("meet_watch_failed", error);
       render();
     });
   }
@@ -789,6 +812,7 @@ export function createMeetModule() {
     meet = null;
     participants = [];
     members = [];
+    startLoadWatchdog();
     watchMeet();
     render();
   }
@@ -821,6 +845,7 @@ export function createMeetModule() {
       host.innerHTML = meetRouteMarkup();
       bindDomListeners();
       startTimer();
+      startLoadWatchdog();
       watchMeet();
       render();
     },
@@ -829,6 +854,7 @@ export function createMeetModule() {
       isMounted = false;
       requestId += 1;
       stopTimer();
+      clearLoadWatchdog();
       clearListeners();
       clearSnapshots();
       watcherGeneration += 1;

@@ -12,20 +12,40 @@ export const FIREBASE_WEB_CONFIG = Object.freeze({
 });
 
 let firebase;
+let firebaseInitPromise = null;
 
-export function getFirebase() {
-  if (firebase) return firebase;
-
+function buildFirebaseSingleton() {
   const app = getApps().length ? getApp() : initializeApp(FIREBASE_WEB_CONFIG);
   const db = getFirestore(app);
-
-  firebase = {
+  return {
     app,
     db,
     projectId: FIREBASE_WEB_CONFIG.projectId
   };
+}
 
+export function getFirebase() {
+  if (firebase) return firebase;
+  firebase = buildFirebaseSingleton();
+  if (!firebaseInitPromise) firebaseInitPromise = Promise.resolve(firebase);
   return firebase;
+}
+
+export async function initFirebase() {
+  if (firebase) return firebase;
+  if (firebaseInitPromise) return firebaseInitPromise;
+
+  firebaseInitPromise = Promise.resolve()
+    .then(() => {
+      if (firebase) return firebase;
+      firebase = buildFirebaseSingleton();
+      return firebase;
+    })
+    .catch(error => {
+      firebaseInitPromise = null;
+      throw error;
+    });
+  return firebaseInitPromise;
 }
 
 export function getFirestoreDb() {

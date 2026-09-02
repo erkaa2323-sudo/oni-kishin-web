@@ -12,6 +12,7 @@ import { getFirestoreDb } from "./firebase.js";
 const RESUBMIT_BLOCK_MS = 10 * 60 * 1000;
 const SUBMISSION_MARKER = "oni.v2.join.lastSubmission";
 const REJECTED_STATUS = "Татгалзсан";
+const SUBMIT_TIMEOUT_MS = 12_000;
 
 function asText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -31,6 +32,14 @@ function pickFirstText(...values) {
   for (const value of values) {
     const text = asText(value);
     if (text) return text;
+  }
+
+  function withTimeout(task, timeoutMs = SUBMIT_TIMEOUT_MS) {
+    let timeoutId = 0;
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+    });
+    return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
   }
   return "";
 }
@@ -219,16 +228,16 @@ export function joinRouteMarkup() {
     <section class="oni-join-view" data-join-view>
       <header class="oni-section-head">
         <h1>Join ONI &amp; KISHIN</h1>
-        <p>Application writes to Firestore <code>applications</code> with production-compatible fields for Admin review.</p>
+        <p>ONI кланд нэгдэх хүсэлтээ илгээнэ үү.</p>
       </header>
 
       <article class="oni-card oni-join-card">
         <form data-join-form novalidate>
           <div class="oni-join-grid">${fields.map(fieldMarkup).join("")}</div>
           <div class="oni-join-actions">
-            <button class="oni-btn oni-btn-primary" type="submit" data-join-submit>Submit application</button>
-            <button class="oni-btn oni-btn-ghost" type="button" data-join-reset>Reset</button>
-            <a class="oni-btn oni-btn-ghost oni-join-return" href="#garage">Go to Garage</a>
+            <button class="oni-btn oni-btn-primary" type="submit" data-join-submit>ИЛГЭЭХ</button>
+            <button class="oni-btn oni-btn-ghost" type="button" data-join-reset>ЦЭВЭРЛЭХ</button>
+            <a class="oni-btn oni-btn-ghost oni-join-return" href="#garage">ГАРАЖ РУУ ОРОХ</a>
           </div>
           <p class="oni-join-state" data-join-state role="status" aria-live="polite"></p>
           <p class="oni-join-error" data-join-error role="alert"></p>
@@ -323,7 +332,7 @@ export function createJoinModule() {
     if (error) error.textContent = errorMessage;
     if (submit instanceof HTMLButtonElement) {
       submit.disabled = submitting || submitted;
-      submit.textContent = submitting ? "Submitting..." : submitted ? "Application submitted" : "Submit application";
+      submit.textContent = submitting ? "Илгээж байна..." : submitted ? "Илгээгдсэн" : "ИЛГЭЭХ";
     }
   }
 
@@ -339,7 +348,7 @@ export function createJoinModule() {
     stateMessage = "";
 
     if (!validation.valid) {
-      errorMessage = validation.errors[0] || "Invalid submission.";
+      errorMessage = "Маягтын мэдээллээ шалгана уу.";
       render();
       return;
     }
@@ -347,31 +356,31 @@ export function createJoinModule() {
     const key = submissionKey(draft);
     const local = readLastSubmission();
     if (local && local.key === key && Date.now() - local.at < RESUBMIT_BLOCK_MS) {
-      errorMessage = "You already submitted recently. Please wait before retrying.";
+      errorMessage = "Та саяхан илгээсэн байна. Түр хүлээгээд дахин оролдоно уу.";
       render();
       return;
     }
 
     submitting = true;
-    stateMessage = "Submitting application...";
+    stateMessage = "Илгээж байна...";
     render();
 
     try {
       const db = getFirestoreDb();
-      const duplicate = await hasRecentDuplicate(db, draft);
+      const duplicate = await withTimeout(hasRecentDuplicate(db, draft));
       if (!isMounted || token !== requestId) return;
 
       if (duplicate) {
         throw new Error("DUPLICATE_APPLICATION");
       }
 
-      await addDoc(collection(db, "applications"), buildApplicationPayload(draft));
+      await withTimeout(addDoc(collection(db, "applications"), buildApplicationPayload(draft)));
       if (!isMounted || token !== requestId) return;
 
       writeLastSubmission(key);
       submitted = true;
       preserveIdentityFields();
-      stateMessage = "Application submitted successfully. Admin will review it soon.";
+      stateMessage = "Хүсэлт амжилттай илгээгдлээ.";
       errorMessage = "";
       const submitButton = host?.querySelector("[data-join-submit]");
       if (submitButton instanceof HTMLElement) {
@@ -381,9 +390,9 @@ export function createJoinModule() {
       if (!isMounted || token !== requestId) return;
 
       if (error instanceof Error && error.message === "DUPLICATE_APPLICATION") {
-        errorMessage = "An active application with the same CPM ID and nick already exists.";
+        errorMessage = "Ижил CPM ID болон nick-тэй идэвхтэй хүсэлт байна.";
       } else {
-        errorMessage = "Unable to submit application right now. Please retry.";
+        errorMessage = "Мэдээлэлтэй холбогдож чадсангүй.";
       }
       stateMessage = "";
       submitted = false;

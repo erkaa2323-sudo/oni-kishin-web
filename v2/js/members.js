@@ -8,6 +8,8 @@ const ROLE_LABELS = {
   special: "Тусгай",
   member: "Гишүүн"
 };
+const LOAD_TIMEOUT_MS = 12_000;
+const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -63,6 +65,14 @@ function initials(text) {
 
 function hasListenerApi(node) {
   return !!node && typeof node.addEventListener === "function" && typeof node.removeEventListener === "function";
+}
+
+function withTimeout(task, timeoutMs = LOAD_TIMEOUT_MS) {
+  let timeoutId = 0;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 export function normalizeMemberRecord(raw = {}, docId = "") {
@@ -361,7 +371,7 @@ export function createMembersModule() {
       gridEl.innerHTML = `
         <article class="oni-card oni-members-empty">
           <h2>${records.length ? "Үр дүн алга" : "CREW хоосон байна"}</h2>
-          <p>${records.length ? "Өөр түлхүүр үг эсвэл роль сонгоно уу." : "Firestore холбоо хэвийн боловч roster одоогоор хоосон байна."}</p>
+          <p>${records.length ? "Өөр түлхүүр үг эсвэл роль сонгоно уу." : "Одоогоор харагдах мэдээлэл алга."}</p>
         </article>
       `;
       return;
@@ -386,7 +396,7 @@ export function createMembersModule() {
 
     try {
       const db = getFirestoreDb();
-      const membersSnap = await getDocs(collection(db, "members"));
+      const membersSnap = await withTimeout(getDocs(collection(db, "members")));
 
       if (token !== requestId || !isMounted) return;
 
@@ -399,7 +409,8 @@ export function createMembersModule() {
       if (token !== requestId || !isMounted) return;
 
       loading = false;
-      errorMessage = error instanceof Error ? error.message : "Firestore уншилтын алдаа";
+      errorMessage = LOAD_ERROR_MESSAGE;
+      if (error instanceof Error) console.error("members_load_failed", error);
       renderState();
     }
   }
@@ -459,7 +470,7 @@ export function createMembersModule() {
   return {
     key: "members",
     title: "ONI CREW",
-    description: "ONI CREW маршрут нь Firestore members roster-ийг роль hierarchy болон profile панельтэй харуулна.",
+    description: "ONI CREW маршрут нь role бүтэцтэй roster болон profile панель харуулна.",
     status: "live",
 
     mount(root) {

@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-v2-shell-5";
+const VERSION = "oni-hub-v2-shell-6";
 const BASE = "/oni-kishin-web/v2/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -79,14 +79,9 @@ self.addEventListener("fetch", event => {
       try {
         const preload = await event.preloadResponse;
         if (preload) return preload;
-
-        const response = await fetch(request, { cache: "no-store" });
-        const cache = await caches.open(RUNTIME_CACHE);
-        cache.put(request, response.clone()).catch(() => {});
-        return response;
+        return await fetch(request, { cache: "no-store" });
       } catch {
-        return (await caches.match(request))
-          || (await caches.match(BASE + "index.html"))
+        return (await caches.match(BASE + "index.html"))
           || (await caches.match("/oni-kishin-web/offline.html"));
       }
     })());
@@ -97,8 +92,10 @@ self.addEventListener("fetch", event => {
   if (!staticAsset) return;
 
   event.respondWith((async () => {
-    const cache = await caches.open(RUNTIME_CACHE);
-    const cached = await cache.match(request);
+    const runtimeCache = await caches.open(RUNTIME_CACHE);
+    const staticCache = await caches.open(STATIC_CACHE);
+    const cachedRuntime = await runtimeCache.match(request);
+    const cachedStatic = await staticCache.match(request);
     const isFastChanging = request.destination === "script"
       || request.destination === "style"
       || url.pathname.endsWith(".html")
@@ -108,24 +105,23 @@ self.addEventListener("fetch", event => {
       try {
         const fresh = await fetch(request, { cache: "no-store" });
         if (fresh.ok) {
-          cache.put(request, fresh.clone()).catch(() => {});
-          trimCache(cache).catch(() => {});
+          staticCache.put(request, fresh.clone()).catch(() => {});
         }
         return fresh;
       } catch {
-        return cached || Response.error();
+        return cachedStatic || cachedRuntime || Response.error();
       }
     }
 
     const networkPromise = fetch(request).then(response => {
       if (response.ok) {
-        cache.put(request, response.clone()).catch(() => {});
-        trimCache(cache).catch(() => {});
+        runtimeCache.put(request, response.clone()).catch(() => {});
+        trimCache(runtimeCache).catch(() => {});
       }
       return response;
     }).catch(() => null);
 
-    return cached || await networkPromise || Response.error();
+    return cachedRuntime || cachedStatic || await networkPromise || Response.error();
   })());
 });
 
