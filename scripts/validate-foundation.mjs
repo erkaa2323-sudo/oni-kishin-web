@@ -512,7 +512,6 @@ async function checkGarageModuleBehavior() {
     assert(getDocsCalls() === 1, "Garage route must mount once and avoid duplicate collection reads");
     assert(collections().includes("garage"), "Garage route must read from the Firestore garage collection");
 
-    const flakyRoot = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
     let callIndex = 0;
     const failingDocs = compileGarageValidationExports({
       docs: sampleDocs,
@@ -529,6 +528,11 @@ async function checkGarageModuleBehavior() {
     });
 
     const flakyGarage = failingDocs.exports.createGarageModule();
+    const flakyRoot = createFakeGarageRoot(
+      failingDocs.Element,
+      failingDocs.HTMLElement,
+      failingDocs.HTMLSelectElement
+    );
     flakyGarage.mount(flakyRoot);
     await Promise.resolve();
     await Promise.resolve();
