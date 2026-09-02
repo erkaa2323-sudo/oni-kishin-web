@@ -19,6 +19,7 @@ const modules = [
   createOniAiModule()
 ];
 const membersModule = modules.find(module => module.key === "members");
+const garageModule = modules.find(module => module.key === "garage");
 
 const root = document.getElementById("viewRoot");
 const navLinks = [...document.querySelectorAll(".oni-nav-link")];
@@ -160,8 +161,14 @@ function registerRoutes() {
   });
 
   registerRoute("garage", async () => {
-    clearRouteMount();
     setActive("garage");
+    if (garageModule && typeof garageModule.mount === "function") {
+      clearRouteMount();
+      garageModule.mount(root);
+      activeRouteTeardown = () => garageModule.unmount?.();
+      return;
+    }
+    clearRouteMount();
     renderModulePage("garage", "Garage");
   });
 
