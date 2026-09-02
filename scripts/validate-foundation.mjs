@@ -621,9 +621,9 @@ async function checkGarageModuleBehavior() {
     membersDocs = [],
     meetDoc = null,
     participantDocs = [],
-    getDocImpl,
     getDocsImpl,
-    setDocImpl
+    runTransactionImpl,
+    onSnapshotImpl
   } = {}) {
     const source = read("v2/js/meet.js");
     const transformed = source
@@ -634,18 +634,72 @@ async function checkGarageModuleBehavior() {
     const klasses = createBaseFakeNodeClasses();
     const snapshotUnsubs = [];
     const intervalHandles = [];
+    const store = new Map();
+    const snapshotCallKinds = new Map();
+    let activeSubscriptions = 0;
     let nextIntervalId = 1;
     let activeIntervalCount = 0;
-    let setDocCalls = 0;
-    let getDocCalls = 0;
     let getDocsCalls = 0;
     let onSnapshotCalls = 0;
+    let runTransactionCalls = 0;
+    let transactionSetCalls = 0;
+    let txnQueue = Promise.resolve();
+
+    if (meetDoc) {
+      store.set("meets/current", { ...(meetDoc || {}) });
+    }
+    for (const item of participantDocs) {
+      store.set(`meetParticipants/${item.id}`, { ...(item.data || {}) });
+    }
 
     function asDoc(data, id) {
       return {
         id,
         data: () => data
       };
+    }
+
+    function refKey(ref) {
+      return `${ref.name}/${ref.id}`;
+    }
+
+    function snapshotFromRef(ref) {
+      const value = store.get(refKey(ref));
+      return {
+        exists: () => value != null,
+        id: ref.id,
+        data: () => (value ? { ...value } : {})
+      };
+    }
+
+    function emitDefaultSnapshot(ref, next, error) {
+      if (ref?.kind === "doc" && ref.name === "meets") {
+        const snap = snapshotFromRef(ref);
+        try { next(snap); } catch (err) { error?.(err); }
+        return;
+      }
+      if (ref?.kind === "collection" && ref.name === "members") {
+        try { next({ docs: membersDocs.map(item => asDoc(item.data, item.id)) }); } catch (err) { error?.(err); }
+        return;
+      }
+      if (ref?.kind === "query") {
+        const docs = [...store.entries()]
+          .filter(([key]) => key.startsWith("meetParticipants/"))
+          .map(([key, data]) => asDoc(data, key.split("/")[1]));
+        try { next({ docs }); } catch (err) { error?.(err); }
+      }
+    }
+
+    function makeUnsub() {
+      activeSubscriptions += 1;
+      const unsub = () => {
+        if (unsub.called) return;
+        unsub.called = true;
+        activeSubscriptions = Math.max(0, activeSubscriptions - 1);
+      };
+      unsub.called = false;
+      snapshotUnsubs.push(unsub);
+      return unsub;
     }
 
     const context = {
@@ -680,42 +734,66 @@ async function checkGarageModuleBehavior() {
       query: (...parts) => ({ kind: "query", parts }),
       getFirestoreDb: () => ({}),
       serverTimestamp: () => ({ __kind: "serverTimestamp" }),
-      getDoc: async ref => {
-        getDocCalls += 1;
-        if (typeof getDocImpl === "function") return getDocImpl(ref);
-        return {
-          exists: () => false,
-          data: () => ({})
-        };
-      },
       getDocs: async queryRef => {
         getDocsCalls += 1;
         if (typeof getDocsImpl === "function") return getDocsImpl(queryRef);
-        return {
-          docs: participantDocs.map(item => asDoc(item.data, item.id))
-        };
+        if (queryRef?.kind === "query") {
+          const whereMeetId = queryRef.parts.find(part => part?.field === "meetId");
+          const docs = [...store.entries()]
+            .filter(([key, data]) => key.startsWith("meetParticipants/"))
+            .filter(([, data]) => !whereMeetId || data?.meetId === whereMeetId.value)
+            .map(([key, data]) => asDoc(data, key.split("/")[1]));
+          return { docs };
+        }
+        return { docs: [] };
       },
-      setDoc: async (...args) => {
-        setDocCalls += 1;
-        if (typeof setDocImpl === "function") return setDocImpl(...args);
+      runTransaction: async (db, updater) => {
+        runTransactionCalls += 1;
+        if (typeof runTransactionImpl === "function") {
+          return runTransactionImpl(db, updater, { store, snapshotFromRef, refKey });
+        }
+        const execute = async () => {
+          const pendingWrites = [];
+          const transaction = {
+            get: async ref => snapshotFromRef(ref),
+            set: (ref, data, options = {}) => {
+              pendingWrites.push({ ref, data, options });
+            }
+          };
+          const result = await updater(transaction);
+          for (const write of pendingWrites) {
+            transactionSetCalls += 1;
+            const key = refKey(write.ref);
+            const before = store.get(key) || {};
+            store.set(key, write.options?.merge ? { ...before, ...write.data } : { ...write.data });
+          }
+          return result;
+        };
+        const queued = txnQueue.then(execute, execute);
+        txnQueue = queued.then(() => {}, () => {});
+        return queued;
       },
       onSnapshot(ref, next, error) {
         onSnapshotCalls += 1;
-        if (ref?.kind === "doc" && ref.name === "meets") {
-          const snap = meetDoc
-            ? { exists: () => true, id: ref.id, data: () => meetDoc }
-            : { exists: () => false, id: ref.id, data: () => ({}) };
-          try { next(snap); } catch (err) { error?.(err); }
+        const kind = ref?.kind === "doc"
+          ? `doc:${ref.name}`
+          : ref?.kind === "collection"
+            ? `collection:${ref.name}`
+            : "query";
+        snapshotCallKinds.set(kind, (snapshotCallKinds.get(kind) || 0) + 1);
+        const unsub = makeUnsub();
+        if (typeof onSnapshotImpl === "function") {
+          onSnapshotImpl({
+            ref,
+            next,
+            error,
+            emitDefault: () => emitDefaultSnapshot(ref, next, error),
+            store,
+            unsub
+          });
+          return unsub;
         }
-        if (ref?.kind === "collection" && ref.name === "members") {
-          try { next({ docs: membersDocs.map(item => asDoc(item.data, item.id)) }); } catch (err) { error?.(err); }
-        }
-        if (ref?.kind === "query") {
-          try { next({ docs: participantDocs.map(item => asDoc(item.data, item.id)) }); } catch (err) { error?.(err); }
-        }
-        const unsub = () => { unsub.called = true; };
-        unsub.called = false;
-        snapshotUnsubs.push(unsub);
+        emitDefaultSnapshot(ref, next, error);
         return unsub;
       }
     };
@@ -724,11 +802,16 @@ async function checkGarageModuleBehavior() {
     return {
       exports: context.module.exports,
       classes: klasses,
-      getSetDocCalls: () => setDocCalls,
-      getGetDocCalls: () => getDocCalls,
+      getRunTransactionCalls: () => runTransactionCalls,
+      getTransactionSetCalls: () => transactionSetCalls,
       getGetDocsCalls: () => getDocsCalls,
       getOnSnapshotCalls: () => onSnapshotCalls,
+      getSnapshotCallKinds: () => new Map(snapshotCallKinds),
       getActiveIntervals: () => activeIntervalCount,
+      getActiveSubscriptions: () => activeSubscriptions,
+      getStoredParticipants: () => [...store.entries()]
+        .filter(([key]) => key.startsWith("meetParticipants/"))
+        .map(([key, data]) => ({ id: key.split("/")[1], data: { ...data } })),
       getUnsubs: () => snapshotUnsubs
     };
   }
@@ -923,7 +1006,6 @@ async function checkGarageModuleBehavior() {
       meetDoc: currentMeetDoc,
       membersDocs,
       participantDocs,
-      getDocImpl: async () => ({ exists: () => false, data: () => ({}) }),
       getDocsImpl: async () => ({ docs: [] })
     });
 
@@ -985,9 +1067,7 @@ async function checkGarageModuleBehavior() {
       meetDoc: { ...currentMeetDoc, startAt: new Date(Date.now() - 60_000).toISOString() },
       membersDocs,
       participantDocs: [],
-      getDocImpl: async () => ({ exists: () => false, data: () => ({}) }),
-      getDocsImpl: async () => ({ docs: [] }),
-      setDocImpl: async () => {}
+      getDocsImpl: async () => ({ docs: [] })
     });
 
     const meetModule = registerValidation.exports.createMeetModule();
@@ -1005,13 +1085,88 @@ async function checkGarageModuleBehavior() {
     await Promise.resolve();
     await Promise.resolve();
 
-    assert(registerValidation.getSetDocCalls() <= 1, "Meet registration must block duplicate/double-tap writes");
+    assert(registerValidation.getRunTransactionCalls() <= 1, "Meet registration must block duplicate/double-tap writes");
+    assert(registerValidation.getTransactionSetCalls() <= 2, "Meet duplicate submit must not create duplicate participant writes");
     assert(registerValidation.getOnSnapshotCalls() >= 2, "Meet module must subscribe to meet and member/participant snapshots");
     assert(registerValidation.getActiveIntervals() === 1, "Meet module must keep a single active timer");
 
     meetModule.unmount();
     assert(registerValidation.getActiveIntervals() === 0, "Meet module must cleanup timer on unmount");
     assert(registerValidation.getUnsubs().every(unsub => unsub.called), "Meet module must cleanup snapshot listeners on unmount");
+
+    const concurrencyValidation = compileMeetValidationExports({
+      meetDoc: {
+        ...currentMeetDoc,
+        startAt: new Date(Date.now() - 60_000).toISOString(),
+        maxPlayers: 1
+      },
+      membersDocs: [
+        { id: "m1", data: { nick: "Kitsune", cpmid: "ONI0001" } },
+        { id: "m2", data: { nick: "Noir", cpmid: "ONI0002" } }
+      ],
+      participantDocs: []
+    });
+
+    const clientA = concurrencyValidation.exports.createMeetModule();
+    const clientB = concurrencyValidation.exports.createMeetModule();
+    const rootA = createFakeMeetRoot(concurrencyValidation.classes);
+    const rootB = createFakeMeetRoot(concurrencyValidation.classes);
+    clientA.mount(rootA);
+    clientB.mount(rootB);
+    rootA.node("[data-meet-nick]").value = "Kitsune";
+    rootA.node("[data-meet-cpm]").value = "ONI0001";
+    rootB.node("[data-meet-nick]").value = "Noir";
+    rootB.node("[data-meet-cpm]").value = "ONI0002";
+    rootA.node("[data-meet-form]").trigger("submit", event);
+    rootB.node("[data-meet-form]").trigger("submit", event);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const participantWrites = concurrencyValidation.getStoredParticipants()
+      .filter(item => item.id !== "__counter__")
+      .filter(item => item.data.meetId === "current");
+    assert(participantWrites.length === 1, "Meet concurrency control must prevent two clients taking the final slot");
+
+    clientA.unmount();
+    clientB.unmount();
+
+    let forceMeetFailure = true;
+    const retryValidation = compileMeetValidationExports({
+      meetDoc: { ...currentMeetDoc, startAt: new Date(Date.now() - 60_000).toISOString() },
+      membersDocs,
+      participantDocs: [],
+      onSnapshotImpl: ({ ref, error, emitDefault }) => {
+        if (ref?.kind === "doc" && ref.name === "meets" && forceMeetFailure) {
+          forceMeetFailure = false;
+          error?.(new Error("forced meet listener failure"));
+          return;
+        }
+        emitDefault();
+      }
+    });
+    const retryModule = retryValidation.exports.createMeetModule();
+    const retryRoot = createFakeMeetRoot(retryValidation.classes);
+    retryModule.mount(retryRoot);
+    const retryBtn = retryRoot.node("[data-meet-retry]");
+    const beforeRetryCalls = retryValidation.getOnSnapshotCalls();
+    retryBtn.trigger("click");
+    await Promise.resolve();
+    await Promise.resolve();
+    const afterRetryCalls = retryValidation.getOnSnapshotCalls();
+    assert(afterRetryCalls > beforeRetryCalls, "Meet retry must reconnect Firestore listeners after subscription failure");
+    assert(retryValidation.getActiveIntervals() === 1, "Meet retry must not create duplicate timers");
+
+    const callsAfterFirstRetry = retryValidation.getOnSnapshotCalls();
+    retryBtn.trigger("click");
+    retryBtn.trigger("click");
+    await Promise.resolve();
+    await Promise.resolve();
+    assert(retryValidation.getOnSnapshotCalls() > callsAfterFirstRetry, "Meet repeated retry clicks must reconnect listeners");
+    assert(retryValidation.getActiveIntervals() === 1, "Meet repeated retry clicks must keep a single active timer");
+    assert(retryValidation.getActiveSubscriptions() <= 3, "Meet retry must keep one active listener set without duplicates");
+    retryModule.unmount();
   }
 
   async function checkJoinModuleBehavior() {

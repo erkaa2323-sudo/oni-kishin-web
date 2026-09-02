@@ -1,12 +1,11 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
-  setDoc,
   where
 } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
@@ -14,6 +13,7 @@ import { getFirestoreDb } from "./firebase.js";
 const MEET_DOC_ID = "current";
 const DEFAULT_DURATION_MINUTES = 20;
 const DEFAULT_MAX_PLAYERS = 20;
+const COUNTER_DOC_ID = "__counter__";
 const JOINED_KEY_STORAGE = "oni.v2.meet.joinedKey";
 const JOINED_TOKEN_STORAGE = "oni.v2.meet.joinedToken";
 
@@ -197,6 +197,14 @@ function computeParticipantDocId(meetToken, memberId) {
   return `${meetToken}__${String(memberId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
 
+function normalizeCounterSnapshot(raw = {}) {
+  const count = Number(raw.count);
+  return {
+    token: pickFirstText(raw.meetToken, raw.token),
+    count: Number.isFinite(count) && count >= 0 ? count : NaN
+  };
+}
+
 function skeletonMarkup() {
   return `
     <section class="oni-meet-view" data-meet-view>
@@ -301,6 +309,7 @@ export function createMeetModule() {
   let registering = false;
   let errorMessage = "";
   let registrationMessage = "";
+  let watcherGeneration = 0;
 
   let unsubscribeMeet = null;
   let unsubscribeParticipants = null;
@@ -499,6 +508,19 @@ export function createMeetModule() {
     }) || null;
   }
 
+  async function fetchCurrentMeetParticipantCount(db, currentMeet) {
+    try {
+      const snapshot = await getDocs(query(collection(db, "meetParticipants"), where("meetId", "==", MEET_DOC_ID)));
+      const items = snapshot.docs
+        .map(item => normalizeMeetParticipant(item.data(), item.id))
+        .filter(item => item.id !== COUNTER_DOC_ID)
+        .filter(item => participantBelongsToMeet(item, currentMeet));
+      return items.length;
+    } catch {
+      return participants.length;
+    }
+  }
+
   async function handleRegister(event) {
     event.preventDefault();
     if (registering || !isMounted || !host) return;
@@ -554,62 +576,69 @@ export function createMeetModule() {
 
     try {
       const db = getFirestoreDb();
-      const participantRef = doc(db, "meetParticipants", participantKey);
-      const existing = await getDoc(participantRef);
+      const fallbackCount = await fetchCurrentMeetParticipantCount(db, currentMeet);
       if (token !== requestId || !isMounted) return;
 
-      if (existing.exists()) {
-        joinedKey = participantKey;
-        joinedMeetToken = currentMeet.token;
-        saveJoinedState();
-        registrationMessage = "Already registered. Meet access is active.";
-        errorMessage = "";
-        return;
-      }
+      const joinResult = await runTransaction(db, async transaction => {
+        const meetRef = doc(db, "meets", MEET_DOC_ID);
+        const counterRef = doc(db, "meetParticipants", COUNTER_DOC_ID);
+        const participantRef = doc(db, "meetParticipants", participantKey);
 
-      const latestParticipants = await getDocs(query(collection(db, "meetParticipants"), where("meetId", "==", MEET_DOC_ID)));
-      if (token !== requestId || !isMounted) return;
+        const [meetSnapshot, counterSnapshot, participantSnapshot] = await Promise.all([
+          transaction.get(meetRef),
+          transaction.get(counterRef),
+          transaction.get(participantRef)
+        ]);
 
-      const normalized = latestParticipants.docs
-        .map(snapshot => normalizeMeetParticipant(snapshot.data(), snapshot.id))
-        .filter(item => participantBelongsToMeet(item, currentMeet));
+        if (!meetSnapshot.exists()) throw new Error("MEET_CLOSED");
+        const liveMeet = normalizeMeetRecord(meetSnapshot.data(), meetSnapshot.id);
+        if (liveMeet.token !== currentMeet.token) throw new Error("MEET_CHANGED");
+        if (getMeetState(liveMeet) !== "active") throw new Error("MEET_CLOSED");
 
-      if (normalized.some(item => item.id === participantKey)) {
-        joinedKey = participantKey;
-        joinedMeetToken = currentMeet.token;
-        saveJoinedState();
-        registrationMessage = "Already registered. Meet access is active.";
-        errorMessage = "";
-        return;
-      }
+        if (participantSnapshot.exists()) {
+          return { duplicate: true, meetToken: liveMeet.token };
+        }
 
-      if (normalized.length >= currentMeet.maxPlayers) {
-        throw new Error("MEET_FULL");
-      }
+        const counter = counterSnapshot.exists()
+          ? normalizeCounterSnapshot(counterSnapshot.data())
+          : { token: "", count: NaN };
+        const shouldRebaseCounter = !Number.isFinite(counter.count) || counter.token !== liveMeet.token;
+        const currentCount = shouldRebaseCounter ? fallbackCount : counter.count;
 
-      if (getMeetState(currentMeet) !== "active") {
-        throw new Error("MEET_CLOSED");
-      }
+        if (currentCount >= liveMeet.maxPlayers) throw new Error("MEET_FULL");
 
-      await setDoc(participantRef, {
-        meetId: MEET_DOC_ID,
-        meetStartAt: currentMeet.startAtRaw ?? currentMeet.startAtMs,
-        memberId: resolvedMemberId,
-        nick: memberNick(member) || nick,
-        name: memberNick(member) || nick,
-        cpmId: memberCpmId(member) || cpmId,
-        joinedAt: serverTimestamp(),
-        source: "website"
+        transaction.set(participantRef, {
+          meetId: MEET_DOC_ID,
+          meetStartAt: liveMeet.startAtRaw ?? liveMeet.startAtMs,
+          memberId: resolvedMemberId,
+          nick: memberNick(member) || nick,
+          name: memberNick(member) || nick,
+          cpmId: memberCpmId(member) || cpmId,
+          joinedAt: serverTimestamp(),
+          source: "website"
+        });
+
+        transaction.set(counterRef, {
+          kind: "counter",
+          meetToken: liveMeet.token,
+          count: currentCount + 1,
+          updatedAt: serverTimestamp(),
+          updatedBy: "v2-meet-client"
+        }, { merge: true });
+
+        return { duplicate: false, meetToken: liveMeet.token };
       });
 
       if (token !== requestId || !isMounted) return;
 
       joinedKey = participantKey;
-      joinedMeetToken = currentMeet.token;
+      joinedMeetToken = joinResult.meetToken;
       saveJoinedState();
-      registrationMessage = "Join successful. Meet credentials unlocked.";
+      registrationMessage = joinResult.duplicate
+        ? "Already registered. Meet access is active."
+        : "Join successful. Meet credentials unlocked.";
       errorMessage = "";
-      if (nodes.form) nodes.form.reset();
+      if (!joinResult.duplicate && nodes.form) nodes.form.reset();
     } catch (error) {
       if (token !== requestId || !isMounted) return;
 
@@ -617,6 +646,8 @@ export function createMeetModule() {
         errorMessage = "Meet is full. Please wait for the next meet.";
       } else if (error instanceof Error && error.message === "MEET_CLOSED") {
         errorMessage = "Meet is already closed.";
+      } else if (error instanceof Error && error.message === "MEET_CHANGED") {
+        errorMessage = "Meet changed while joining. Please retry.";
       } else {
         errorMessage = "Unable to complete registration right now.";
       }
@@ -668,7 +699,7 @@ export function createMeetModule() {
       const onRetry = () => {
         errorMessage = "";
         registrationMessage = "";
-        render();
+        reconnectMeetSubscriptions();
       };
       retryButton.addEventListener("click", onRetry, { passive: true });
       dispose.push(() => retryButton.removeEventListener("click", onRetry));
@@ -685,18 +716,19 @@ export function createMeetModule() {
   }
 
   function watchMeet() {
+    const generation = ++watcherGeneration;
     const db = getFirestoreDb();
 
     unsubscribeMembers = onSnapshot(collection(db, "members"), snapshot => {
-      if (!isMounted) return;
+      if (!isMounted || generation !== watcherGeneration) return;
       members = snapshot.docs.map(record => ({ id: record.id, ...record.data() }));
     }, () => {
-      if (!isMounted) return;
+      if (!isMounted || generation !== watcherGeneration) return;
       members = [];
     });
 
     unsubscribeMeet = onSnapshot(doc(db, "meets", MEET_DOC_ID), snapshot => {
-      if (!isMounted) return;
+      if (!isMounted || generation !== watcherGeneration) return;
 
       const next = snapshot.exists() ? normalizeMeetRecord(snapshot.data(), snapshot.id) : null;
       const previousToken = meet?.token || "";
@@ -715,11 +747,11 @@ export function createMeetModule() {
         unsubscribeParticipants = onSnapshot(
           query(collection(db, "meetParticipants"), where("meetId", "==", MEET_DOC_ID)),
           joinedSnapshot => {
-            if (!isMounted) return;
+            if (!isMounted || generation !== watcherGeneration) return;
 
             participants = joinedSnapshot.docs
               .map(item => normalizeMeetParticipant(item.data(), item.id))
-              .filter(item => item.id !== "__counter__")
+              .filter(item => item.id !== COUNTER_DOC_ID)
               .filter(item => participantBelongsToMeet(item, meet))
               .sort((a, b) => (a.joinedAtMs || 0) - (b.joinedAtMs || 0));
 
@@ -731,7 +763,7 @@ export function createMeetModule() {
             render();
           },
           () => {
-            if (!isMounted) return;
+            if (!isMounted || generation !== watcherGeneration) return;
             participants = [];
             render();
           }
@@ -740,13 +772,25 @@ export function createMeetModule() {
 
       render();
     }, error => {
-      if (!isMounted) return;
+      if (!isMounted || generation !== watcherGeneration) return;
       loading = false;
       meet = null;
       participants = [];
       errorMessage = error instanceof Error ? error.message : "Failed to read meet.";
       render();
     });
+  }
+
+  function reconnectMeetSubscriptions() {
+    if (!isMounted) return;
+    clearSnapshots();
+    watcherGeneration += 1;
+    loading = true;
+    meet = null;
+    participants = [];
+    members = [];
+    watchMeet();
+    render();
   }
 
   return {
@@ -787,6 +831,7 @@ export function createMeetModule() {
       stopTimer();
       clearListeners();
       clearSnapshots();
+      watcherGeneration += 1;
 
       host = null;
       meet = null;
