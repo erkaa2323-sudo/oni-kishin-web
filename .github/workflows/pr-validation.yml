@@ -171,3 +171,6 @@ jobs:
           [ -f ".github/workflows/main.yml" ] || { echo "Missing Pages workflow"; exit 1; }
           grep -q '<link rel="manifest" href="manifest.webmanifest">' index.html || { echo "Missing manifest link in index.html"; exit 1; }
           grep -q 'serviceWorker.register' index.html || { echo "Missing service worker registration in index.html"; exit 1; }
+
+      - name: Validate ONI HUB v2 foundation
+        run: npm run validate:v2

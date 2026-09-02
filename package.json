@@ -1,0 +1,9 @@
+{
+  "name": "oni-kishin-web",
+  "private": true,
+  "version": "2.0.0-foundation",
+  "scripts": {
+    "validate": "npm run validate:v2",
+    "validate:v2": "node scripts/validate-foundation.mjs"
+  }
+}
