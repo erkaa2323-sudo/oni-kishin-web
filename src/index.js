@@ -1,5 +1,11 @@
 const OPENAI_URL = "https://api.openai.com/v1/responses";
 const FIRESTORE_BASE = "https://firestore.googleapis.com/v1/projects/oni-kishin-f59b4/databases/(default)/documents";
+const DEFAULT_ALLOWED_ORIGINS = ["https://erkaa2323-sudo.github.io"];
+const MAX_BODY_BYTES = 16 * 1024;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_REQUESTS = 20;
+const RATE_MAX_TRACKED_CLIENTS = 10_000;
+const rateBuckets = new Map();
 
 const SYSTEM = `
 You are ONI AI, the official AI companion of the ONI & KISHIN CPM clan.
@@ -24,16 +30,108 @@ ONI IDENTITY
 - Be confident but honest: "мэдэхгүй" is better than a fabricated answer.
 `;
 
-function corsHeaders() {
+function allowedOrigins(env) {
+  const set = new Set(DEFAULT_ALLOWED_ORIGINS);
+  String(env.ONI_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(v => normalizeOrigin(v))
+    .filter(Boolean)
+    .forEach(origin => set.add(origin));
+  return [...set];
+}
+
+function normalizeOrigin(value) {
+  try {
+    const u = new URL(String(value || ""));
+    if (!/^https?:$/.test(u.protocol)) return "";
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return "";
+  }
+}
+
+function corsHeaders(origin) {
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "600",
+    "Vary": "Origin",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
     "Content-Type": "application/json; charset=utf-8",
   };
 }
-function json(data, status=200) {
-  return new Response(JSON.stringify(data), {status, headers:corsHeaders()});
+
+function json(data, status=200, origin=DEFAULT_ALLOWED_ORIGINS[0], extraHeaders={}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {...corsHeaders(origin), ...extraHeaders}
+  });
+}
+
+function resolveRequestOrigin(req, env) {
+  const allowed = allowedOrigins(env);
+  const rawOrigin = req.headers.get("Origin");
+  if (!rawOrigin) return {allowed, origin: allowed[0] || DEFAULT_ALLOWED_ORIGINS[0], hasOriginHeader: false, allowedRequest: true};
+  const origin = normalizeOrigin(rawOrigin);
+  return {
+    allowed,
+    origin,
+    hasOriginHeader: true,
+    allowedRequest: !!origin && allowed.includes(origin)
+  };
+}
+
+function clientKey(req) {
+  return req.headers.get("CF-Connecting-IP")
+    || req.headers.get("X-Forwarded-For")
+    || "unknown";
+}
+
+function rateLimitExceeded(key) {
+  const now = Date.now();
+  for (const [k, row] of rateBuckets) {
+    if (now - row.startedAt >= RATE_WINDOW_MS) rateBuckets.delete(k);
+  }
+  const row = rateBuckets.get(key);
+  if (!row) {
+    if (rateBuckets.size >= RATE_MAX_TRACKED_CLIENTS) {
+      rateBuckets.delete(rateBuckets.keys().next().value);
+    }
+    rateBuckets.set(key, {startedAt: now, count: 1});
+    return 0;
+  }
+  row.count += 1;
+  if (row.count <= RATE_MAX_REQUESTS) return 0;
+  return Math.max(1, Math.ceil((RATE_WINDOW_MS - (now - row.startedAt)) / 1000));
+}
+
+async function readBoundedJson(req) {
+  const contentLength = req.headers.get("Content-Length");
+  if (contentLength !== null) {
+    if (!/^\d+$/.test(contentLength)) {
+      throw new Error("invalid_content_length");
+    }
+    if (Number(contentLength) > MAX_BODY_BYTES) {
+      throw new Error("body_too_large");
+    }
+  }
+
+  const text = await req.text();
+  const actualSize = new TextEncoder().encode(text).byteLength;
+  if (actualSize > MAX_BODY_BYTES) throw new Error("body_too_large");
+
+  let data;
+  try {
+    data = JSON.parse(text || "{}");
+  } catch {
+    throw new Error("invalid_json");
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("invalid_json");
+  }
+  return data;
 }
 function fsValue(v) {
   if (!v) return null;
@@ -100,19 +198,32 @@ async function callOpenAI(body, env) {
   const key = String(env.OPENAI_API_KEY || "").trim();
   if (!key) throw new Error("OPENAI_API_KEY is missing in Cloudflare Runtime variables/secrets.");
 
-  const r = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {"Authorization": `Bearer ${key}`, "Content-Type": "application/json"},
-    body: JSON.stringify({store:false, ...body})
-  });
-  const text = await r.text();
-  let j;
-  try { j = JSON.parse(text); } catch { j = {error:{message:text}}; }
-  if (!r.ok) {
-    const msg = j?.error?.message || `OpenAI HTTP ${r.status}`;
-    throw new Error(`${msg} [HTTP ${r.status}]`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const r = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + key,
+        "Content-Type": "application/json"
+      },
+      signal: controller.signal,
+      body: JSON.stringify({store:false, ...body})
+    });
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch { j = {error:{message:text}}; }
+    if (!r.ok) {
+      const msg = j?.error?.message || `OpenAI HTTP ${r.status}`;
+      throw new Error(`${msg} [HTTP ${r.status}]`);
+    }
+    return j;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("OpenAI timeout [HTTP 408]");
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return j;
 }
 
 /*
@@ -140,20 +251,44 @@ function extractOutputText(response) {
 
 export default {
   async fetch(req, env) {
-    if(req.method==="OPTIONS") return new Response(null,{status:204,headers:corsHeaders()});
-    if(req.method!=="POST") {
-      return json({ok:true,service:"ONI AI V10",endpoint:"POST /api/oni-ai",openaiConfigured:Boolean(env.OPENAI_API_KEY)});
+    const originState = resolveRequestOrigin(req, env);
+    const responseOrigin = originState.allowedRequest
+      ? originState.origin
+      : (originState.allowed[0] || DEFAULT_ALLOWED_ORIGINS[0]);
+
+    if (originState.hasOriginHeader && !originState.allowedRequest) {
+      return json({ok:false,error:"Origin not allowed"},403,responseOrigin);
     }
-    if(!env.OPENAI_API_KEY) return json({ok:false,error:"Server is missing OPENAI_API_KEY"},500);
+
+    if(req.method==="OPTIONS") {
+      return new Response(null,{status:204,headers:corsHeaders(responseOrigin)});
+    }
+    if(req.method!=="POST") {
+      return json({ok:true,service:"ONI AI V10",endpoint:"POST /api/oni-ai",openaiConfigured:Boolean(env.OPENAI_API_KEY)},200,responseOrigin);
+    }
+    if (!String(req.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
+      return json({ok:false,error:"Content-Type must be application/json"},415,responseOrigin);
+    }
+    const retryAfter = rateLimitExceeded(clientKey(req));
+    if (retryAfter) {
+      return json(
+        {ok:false,error:"Too many requests. Please try again later."},
+        429,
+        responseOrigin,
+        {"Retry-After": String(retryAfter)}
+      );
+    }
+    if(!env.OPENAI_API_KEY) return json({ok:false,error:"Server is missing OPENAI_API_KEY"},500,responseOrigin);
 
     try {
-      const input=await req.json();
+      const input=await readBoundedJson(req);
       const message=String(input.message||"").trim();
-      if(!message) return json({error:"message is required"},400);
+      if(!message) return json({error:"message is required"},400,responseOrigin);
+      if(message.length > 2000) return json({error:"message is too long"},400,responseOrigin);
 
       const history=Array.isArray(input.history)?input.history.slice(-18).map(x=>({
         role:x.role==="ai"?"assistant":"user",
-        content:String(x.text||"").slice(0,3000)
+        content:String(x.text||"").slice(0,1200)
       })) : [];
 
       const knowledgeSummary={
@@ -208,11 +343,14 @@ export default {
           responseId:response?.id||null,
           status:response?.status||null,
           outputTypes:Array.isArray(response?.output)?response.output.map(x=>x?.type).filter(Boolean):[]
-        },502);
+        },502,responseOrigin);
       }
-      return json({ok:true,reply,model,responseId:response?.id||null});
+      return json({ok:true,reply,model,responseId:response?.id||null},200,responseOrigin);
     } catch(e) {
-      return json({ok:false,error:"ONI AI backend error",detail:String(e?.message||"Unknown backend error").slice(0,1000)},500);
+      const msg = String(e?.message || "Unknown backend error");
+      if (msg === "body_too_large") return json({ok:false,error:"Request body too large"},413,responseOrigin);
+      if (msg === "invalid_json" || msg === "invalid_content_length") return json({ok:false,error:"Invalid JSON request body"},400,responseOrigin);
+      return json({ok:false,error:"ONI AI backend error",detail:msg.slice(0,1000)},500,responseOrigin);
     }
   }
 };

@@ -4471,14 +4471,15 @@ render();timer=setInterval(render,1000);
 <script type="module" id="oni-ai-module">
 import {getApps,getApp,initializeApp} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
 import {getFirestore,collection,getDocs,doc,getDoc} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-const cfg={apiKey:"AIzaSyDt0djUhafGZ2D-co3ZhZlIde_Qe1K5trw",authDomain:"oni-kishin-f59b4.firebaseapp.com",projectId:"oni-kishin-f59b4",storageBucket:"oni-kishin-f59b4.firebasestorage.app",messagingSenderId:"523789047478",appId:"1:523789047478:web:c7e250d094c38abe61f817"};
+const cfg={apiKey:"AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw",authDomain:"oni-kishin-f59b4.firebaseapp.com",projectId:"oni-kishin-f59b4",storageBucket:"oni-kishin-f59b4.firebasestorage.app",messagingSenderId:"523789047478",appId:"1:523789047478:web:c7e250d094c38abe61f817"};
 const app=getApps().length?getApp():initializeApp(cfg),db=getFirestore(app),root=document.getElementById("oniAI"),body=document.getElementById("oaBody"),inp=document.getElementById("oaInput"),stateEl=document.getElementById("oaState"),hint=document.getElementById("oaHint");
-const D={members:[],garage:[],music:[],participants:[],meet:null},history=[];let ready=false,tracks=[],trackIndex=0,listening=false,recorder=null,chunks=[],audio=new Audio();
-const ONI_AI_WORKER="https://oni-kishin-web.erkaa2323.workers.dev/api/oni-ai";
+const D={members:[],garage:[],music:[],participants:[],meet:null},history=[];let ready=false,tracks=[],trackIndex=0,listening=false,recorder=null,chunks=[],audio=new Audio(),aiBusy=false;
+const ONI_AI_WORKER=String(window.ONI_AI_CONFIG?.endpoint||"https://oni-kishin-web.erkaa2323.workers.dev/api/oni-ai").trim();
 
 
 const norm=s=>String(s||"").toLowerCase().replace(/[?.,!;:()[\]{}"'`]/g," ").replace(/\s+/g," ").trim(),any=(x,a)=>a.some(v=>x.includes(v)),txt=o=>Object.entries(o||{}).filter(([,v])=>typeof v==="string"||typeof v==="number").map(([k,v])=>k+" "+v).join(" ");
 function add(role,text){const d=document.createElement("div");d.className="oa-msg "+(role==="user"?"oa-user":"oa-ai");const l=document.createElement("div");l.className="oa-label";l.textContent=role==="user"?"YOU":"ONI AI";d.append(l,document.createTextNode(text));body.appendChild(d);body.scrollTop=body.scrollHeight;history.push({role,text})}
+function setAIBusy(v){aiBusy=!!v;const send=document.getElementById("oaSend");if(send)send.disabled=aiBusy}
 async function read(name){try{const s=await getDocs(collection(db,name));return s.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.warn(name,e);return[]}}
 async function sync(){const [m,g,mu,p,me]=await Promise.all([read("members"),read("garage"),read("music"),read("meetParticipants"),getDoc(doc(db,"meets","current")).catch(()=>null)]);D.members=m;D.garage=g;D.music=mu;D.participants=p;D.meet=me&&me.exists()?{id:me.id,...me.data()}:null;tracks=D.music.filter(x=>x.url||x.file||x.audioUrl).filter(x=>String(x.status||"").toLowerCase()!=="hidden");ready=true;stateEl.innerHTML=`● <b>LIVE</b> · ${D.members.length} members · ${tracks.length} tracks`}
 function trackUrl(t){return t?.url||t?.file||t?.audioUrl||""}
@@ -4502,13 +4503,16 @@ function smart(q){
 }
 function speak(t){if(!window.speechSynthesis){hint.textContent="🔊 Voice reply энэ browser дээр дэмжигдэхгүй байна.";return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="mn-MN";u.rate=.95;speechSynthesis.speak(u)}
 async function aiBackend(q){
+ const controller=new AbortController();
+ const timeoutId=setTimeout(()=>controller.abort(),30000);
  try{
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),30000);
   const r=await fetch(ONI_AI_WORKER,{
    method:"POST",
    headers:{"Content-Type":"application/json"},
    signal:controller.signal,
+   cache:"no-store",
+   mode:"cors",
+   credentials:"omit",
    body:JSON.stringify({
     message:q,
     history:history.slice(-18),
@@ -4521,7 +4525,6 @@ async function aiBackend(q){
     }
    })
   });
-  clearTimeout(timer);
   const j=await r.json().catch(()=>({}));
   if(!r.ok){
    const detail=j.detail||j.error||("HTTP "+r.status);
@@ -4530,13 +4533,17 @@ async function aiBackend(q){
   if(!j.reply&&!j.text) throw new Error("Backend reply хоосон ирлээ.");
   return j.reply||j.text;
  }catch(e){
-  clearTimeout(typeof timer==="undefined"?null:timer);
   console.error("ONI AI backend:",e);
   return "⚠️ ONI AI backend холболтын алдаа: "+(e?.name==="AbortError"?"30 секундийн timeout":String(e?.message||e));
+ }finally{
+  clearTimeout(timeoutId);
  }
 }
 async function ask(q){
- q=q.trim();if(!q)return;add("user",q);
+ q=q.trim();if(!q)return;
+ if(aiBusy){add("ai","⏳ Түр хүлээнэ үү. ONI AI өмнөх хүсэлтийг боловсруулж байна.");return}
+ if(q.length>2000){add("ai","⚠️ Асуултаа 2000 тэмдэгтээс бага болгож илгээнэ үү.");return}
+ add("user",q);
  if(!ready){add("ai","LIVE data бэлэн болоогүй байна.");return}
  const r=smart(q);
  if(r==="__NEXT__"){nextTrack();add("ai",`⏭ ${tracks[trackIndex]?.title||tracks[trackIndex]?.name||"Дараагийн дуу"} тоглож байна.`);return}
@@ -4547,7 +4554,13 @@ async function ask(q){
  t.className="oa-msg oa-ai oa-typing";
  t.innerHTML='<div class="oa-label">ONI AI</div>Ухаалгаар боловсруулж байна...';
  body.appendChild(t);body.scrollTop=body.scrollHeight;
- const reply=await aiBackend(q);t.remove();add("ai",reply||r||"⚠️ ONI AI хариу өгөөгүй.");
+ setAIBusy(true);
+ try{
+  const reply=await aiBackend(q);t.remove();add("ai",reply||r||"⚠️ ONI AI хариу өгөөгүй.");
+ }finally{
+  t.remove();
+  setAIBusy(false);
+ }
 }
 document.getElementById("oaOpen").onclick=()=>{root.classList.add("open");inp.focus()};document.getElementById("oaClose").onclick=()=>root.classList.remove("open");document.getElementById("oaSend").onclick=()=>{const v=inp.value;inp.value="";ask(v)};inp.onkeydown=e=>{if(e.key==="Enter"){const v=inp.value;inp.value="";ask(v)}};document.querySelectorAll("[data-oa]").forEach(b=>b.onclick=()=>ask(b.dataset.oa));document.getElementById("oaSpeaker").onclick=()=>{const msgs=[...body.querySelectorAll(".oa-msg.oa-ai")];const t=msgs.at(-1)?.innerText?.replace(/^ONI AI\s*/,"");if(t)speak(t)};
 
