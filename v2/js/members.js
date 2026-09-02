@@ -1,11 +1,12 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
+import { normalizeGarageRecord } from "./garage.js";
 
 const ROLE_LABELS = {
-  leader: "CLAN LEADER",
-  "co-leader": "CO-LEADER",
-  special: "SPECIAL MEMBER",
-  member: "MEMBER"
+  leader: "Ахлагч",
+  "co-leader": "Дэд ахлагч",
+  special: "Тусгай",
+  member: "Гишүүн"
 };
 
 function escapeHtml(value) {
@@ -45,6 +46,25 @@ function toMillis(createdAt) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isSafeImageUrl(value) {
+  const text = asText(value);
+  if (!text) return false;
+  if (/^https?:\/\//i.test(text)) return true;
+  if (/^data:image\//i.test(text)) return true;
+  if (text.startsWith("/")) return true;
+  if (text.startsWith("./") || text.startsWith("../")) return true;
+  return false;
+}
+
+function initials(text) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean).slice(0, 2);
+  return words.map(word => word.charAt(0)).join("").toUpperCase() || "ON";
+}
+
+function hasListenerApi(node) {
+  return !!node && typeof node.addEventListener === "function" && typeof node.removeEventListener === "function";
+}
+
 export function normalizeMemberRecord(raw = {}, docId = "") {
   const nameFromParts = [asText(raw.first), asText(raw.last)].filter(Boolean).join(" ");
   const nickname = pickFirstText(raw.nick, raw.nickname, raw.cpmNick, raw.displayName, raw.name, nameFromParts, "ONI MEMBER");
@@ -77,7 +97,7 @@ export function normalizeMemberRecord(raw = {}, docId = "") {
     role,
     roleLabel: ROLE_LABELS[role],
     fullName,
-    avatarUrl,
+    avatarUrl: isSafeImageUrl(avatarUrl) ? avatarUrl : "",
     createdAtMs: toMillis(raw.createdAt),
     searchBlob
   };
@@ -94,30 +114,25 @@ export function filterMembers(records, searchQuery, roleFilter) {
   });
 }
 
-function initials(text) {
-  const words = String(text || "").trim().split(/\s+/).filter(Boolean).slice(0, 2);
-  return words.map(word => word.charAt(0)).join("").toUpperCase() || "ON";
-}
-
-function cardMarkup(member) {
+function cardMarkup(member, index = 0) {
   const roleClass = member.role === "member" ? "" : ` oni-role-${member.role}`;
   const metaParts = [member.title, member.direction].filter(Boolean);
-  const meta = metaParts.length ? escapeHtml(metaParts.join(" • ")) : "ONI &amp; KISHIN MEMBER";
+  const meta = metaParts.length ? escapeHtml(metaParts.join(" • ")) : "ONI CREW";
 
   const avatar = member.avatarUrl
     ? `<img class="oni-member-avatar-image" src="${escapeHtml(member.avatarUrl)}" alt="${escapeHtml(member.nickname)} avatar" loading="lazy" decoding="async">`
     : `<span class="oni-member-avatar-fallback" aria-hidden="true">${escapeHtml(initials(member.nickname))}</span>`;
 
   return `
-    <article class="oni-member-card${roleClass}">
+    <button type="button" class="oni-member-card${roleClass}" data-member-open="${escapeHtml(member.id)}" style="--oni-stagger:${Math.min(index, 12)};">
       <div class="oni-member-avatar">${avatar}</div>
       <div class="oni-member-copy">
         <h3>${escapeHtml(member.nickname)}</h3>
-        <p class="oni-member-id">${escapeHtml(member.cpmId)}</p>
+        <p class="oni-member-id">CPM ID · ${escapeHtml(member.cpmId)}</p>
         <p class="oni-member-meta">${meta}</p>
       </div>
       <span class="oni-member-role">${escapeHtml(member.roleLabel)}</span>
-    </article>
+    </button>
   `;
 }
 
@@ -135,45 +150,56 @@ function skeletonMarkup() {
 }
 
 export function renderMembersCards(records) {
-  return records.map(cardMarkup).join("");
+  return records.map((member, index) => cardMarkup(member, index)).join("");
 }
 
 export function membersRouteMarkup() {
   return `
     <section class="oni-members-view" data-members-view>
-      <header class="oni-section-head">
-        <h1>Members</h1>
-        <p>Live ONI &amp; KISHIN roster sourced from the existing Firestore <code>members</code> collection.</p>
+      <header class="oni-members-head oni-panel-reveal">
+        <div>
+          <p class="oni-members-kicker">ONI CREW</p>
+          <h1>ONI CREW</h1>
+          <p class="oni-members-sub">Рольт бүтэцтэй үндсэн roster</p>
+        </div>
+        <p class="oni-members-state" data-members-state role="status" aria-live="polite"></p>
       </header>
 
-      <section class="oni-card oni-members-controls" aria-label="Members search and filters">
-        <label class="oni-members-field">
-          <span>Search</span>
+      <section class="oni-members-controls oni-panel-reveal" aria-label="ONI CREW хайлт">
+        <label class="oni-members-field oni-members-search-wrap">
+          <span class="oni-sr-only">Гишүүн хайх</span>
           <input
             type="search"
             class="oni-members-search"
             data-members-search
             autocomplete="off"
             spellcheck="false"
-            placeholder="Search by nick, CPM ID, role, title, direction"
-            aria-label="Search members"
+            placeholder="Nick, CPM ID, role, чиглэлээр хайх"
+            aria-label="ONI CREW хайх"
           >
         </label>
         <label class="oni-members-field oni-members-select-wrap">
-          <span>Role filter</span>
-          <select class="oni-members-select" data-members-role aria-label="Filter members by role">
-            <option value="all">All roles</option>
-            <option value="leader">Leader</option>
-            <option value="co-leader">Co-Leader</option>
-            <option value="special">Special</option>
-            <option value="member">Member</option>
+          <span class="oni-sr-only">Роль сонгох</span>
+          <select class="oni-members-select" data-members-role aria-label="ONI CREW роль шүүх">
+            <option value="all">Бүх роль</option>
+            <option value="leader">Ахлагч</option>
+            <option value="co-leader">Дэд ахлагч</option>
+            <option value="special">Тусгай</option>
+            <option value="member">Гишүүн</option>
           </select>
         </label>
-        <button type="button" class="oni-btn oni-btn-ghost" data-members-retry>Retry</button>
+        <button type="button" class="oni-btn oni-btn-ghost" data-members-retry>ДАХИН</button>
       </section>
 
-      <p class="oni-members-state" data-members-state role="status" aria-live="polite"></p>
       <section class="oni-members-grid" data-members-grid aria-live="polite"></section>
+
+      <section class="oni-member-profile" data-member-profile hidden>
+        <div class="oni-member-profile-backdrop" data-member-profile-close></div>
+        <article class="oni-member-profile-card" role="dialog" aria-modal="true" aria-label="Гишүүний профайл">
+          <button type="button" class="oni-btn oni-btn-ghost oni-member-profile-close" data-member-profile-close>БУЦАХ</button>
+          <div class="oni-member-profile-body" data-member-profile-body></div>
+        </article>
+      </section>
     </section>
   `;
 }
@@ -183,10 +209,13 @@ export function createMembersModule() {
   let isMounted = false;
   let requestId = 0;
   let records = [];
+  let garageRecords = [];
+  let garageLoaded = false;
   let searchQuery = "";
   let roleFilter = "all";
   let loading = false;
   let errorMessage = "";
+  let selectedMemberId = "";
   const dispose = [];
 
   let searchInput;
@@ -194,6 +223,8 @@ export function createMembersModule() {
   let retryButton;
   let stateEl;
   let gridEl;
+  let profileEl;
+  let profileBody;
 
   function removeListeners() {
     while (dispose.length) {
@@ -206,46 +237,143 @@ export function createMembersModule() {
     }
   }
 
+  function revealCards() {
+    if (!gridEl || typeof gridEl.querySelectorAll !== "function" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    requestAnimationFrame(() => {
+      gridEl.querySelectorAll(".oni-member-card").forEach(node => node.classList.add("is-ready"));
+    });
+  }
+
+  function relatedBuilds(member) {
+    if (!member) return [];
+    const nick = asText(member.nickname).toLowerCase();
+    const cpmId = asText(member.cpmId).toLowerCase();
+    return garageRecords
+      .filter(build => {
+        const owner = asText(build.owner).toLowerCase();
+        const ownerCpm = asText(build.cpmId).toLowerCase();
+        if (nick && owner === nick) return true;
+        if (cpmId && ownerCpm && ownerCpm === cpmId) return true;
+        return false;
+      })
+      .slice(0, 6);
+  }
+
+  function profileMeta(label, value) {
+    const text = asText(value);
+    if (!text) return "";
+    return `<li><small>${escapeHtml(label)}</small><b>${escapeHtml(text)}</b></li>`;
+  }
+
+  function profileMarkup(member) {
+    const avatar = member.avatarUrl
+      ? `<img src="${escapeHtml(member.avatarUrl)}" alt="${escapeHtml(member.nickname)} avatar" loading="lazy" decoding="async">`
+      : `<span>${escapeHtml(initials(member.nickname))}</span>`;
+
+    const related = relatedBuilds(member);
+    return `
+      <div class="oni-member-profile-top oni-role-${escapeHtml(member.role)}">
+        <div class="oni-member-profile-avatar${member.avatarUrl ? "" : " is-fallback"}">${avatar}</div>
+        <div>
+          <h3>${escapeHtml(member.nickname)}</h3>
+          <p>CPM ID · ${escapeHtml(member.cpmId)}</p>
+          <span class="oni-member-role">${escapeHtml(member.roleLabel)}</span>
+        </div>
+      </div>
+      <ul class="oni-member-profile-meta">
+        ${profileMeta("Роль", member.roleLabel)}
+        ${profileMeta("Цол", member.title)}
+        ${profileMeta("Чиглэл", member.direction)}
+      </ul>
+      <section class="oni-member-related">
+        <h4>Холбоотой BUILD</h4>
+        ${related.length ? `<div class="oni-member-related-list">${related.map(build => `<article><b>${escapeHtml(build.buildName)}</b><small>${escapeHtml(build.category || build.type || "ONI BUILD")}</small></article>`).join("")}</div>` : '<p>Холбох найдвартай build олдсонгүй.</p>'}
+      </section>
+    `;
+  }
+
+  async function ensureGarageRecords() {
+    if (garageLoaded) return;
+    try {
+      const db = getFirestoreDb();
+      const garageSnap = await getDocs(collection(db, "garage"));
+      if (!isMounted) return;
+      garageRecords = garageSnap.docs
+        .map(docSnap => normalizeGarageRecord(docSnap.data(), docSnap.id))
+        .sort((a, b) => (b.createdAtMs - a.createdAtMs) || a.buildName.localeCompare(b.buildName));
+      garageLoaded = true;
+    } catch {
+      garageRecords = [];
+      garageLoaded = true;
+    }
+  }
+
+  async function openProfile(memberId) {
+    selectedMemberId = asText(memberId);
+    await ensureGarageRecords();
+    const target = records.find(member => member.id === selectedMemberId);
+    if (!target || !profileEl || !profileBody) {
+      closeProfile();
+      return;
+    }
+
+    profileBody.innerHTML = profileMarkup(target);
+    profileEl.hidden = false;
+    if (typeof document !== "undefined") {
+      document.body.classList.add("oni-modal-open");
+    }
+  }
+
+  function closeProfile() {
+    selectedMemberId = "";
+    if (profileEl) profileEl.hidden = true;
+    if (typeof document !== "undefined") {
+      document.body.classList.remove("oni-modal-open");
+    }
+  }
+
   function renderState() {
     if (!stateEl || !gridEl) return;
 
     if (loading) {
-      stateEl.textContent = "Loading members…";
+      stateEl.textContent = "ONI CREW ачаалж байна…";
       gridEl.innerHTML = skeletonMarkup();
       return;
     }
 
     if (errorMessage) {
-      stateEl.textContent = "Unable to load members.";
+      stateEl.textContent = "ONI CREW ачаалж чадсангүй.";
       gridEl.innerHTML = `
         <article class="oni-card oni-members-empty" role="alert">
-          <h2>Members unavailable</h2>
+          <h2>CREW мэдээлэл боломжгүй</h2>
           <p>${escapeHtml(errorMessage)}</p>
-          <button type="button" class="oni-btn oni-btn-primary" data-members-inline-retry>Retry</button>
+          <button type="button" class="oni-btn oni-btn-primary" data-members-inline-retry>ДАХИН ОРОЛДОХ</button>
         </article>
       `;
-
-      const inlineRetry = gridEl.querySelector("[data-members-inline-retry]");
-      inlineRetry?.addEventListener("click", loadMembers, { passive: true });
       return;
     }
 
     const visible = filterMembers(records, searchQuery, roleFilter);
     if (!visible.length) {
       stateEl.textContent = records.length
-        ? "No members matched the current filters."
-        : "No members are currently available.";
+        ? "Тохирох гишүүн олдсонгүй."
+        : "ONI CREW-д одоогоор гишүүн алга.";
       gridEl.innerHTML = `
         <article class="oni-card oni-members-empty">
-          <h2>${records.length ? "No matches" : "No roster data"}</h2>
-          <p>${records.length ? "Try a different keyword or role filter." : "Members collection is reachable but currently empty."}</p>
+          <h2>${records.length ? "Үр дүн алга" : "CREW хоосон байна"}</h2>
+          <p>${records.length ? "Өөр түлхүүр үг эсвэл роль сонгоно уу." : "Firestore холбоо хэвийн боловч roster одоогоор хоосон байна."}</p>
         </article>
       `;
       return;
     }
 
-    stateEl.textContent = `${visible.length} / ${records.length} members`;
+    stateEl.textContent = `${visible.length} / ${records.length} гишүүн`;
     gridEl.innerHTML = renderMembersCards(visible);
+    revealCards();
+
+    if (selectedMemberId && !visible.some(item => item.id === selectedMemberId)) {
+      closeProfile();
+    }
   }
 
   async function loadMembers() {
@@ -258,12 +386,12 @@ export function createMembersModule() {
 
     try {
       const db = getFirestoreDb();
-      const snapshot = await getDocs(collection(db, "members"));
+      const membersSnap = await getDocs(collection(db, "members"));
 
       if (token !== requestId || !isMounted) return;
 
-      records = snapshot.docs
-        .map(doc => normalizeMemberRecord(doc.data(), doc.id))
+      records = membersSnap.docs
+        .map(docSnap => normalizeMemberRecord(docSnap.data(), docSnap.id))
         .sort((a, b) => (a.createdAtMs - b.createdAtMs) || a.nickname.localeCompare(b.nickname));
       loading = false;
       renderState();
@@ -271,7 +399,7 @@ export function createMembersModule() {
       if (token !== requestId || !isMounted) return;
 
       loading = false;
-      errorMessage = error instanceof Error ? error.message : "Unknown Firestore read error";
+      errorMessage = error instanceof Error ? error.message : "Firestore уншилтын алдаа";
       renderState();
     }
   }
@@ -295,16 +423,47 @@ export function createMembersModule() {
 
     retryButton.addEventListener("click", loadMembers, { passive: true });
     dispose.push(() => retryButton.removeEventListener("click", loadMembers));
+
+    const onClick = event => {
+      const target = event.target;
+      if (!target || typeof target.closest !== "function") return;
+
+      const inlineRetry = target.closest("[data-members-inline-retry]");
+      if (inlineRetry) {
+        loadMembers();
+        return;
+      }
+
+      const card = target.closest("[data-member-open]");
+      if (card && card.dataset) {
+        openProfile(card.dataset.memberOpen || "");
+      }
+    };
+    if (hasListenerApi(host)) {
+      host.addEventListener("click", onClick);
+      dispose.push(() => host?.removeEventListener?.("click", onClick));
+    }
+
+    const onProfileClose = event => {
+      const target = event.target;
+      if (!target || typeof target.closest !== "function") return;
+      if (!target.closest("[data-member-profile-close]")) return;
+      closeProfile();
+    };
+    if (hasListenerApi(profileEl)) {
+      profileEl.addEventListener("click", onProfileClose);
+      dispose.push(() => profileEl?.removeEventListener?.("click", onProfileClose));
+    }
   }
 
   return {
     key: "members",
-    title: "Members",
-    description: "Members route reads the existing Firestore roster with defensive legacy compatibility.",
+    title: "ONI CREW",
+    description: "ONI CREW маршрут нь Firestore members roster-ийг роль hierarchy болон profile панельтэй харуулна.",
     status: "live",
 
     mount(root) {
-      if (!(root instanceof HTMLElement)) return;
+      if (!root || typeof root.querySelector !== "function") return;
       if (isMounted && host === root) return;
 
       this.unmount();
@@ -313,10 +472,13 @@ export function createMembersModule() {
       isMounted = true;
       requestId += 1;
       records = [];
+      garageRecords = [];
+      garageLoaded = false;
       searchQuery = "";
       roleFilter = "all";
       loading = false;
       errorMessage = "";
+      selectedMemberId = "";
 
       host.innerHTML = membersRouteMarkup();
       searchInput = host.querySelector("[data-members-search]");
@@ -324,6 +486,8 @@ export function createMembersModule() {
       retryButton = host.querySelector("[data-members-retry]");
       stateEl = host.querySelector("[data-members-state]");
       gridEl = host.querySelector("[data-members-grid]");
+      profileEl = host.querySelector("[data-member-profile]");
+      profileBody = host.querySelector("[data-member-profile-body]");
 
       bindInputs();
       loadMembers();
@@ -332,6 +496,7 @@ export function createMembersModule() {
     unmount() {
       isMounted = false;
       requestId += 1;
+      closeProfile();
       removeListeners();
       host = null;
       searchInput = null;
@@ -339,6 +504,8 @@ export function createMembersModule() {
       retryButton = null;
       stateEl = null;
       gridEl = null;
+      profileEl = null;
+      profileBody = null;
     }
   };
 }

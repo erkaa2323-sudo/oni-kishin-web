@@ -373,6 +373,10 @@ export function createJoinModule() {
       preserveIdentityFields();
       stateMessage = "Application submitted successfully. Admin will review it soon.";
       errorMessage = "";
+      const submitButton = host?.querySelector("[data-join-submit]");
+      if (submitButton instanceof HTMLElement) {
+        window.dispatchEvent(new CustomEvent("oni:success-burst", { detail: { target: submitButton } }));
+      }
     } catch (error) {
       if (!isMounted || token !== requestId) return;
 
