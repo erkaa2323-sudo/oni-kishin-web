@@ -100,19 +100,32 @@ async function callOpenAI(body, env) {
   const key = String(env.OPENAI_API_KEY || "").trim();
   if (!key) throw new Error("OPENAI_API_KEY is missing in Cloudflare Runtime variables/secrets.");
 
-  const r = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {"Authorization": `Bearer ${key}`, "Content-Type": "application/json"},
-    body: JSON.stringify({store:false, ...body})
-  });
-  const text = await r.text();
-  let j;
-  try { j = JSON.parse(text); } catch { j = {error:{message:text}}; }
-  if (!r.ok) {
-    const msg = j?.error?.message || `OpenAI HTTP ${r.status}`;
-    throw new Error(`${msg} [HTTP ${r.status}]`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const r = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + key,
+        "Content-Type": "application/json"
+      },
+      signal: controller.signal,
+      body: JSON.stringify({store:false, ...body})
+    });
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch { j = {error:{message:text}}; }
+    if (!r.ok) {
+      const msg = j?.error?.message || `OpenAI HTTP ${r.status}`;
+      throw new Error(`${msg} [HTTP ${r.status}]`);
+    }
+    return j;
+  } catch (error) {
+    if (error?.name === "AbortError") throw new Error("OpenAI timeout [HTTP 408]");
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return j;
 }
 
 /*
@@ -150,10 +163,11 @@ export default {
       const input=await req.json();
       const message=String(input.message||"").trim();
       if(!message) return json({error:"message is required"},400);
+      if(message.length > 2000) return json({error:"message is too long"},400);
 
       const history=Array.isArray(input.history)?input.history.slice(-18).map(x=>({
         role:x.role==="ai"?"assistant":"user",
-        content:String(x.text||"").slice(0,3000)
+        content:String(x.text||"").slice(0,1200)
       })) : [];
 
       const knowledgeSummary={

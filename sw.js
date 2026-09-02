@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-app-v1.0.0";
+const VERSION = "oni-hub-app-v1.0.1";
 const BASE = "/oni-kishin-web/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -9,7 +9,6 @@ const APP_SHELL = [
   BASE + "offline.html",
   BASE + "manifest.webmanifest",
   BASE + "app/app.css",
-  BASE + "app/app.js",
   BASE + "icons/icon-192.png",
   BASE + "icons/icon-512.png",
   BASE + "icons/icon-maskable-512.png",
@@ -17,11 +16,15 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(STATIC_CACHE);
+    await Promise.all(APP_SHELL.map(async asset => {
+      try {
+        await cache.add(new Request(asset, {cache: "reload"}));
+      } catch {}
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", event => {

@@ -9,7 +9,40 @@ service cloud.firestore {
     // The current admin.html authenticates this address.
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == "erkaa130@gmail.com";
+        && request.auth.token.email == "erkaa130@gmail.com"
+        && request.auth.token.firebase.sign_in_provider == "password";
+    }
+
+    function isNumber(v) {
+      return v is int || v is float;
+    }
+
+    function hasOnlyKeys(data, allowed) {
+      return data.keys().hasOnly(allowed);
+    }
+
+    function hasAllKeys(data, required) {
+      return data.keys().hasAll(required);
+    }
+
+    function requiredText(v, maxLen) {
+      return v is string && v.size() > 0 && v.size() <= maxLen;
+    }
+
+    function optionalText(data, key, maxLen) {
+      return !data.keys().hasAny([key])
+        || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function optionalTimestamp(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is timestamp;
+    }
+
+    function optionalDateLike(data, key) {
+      return !data.keys().hasAny([key])
+        || data[key] is timestamp
+        || data[key] is string
+        || data[key] is int;
     }
 
     // =========================================================
@@ -33,19 +66,34 @@ service cloud.firestore {
     // =========================================================
     match /applications/{applicationId} {
       allow create: if
-        request.resource.data.status == "Шинэ"
-        && request.resource.data.last is string
-        && request.resource.data.first is string
+        hasOnlyKeys(request.resource.data, [
+          "last", "first", "age", "gender", "cpmid", "nick", "direction",
+          "contactType", "contact", "experience", "message", "status", "createdAt"
+        ])
+        && hasAllKeys(request.resource.data, [
+          "last", "first", "age", "gender", "cpmid", "nick", "direction",
+          "contactType", "contact", "experience", "message", "status"
+        ])
+        && request.resource.data.status == "Шинэ"
+        && requiredText(request.resource.data.last, 80)
+        && requiredText(request.resource.data.first, 80)
         && request.resource.data.age is int
         && request.resource.data.age >= 17
-        && request.resource.data.gender is string
-        && request.resource.data.cpmid is string
-        && request.resource.data.nick is string
-        && request.resource.data.direction is string
-        && request.resource.data.contactType is string
-        && request.resource.data.contact is string
-        && request.resource.data.experience is string
-        && request.resource.data.message is string;
+        && request.resource.data.age <= 90
+        && request.resource.data.gender in ["Эрэгтэй", "Эмэгтэй"]
+        && requiredText(request.resource.data.cpmid, 60)
+        && requiredText(request.resource.data.nick, 60)
+        && request.resource.data.direction in [
+          "Clean Car", "Anime Car", "Racer / Drifter", "Drag Racer", "Content Creator", "Other"
+        ]
+        && request.resource.data.contactType in ["Instagram", "Discord", "Phone"]
+        && requiredText(request.resource.data.contact, 120)
+        && request.resource.data.experience in [
+          "6 сараас бага", "6 сар – 1 жил", "1 – 2 жил", "2 жилээс дээш"
+        ]
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 1500
+        && optionalTimestamp(request.resource.data, "createdAt");
 
       allow read, update, delete: if isAdmin();
     }
@@ -71,11 +119,33 @@ service cloud.firestore {
     // =========================================================
     match /orders/{orderId} {
       allow create: if
-        request.resource.data.status == "Шинэ"
-        && request.resource.data.productId is string
-        && request.resource.data.productName is string
+        hasOnlyKeys(request.resource.data, [
+          "orderNo", "productId", "productName", "unitPrice", "quantity", "total",
+          "cpmNick", "cpmId", "instagram", "phone", "note", "status", "createdAt"
+        ])
+        && hasAllKeys(request.resource.data, [
+          "orderNo", "productId", "productName", "unitPrice", "quantity", "total",
+          "cpmNick", "cpmId", "status"
+        ])
+        && request.resource.data.status == "Шинэ"
+        && requiredText(request.resource.data.orderNo, 40)
+        && requiredText(request.resource.data.productId, 120)
+        && requiredText(request.resource.data.productName, 180)
+        && isNumber(request.resource.data.unitPrice)
+        && request.resource.data.unitPrice >= 0
+        && request.resource.data.unitPrice <= 1000000000
         && request.resource.data.quantity is int
-        && request.resource.data.quantity >= 1;
+        && request.resource.data.quantity >= 1
+        && request.resource.data.quantity <= 99
+        && isNumber(request.resource.data.total)
+        && request.resource.data.total >= 0
+        && request.resource.data.total <= 1000000000
+        && requiredText(request.resource.data.cpmNick, 60)
+        && requiredText(request.resource.data.cpmId, 60)
+        && optionalText(request.resource.data, "instagram", 120)
+        && optionalText(request.resource.data, "phone", 40)
+        && optionalText(request.resource.data, "note", 800)
+        && optionalTimestamp(request.resource.data, "createdAt");
 
       allow read, update, delete: if isAdmin();
     }
@@ -97,6 +167,14 @@ service cloud.firestore {
     }
 
     // =========================================================
+    // MUSIC
+    // =========================================================
+    match /music/{musicId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
     // ONI MEET
     // =========================================================
     match /meets/{meetId} {
@@ -113,17 +191,26 @@ service cloud.firestore {
     // This prevents arbitrary fake participant records while keeping the
     // realtime public counter working without requiring user login.
     function validParticipantBase() {
+      let data = request.resource.data;
+      let memberPath = /databases/$(database)/documents/members/$(data.memberId);
+      let member = get(memberPath).data;
       return request.resource.data.meetId == "current"
-        && request.resource.data.memberId is string
-        && request.resource.data.nick is string
-        && request.resource.data.name is string
-        && request.resource.data.cpmId is string
-        && request.resource.data.source == "website"
+        && hasOnlyKeys(data, [
+          "meetId", "meetStartAt", "memberId", "nick", "name", "cpmId", "joinedAt", "source"
+        ])
+        && hasAllKeys(data, ["meetId", "memberId", "nick", "name", "cpmId", "source"])
+        && requiredText(data.memberId, 80)
+        && requiredText(data.nick, 60)
+        && requiredText(data.name, 60)
+        && requiredText(data.cpmId, 60)
+        && data.source == "website"
+        && optionalTimestamp(data, "joinedAt")
+        && optionalDateLike(data, "meetStartAt")
         && exists(/databases/$(database)/documents/meets/current)
         && get(/databases/$(database)/documents/meets/current).data.enabled == true
-        && exists(/databases/$(database)/documents/members/$(request.resource.data.memberId))
-        && get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.nick == request.resource.data.nick
-        && get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.cpmid == request.resource.data.cpmId;
+        && exists(memberPath)
+        && (member.nick == data.nick || member.nickname == data.nick || member.name == data.nick)
+        && (member.cpmid == data.cpmId || member.cpmId == data.cpmId);
     }
 
     match /meetParticipants/{participantId} {
@@ -134,7 +221,11 @@ service cloud.firestore {
 
       allow update: if validParticipantBase()
         && resource.data.memberId == request.resource.data.memberId
-        && resource.data.meetId == request.resource.data.meetId;
+        && resource.data.meetId == request.resource.data.meetId
+        && resource.data.source == request.resource.data.source
+        && resource.data.nick == request.resource.data.nick
+        && resource.data.name == request.resource.data.name
+        && resource.data.cpmId == request.resource.data.cpmId;
 
       allow delete: if isAdmin();
     }
