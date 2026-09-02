@@ -4475,9 +4475,15 @@ const cfg={apiKey:"AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw",authDomain:"oni-kish
 const app=getApps().length?getApp():initializeApp(cfg),db=getFirestore(app),root=document.getElementById("oniAI"),body=document.getElementById("oaBody"),inp=document.getElementById("oaInput"),stateEl=document.getElementById("oaState"),hint=document.getElementById("oaHint");
 const D={members:[],garage:[],music:[],participants:[],meet:null},history=[];let ready=false,tracks=[],trackIndex=0,listening=false,recorder=null,chunks=[],audio=new Audio(),aiBusy=false;
 const ONI_AI_WORKER=String(window.ONI_AI_CONFIG?.endpoint||"https://oni-kishin-web.erkaa2323.workers.dev/api/oni-ai").trim();
+const OA_HISTORY_LIMIT=18,OA_HISTORY_TEXT_LIMIT=1200,OA_SOFT_BODY_BYTES=96*1024,OA_KNOWLEDGE_LIMITS={members:48,garage:24,music:36,participants:24},OA_KNOWLEDGE_KEYS={members:["id","nick","first","last","name","cpmid","direction","role","title","status"],garage:["id","name","title","car","model","brand","owner","nick","status","type"],music:["id","title","name","artist","status"],participants:["id","memberId","nick","name","cpmId","source"],meet:["id","name","enabled","startAt","durationMinutes","maxPlayers","status","mode","location"]};
 
 
-const norm=s=>String(s||"").toLowerCase().replace(/[?.,!;:()[\]{}"'`]/g," ").replace(/\s+/g," ").trim(),any=(x,a)=>a.some(v=>x.includes(v)),txt=o=>Object.entries(o||{}).filter(([,v])=>typeof v==="string"||typeof v==="number").map(([k,v])=>k+" "+v).join(" ");
+const norm=s=>String(s||"").toLowerCase().replace(/[?.,!;:()[\]{}"'`]/g," ").replace(/\s+/g," ").trim(),any=(x,a)=>a.some(v=>x.includes(v)),txt=o=>Object.entries(o||{}).filter(([,v])=>typeof v==="string"||typeof v==="number").map(([k,v])=>k+" "+v).join(" "),utf8Bytes=s=>new TextEncoder().encode(String(s||"")).byteLength;
+function compactKnowledgeValue(v,max=120){if(v==null)return undefined;if(typeof v==="string")return v.replace(/\s+/g," ").trim().slice(0,max);if(typeof v==="number"||typeof v==="boolean")return v;if(v?.toDate instanceof Function){try{return v.toDate().toISOString()}catch(e){return undefined}}if(v instanceof Date)return v.toISOString();if(typeof v==="object"&&typeof v.seconds==="number")return new Date(v.seconds*1000).toISOString();return undefined}
+function compactKnowledgeRecord(row,keys){const out={};for(const key of keys){const value=compactKnowledgeValue(row?.[key],key==="location"?160:120);if(value!==undefined&&value!=="")out[key]=value}return out}
+function compactKnowledgeList(rows,keys,limit){return Array.isArray(rows)?rows.slice(0,limit).map(row=>compactKnowledgeRecord(row,keys)).filter(row=>Object.keys(row).length):[]}
+function buildKnowledgePayload(){const knowledge={source:"Client snapshot is condensed. Firebase tools remain authoritative for clan facts.",counts:{members:D.members.length,garage:D.garage.length,music:D.music.length,playableTracks:tracks.length,participants:D.participants.length},members:compactKnowledgeList(D.members,OA_KNOWLEDGE_KEYS.members,OA_KNOWLEDGE_LIMITS.members),garage:compactKnowledgeList(D.garage,OA_KNOWLEDGE_KEYS.garage,OA_KNOWLEDGE_LIMITS.garage),music:compactKnowledgeList(D.music,OA_KNOWLEDGE_KEYS.music,OA_KNOWLEDGE_LIMITS.music),participants:compactKnowledgeList(D.participants,OA_KNOWLEDGE_KEYS.participants,OA_KNOWLEDGE_LIMITS.participants),meet:compactKnowledgeRecord(D.meet,OA_KNOWLEDGE_KEYS.meet)};knowledge.snapshot={members:knowledge.members.length,garage:knowledge.garage.length,music:knowledge.music.length,participants:knowledge.participants.length};return knowledge}
+function buildOniAiPayload(message){const payload={message,history:history.slice(-OA_HISTORY_LIMIT).map(x=>({role:x?.role,text:String(x?.text||"").slice(0,OA_HISTORY_TEXT_LIMIT)})),knowledge:buildKnowledgePayload()};if(utf8Bytes(JSON.stringify(payload))<=OA_SOFT_BODY_BYTES)return payload;for(const [key,limit] of [["members",24],["garage",12],["music",18],["participants",12],["members",12],["garage",8],["music",12],["participants",8]]){if(Array.isArray(payload.knowledge[key])&&payload.knowledge[key].length>limit){payload.knowledge[key]=payload.knowledge[key].slice(0,limit);payload.knowledge.snapshot[key]=payload.knowledge[key].length}if(utf8Bytes(JSON.stringify(payload))<=OA_SOFT_BODY_BYTES)break}return payload}
 function add(role,text){const d=document.createElement("div");d.className="oa-msg "+(role==="user"?"oa-user":"oa-ai");const l=document.createElement("div");l.className="oa-label";l.textContent=role==="user"?"YOU":"ONI AI";d.append(l,document.createTextNode(text));body.appendChild(d);body.scrollTop=body.scrollHeight;history.push({role,text})}
 function setAIBusy(v){aiBusy=!!v;const send=document.getElementById("oaSend");if(send)send.disabled=aiBusy}
 async function read(name){try{const s=await getDocs(collection(db,name));return s.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.warn(name,e);return[]}}
@@ -4513,17 +4519,7 @@ async function aiBackend(q){
    cache:"no-store",
    mode:"cors",
    credentials:"omit",
-   body:JSON.stringify({
-    message:q,
-    history:history.slice(-18),
-    knowledge:{
-     members:D.members,
-     garage:D.garage,
-     music:D.music,
-     meet:D.meet,
-     participants:D.participants
-    }
-   })
+   body:JSON.stringify(buildOniAiPayload(q))
   });
   const j=await r.json().catch(()=>({}));
   if(!r.ok){

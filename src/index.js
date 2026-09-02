@@ -1,7 +1,7 @@
 const OPENAI_URL = "https://api.openai.com/v1/responses";
 const FIRESTORE_BASE = "https://firestore.googleapis.com/v1/projects/oni-kishin-f59b4/databases/(default)/documents";
 const DEFAULT_ALLOWED_ORIGINS = ["https://erkaa2323-sudo.github.io"];
-const MAX_BODY_BYTES = 16 * 1024;
+const MAX_BODY_BYTES = 128 * 1024;
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX_REQUESTS = 20;
 const RATE_MAX_TRACKED_CLIENTS = 10_000;

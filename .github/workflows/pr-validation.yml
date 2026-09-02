@@ -42,6 +42,86 @@ jobs:
           node --check src/index.js
           node --check src/secure-worker.js
 
+      - name: Validate ONI AI payload budget
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const bodyLimit = 128 * 1024;
+          const backend = fs.readFileSync("src/index.js", "utf8");
+          const gateway = fs.readFileSync("src/secure-worker.js", "utf8");
+          if (!backend.includes("const MAX_BODY_BYTES = 128 * 1024;")) throw new Error("src/index.js MAX_BODY_BYTES must stay at 128 KB");
+          if (!gateway.includes("const MAX_BODY_BYTES = 128 * 1024;")) throw new Error("src/secure-worker.js MAX_BODY_BYTES must stay at 128 KB");
+
+          const payload = {
+            message: "hi",
+            history: Array.from({length: 18}, (_, i) => ({
+              role: i % 2 ? "ai" : "user",
+              text: `turn-${i} ` + "x".repeat(240)
+            })),
+            knowledge: {
+              source: "Client snapshot is condensed. Firebase tools remain authoritative for clan facts.",
+              counts: {members: 72, garage: 36, music: 120, playableTracks: 88, participants: 20},
+              snapshot: {members: 48, garage: 24, music: 36, participants: 20},
+              meet: {
+                id: "current",
+                name: "ONI NIGHT MEET",
+                enabled: true,
+                startAt: "2026-09-02T00:00:00.000Z",
+                durationMinutes: 20,
+                maxPlayers: 20,
+                status: "live",
+                mode: "squad",
+                location: "ONI HQ"
+              },
+              members: Array.from({length: 48}, (_, i) => ({
+                id: `member-${i}`,
+                nick: `Nick ${i}`,
+                first: `First ${i}`,
+                last: `Last ${i}`,
+                name: `First ${i} Last ${i}`,
+                cpmid: `CPM-${1000 + i}`,
+                direction: i % 2 ? "street" : "drift",
+                role: i < 4 ? "leader" : "member",
+                title: "Squad Driver",
+                status: "active"
+              })),
+              garage: Array.from({length: 24}, (_, i) => ({
+                id: `garage-${i}`,
+                name: `Build ${i}`,
+                title: `Garage Build ${i}`,
+                car: `Car ${i}`,
+                model: `Model ${i}`,
+                brand: "ONI",
+                owner: `Nick ${i}`,
+                nick: `Nick ${i}`,
+                status: "ready",
+                type: "drift"
+              })),
+              music: Array.from({length: 36}, (_, i) => ({
+                id: `music-${i}`,
+                title: `Track ${i}`,
+                name: `Track ${i}`,
+                artist: `Artist ${i}`,
+                status: "published"
+              })),
+              participants: Array.from({length: 20}, (_, i) => ({
+                id: `participant-${i}`,
+                memberId: `member-${i}`,
+                nick: `Nick ${i}`,
+                name: `First ${i}`,
+                cpmId: `CPM-${1000 + i}`,
+                source: "meet"
+              }))
+            }
+          };
+
+          const bytes = new TextEncoder().encode(JSON.stringify(payload)).byteLength;
+          if (bytes > bodyLimit) {
+            throw new Error(`realistic ONI AI payload exceeds limit: ${bytes} bytes`);
+          }
+          console.log(`ONI AI payload budget OK (${bytes} / ${bodyLimit} bytes)`);
+          NODE
+
       - name: Verify sw.js precache files exist
         run: |
           node <<'NODE'
