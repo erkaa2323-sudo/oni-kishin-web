@@ -33,15 +33,15 @@ function pickFirstText(...values) {
     const text = asText(value);
     if (text) return text;
   }
-
-  function withTimeout(task, timeoutMs = SUBMIT_TIMEOUT_MS) {
-    let timeoutId = 0;
-    const timeout = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-    });
-    return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
-  }
   return "";
+}
+
+function withTimeout(task, timeoutMs = SUBMIT_TIMEOUT_MS) {
+  let timeoutId = 0;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 export function normalizeApplicationRecord(raw = {}, docId = "") {

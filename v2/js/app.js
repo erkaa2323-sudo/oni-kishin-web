@@ -195,6 +195,16 @@ function showToast(message, timeout = 2200) {
   }, timeout);
 }
 
+function isDevelopmentHost() {
+  const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+function logDevError(label, error) {
+  if (!isDevelopmentHost()) return;
+  console.error(label, error);
+}
+
 function withTimeout(task, timeoutMs = HOME_FETCH_TIMEOUT_MS) {
   let timeoutId = 0;
   const timeout = new Promise((_, reject) => {
@@ -571,9 +581,7 @@ async function renderHome() {
         </article>
       </section>
     `;
-    if (error instanceof Error) {
-      console.error("home_render_failed", error);
-    }
+    if (error instanceof Error) logDevError("home_render_failed", error);
   }
 }
 
@@ -594,9 +602,14 @@ function clearRouteMount() {
 
 function setupMeetWorldSubscription() {
   if (typeof meetWorldUnsubscribe === "function") return;
-  meetWorldUnsubscribe = subscribeMeetWorldState(snapshot => {
-    applyMeetWorldState(snapshot.state);
-  });
+  try {
+    meetWorldUnsubscribe = subscribeMeetWorldState(snapshot => {
+      applyMeetWorldState(snapshot.state);
+    });
+  } catch (error) {
+    applyMeetWorldState("NONE");
+    logDevError("meet_world_subscribe_failed", error);
+  }
 }
 
 function setupAdminVisibility() {
@@ -647,11 +660,12 @@ async function ensureFirebaseReady() {
 async function runRouteWithFirebase(handler) {
   try {
     await ensureFirebaseReady();
-    await handler();
   } catch (error) {
-    console.error("firebase_route_blocked", error);
+    logDevError("firebase_route_blocked", error);
     renderFirebaseBlockedState();
+    return;
   }
+  await handler();
 }
 
 function registerRoutes() {
@@ -961,7 +975,7 @@ async function retryFirebaseBootstrap() {
     await ensureFirebaseReady();
     await navigate(`#${getCurrentRoute()}`);
   } catch (error) {
-    console.error("firebase_init_failed", error);
+    logDevError("firebase_init_failed", error);
     renderFirebaseBlockedState();
   }
 }

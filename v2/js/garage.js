@@ -426,7 +426,7 @@ export function createGarageModule() {
     const gallery = record.images.length
       ? `
         <div class="oni-garage-detail-gallery" data-garage-gallery>
-          ${record.images.map(image => `<figure><img src="${escapeHtml(image)}" alt="${escapeHtml(record.buildName)} зураг" loading="lazy" decoding="async"></figure>`).join("")}
+          ${record.images.map(image => `<figure><img src="${escapeHtml(image)}" alt="${escapeHtml(record.buildName)} зураг" loading="lazy" decoding="async" data-garage-detail-image></figure>`).join("")}
         </div>
       `
       : `<div class="oni-garage-detail-empty-media">${escapeHtml(initials(record.buildName))}</div>`;
@@ -650,9 +650,23 @@ export function createGarageModule() {
       target.closest(".oni-garage-build-media")?.classList.add("is-fallback");
       target.remove?.();
     };
+    const onDetailImageError = event => {
+      const target = event.target;
+      if (!target || typeof target.matches !== "function") return;
+      if (!target.matches("[data-garage-detail-image]")) return;
+      const label = asText(target.getAttribute?.("alt")).replace(/\s+зураг$/u, "");
+      const figure = target.closest("figure");
+      figure?.remove();
+      const gallery = detailBody?.querySelector?.("[data-garage-gallery]");
+      if (!(gallery instanceof HTMLElement)) return;
+      if (gallery.querySelector("img")) return;
+      gallery.innerHTML = `<div class="oni-garage-detail-empty-media">${escapeHtml(initials(label || "ONI BUILD"))}</div>`;
+    };
     if (typeof host?.addEventListener === "function") {
       host.addEventListener("error", onImageError, true);
       dispose.push(() => host?.removeEventListener?.("error", onImageError, true));
+      host.addEventListener("error", onDetailImageError, true);
+      dispose.push(() => host?.removeEventListener?.("error", onDetailImageError, true));
     }
   }
 
