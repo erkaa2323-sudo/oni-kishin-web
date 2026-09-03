@@ -1633,6 +1633,33 @@ function checkSharedMeetWorldModule() {
   assert(source.includes("ENDED"), "v2/js/meet-world.js must include ENDED state");
 }
 
+function checkStage4ReliabilityContracts() {
+  const firebaseSource = read("v2/js/firebase.js");
+  const appSource = read("v2/js/app.js");
+  const membersSource = read("v2/js/members.js");
+  const garageSource = read("v2/js/garage.js");
+  const meetSource = read("v2/js/meet.js");
+  const swSource = read("v2/sw.js");
+
+  assert(firebaseSource.includes("export async function initFirebase()"), "v2/js/firebase.js must expose async Firebase bootstrap");
+  assert(firebaseSource.includes("firebaseInitPromise"), "v2/js/firebase.js must keep a shared Firebase init promise");
+  assert(firebaseSource.includes("if (firebaseInitPromise) return firebaseInitPromise;"), "v2/js/firebase.js must dedupe concurrent init calls");
+
+  assert(appSource.includes("runRouteWithFirebase"), "v2/js/app.js routes must run behind Firebase readiness guard");
+  assert(appSource.includes("data-firebase-retry"), "v2/js/app.js must expose a recoverable Firebase retry control");
+  assert(appSource.includes("if (typeof adminAuthUnsubscribe === \"function\") return;"), "v2/js/app.js Firebase retry must avoid duplicate auth listeners");
+  assert(appSource.includes("if (typeof meetWorldUnsubscribe === \"function\") return;"), "v2/js/app.js Firebase retry must avoid duplicate meet-world listeners");
+
+  assert(membersSource.includes("LOAD_TIMEOUT_MS"), "v2/js/members.js must timeout member loading to avoid infinite skeleton state");
+  assert(garageSource.includes("LOAD_TIMEOUT_MS"), "v2/js/garage.js must timeout garage loading to avoid infinite skeleton state");
+  assert(garageSource.includes("hasValidDetail"), "v2/js/garage.js must guard detail modal against stale or empty records");
+  assert(meetSource.includes("startLoadWatchdog"), "v2/js/meet.js must enforce meet loading timeout protection");
+
+  assert(swSource.includes("cache: \"no-store\""), "v2/sw.js must network-refresh fast-changing assets");
+  assert(!swSource.includes("caches.match(request)"), "v2/sw.js navigation fallback must avoid request-keyed stale HTML cache");
+  assert(swSource.includes("staticCache.put(request, fresh.clone())"), "v2/sw.js must update versioned static cache for fast-changing assets");
+}
+
 async function run() {
   checkRequiredFiles();
   checkManifest();
@@ -1649,6 +1676,7 @@ async function run() {
   checkOniAiModuleContracts();
   checkStage3BackendContracts();
   checkSharedMeetWorldModule();
+  checkStage4ReliabilityContracts();
   await checkMembersModuleBehavior();
   await checkGarageModuleBehavior();
   await checkMeetModuleBehavior();

@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, limit, query, where } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js";
-import { getFirebase, getFirestoreDb } from "./firebase.js";
-import { registerRoute, startRouter } from "./router.js";
+import { getFirebase, getFirestoreDb, initFirebase } from "./firebase.js";
+import { getCurrentRoute, navigate, registerRoute, startRouter } from "./router.js";
 import { createAuthModule } from "./auth.js";
 import { createMembersModule, normalizeMemberRecord } from "./members.js";
 import { createGarageModule, normalizeGarageRecord } from "./garage.js";
@@ -58,6 +58,12 @@ let adminAuthUnsubscribe = null;
 let navActiveMorph = null;
 let routeSlashTimer = 0;
 let meetWorldUnsubscribe = null;
+let firebaseReady = false;
+let firebaseBindingsReady = false;
+let firebaseBootstrapPromise = null;
+const FIREBASE_UI_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
+const FIREBASE_RETRY_LABEL = "Дахин оролдох";
+const HOME_FETCH_TIMEOUT_MS = 12_000;
 
 const ATMOSPHERE_BY_ROUTE = {
   home: "home",
@@ -142,6 +148,14 @@ function initials(text) {
   return words.map(word => word.charAt(0)).join("").toUpperCase() || "ON";
 }
 
+function applyMeetWorldState(worldState) {
+  const state = String(worldState || "NONE").toUpperCase();
+  document.body.dataset.oniMeetState = state;
+  const meetLink = navLinks.find(link => link.dataset.route === "meet");
+  if (!(meetLink instanceof HTMLElement)) return;
+  meetLink.classList.toggle("is-live", state === "LIVE" || state === "FULL");
+}
+
 function setActive(route) {
   const mapped = route === "members" || route === "join" ? "more" : route;
 
@@ -155,14 +169,6 @@ function setActive(route) {
     const active = mapped === "more";
     moreButton.classList.toggle("is-active", active);
     moreButton.setAttribute("aria-current", active ? "page" : "false");
-  }
-
-  function applyMeetWorldState(worldState) {
-    const state = String(worldState || "NONE").toUpperCase();
-    document.body.dataset.oniMeetState = state;
-    const meetLink = navLinks.find(link => link.dataset.route === "meet");
-    if (!(meetLink instanceof HTMLElement)) return;
-    meetLink.classList.toggle("is-live", state === "LIVE" || state === "FULL");
   }
 
   if (navActiveMorph instanceof HTMLElement && bottomNav instanceof HTMLElement) {
@@ -187,6 +193,36 @@ function showToast(message, timeout = 2200) {
   showToast.timer = setTimeout(() => {
     toast.hidden = true;
   }, timeout);
+}
+
+function isDevelopmentHost() {
+  const host = (typeof location !== "undefined" && location.hostname) ? location.hostname : "";
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+function logDevError(label, error) {
+  if (!isDevelopmentHost()) return;
+  console.error(label, error);
+}
+
+function withTimeout(task, timeoutMs = HOME_FETCH_TIMEOUT_MS) {
+  let timeoutId = 0;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+function renderFirebaseBlockedState() {
+  root.innerHTML = `
+    <section class="oni-home-view">
+      <article class="oni-error-state" role="alert">
+        <h2>${FIREBASE_UI_MESSAGE}</h2>
+        <p>Сүлжээгээ шалгаад дахин оролдоно уу.</p>
+        <button type="button" class="oni-btn oni-btn-primary" data-firebase-retry>${FIREBASE_RETRY_LABEL}</button>
+      </article>
+    </section>
+  `;
 }
 
 function stopHomeCountdown() {
@@ -526,7 +562,7 @@ async function renderHome() {
   root.innerHTML = homeSkeletonMarkup();
 
   try {
-    const data = await fetchHomeData();
+    const data = await withTimeout(fetchHomeData());
     if (token !== homeRenderToken) return;
     root.innerHTML = renderHomeView(data);
 
@@ -536,17 +572,16 @@ async function renderHome() {
     }
   } catch (error) {
     if (token !== homeRenderToken) return;
-
-    const message = error instanceof Error ? error.message : "Unknown error";
     root.innerHTML = `
       <section class="oni-home-view">
         <article class="oni-error-state" role="alert">
-          <h2>Нүүр мэдээлэл ачаалж чадсангүй</h2>
-          <p>${escapeHtml(message)}</p>
+          <h2>${FIREBASE_UI_MESSAGE}</h2>
+          <p>Дахин оролдоно уу.</p>
           <button type="button" class="oni-btn oni-btn-primary" data-home-retry>ДАХИН ОРОЛДОХ</button>
         </article>
       </section>
     `;
+    if (error instanceof Error) logDevError("home_render_failed", error);
   }
 }
 
@@ -565,13 +600,81 @@ function clearRouteMount() {
   activeRouteTeardown = null;
 }
 
+function setupMeetWorldSubscription() {
+  if (typeof meetWorldUnsubscribe === "function") return;
+  try {
+    meetWorldUnsubscribe = subscribeMeetWorldState(snapshot => {
+      applyMeetWorldState(snapshot.state);
+    });
+  } catch (error) {
+    applyMeetWorldState("NONE");
+    logDevError("meet_world_subscribe_failed", error);
+  }
+}
+
+function setupAdminVisibility() {
+  if (!(moreAdminLink instanceof HTMLElement)) return;
+  if (typeof adminAuthUnsubscribe === "function") return;
+
+  const onAuth = user => {
+    const email = asText(user?.email).toLowerCase();
+    const authorized = !!email && email === ADMIN_EMAIL;
+    moreAdminLink.hidden = !authorized;
+  };
+
+  try {
+    const auth = getAuth(getFirebase().app);
+    adminAuthUnsubscribe = onAuthStateChanged(auth, onAuth, () => onAuth(null));
+  } catch {
+    onAuth(null);
+  }
+}
+
+function setupFirebaseBindings() {
+  if (firebaseBindingsReady) return;
+  setupAdminVisibility();
+  setupMeetWorldSubscription();
+  firebaseBindingsReady = true;
+}
+
+async function ensureFirebaseReady() {
+  if (firebaseReady) return;
+  if (firebaseBootstrapPromise) return firebaseBootstrapPromise;
+
+  firebaseBootstrapPromise = initFirebase()
+    .then(() => {
+      firebaseReady = true;
+      setupFirebaseBindings();
+    })
+    .catch(error => {
+      firebaseReady = false;
+      throw error;
+    })
+    .finally(() => {
+      firebaseBootstrapPromise = null;
+    });
+
+  return firebaseBootstrapPromise;
+}
+
+async function runRouteWithFirebase(handler) {
+  try {
+    await ensureFirebaseReady();
+  } catch (error) {
+    logDevError("firebase_route_blocked", error);
+    renderFirebaseBlockedState();
+    return;
+  }
+  await handler();
+}
+
 function registerRoutes() {
   registerRoute("home", async () => {
     setAtmosphere("home");
     playRouteSlash();
     clearRouteMount();
     setActive("home");
-    await renderHome();
+    await runRouteWithFirebase(() => renderHome());
   });
 
   registerRoute("members", async () => {
@@ -580,8 +683,10 @@ function registerRoutes() {
     setActive("members");
     if (membersModule && typeof membersModule.mount === "function") {
       clearRouteMount();
-      membersModule.mount(root);
-      activeRouteTeardown = () => membersModule.unmount?.();
+      await runRouteWithFirebase(async () => {
+        membersModule.mount(root);
+        activeRouteTeardown = () => membersModule.unmount?.();
+      });
       return;
     }
   });
@@ -592,8 +697,10 @@ function registerRoutes() {
     setActive("garage");
     if (garageModule && typeof garageModule.mount === "function") {
       clearRouteMount();
-      garageModule.mount(root);
-      activeRouteTeardown = () => garageModule.unmount?.();
+      await runRouteWithFirebase(async () => {
+        garageModule.mount(root);
+        activeRouteTeardown = () => garageModule.unmount?.();
+      });
       return;
     }
   });
@@ -604,8 +711,10 @@ function registerRoutes() {
     setActive("music");
     if (oniAiModule && typeof oniAiModule.mount === "function") {
       clearRouteMount();
-      oniAiModule.mount(root);
-      activeRouteTeardown = () => oniAiModule.unmount?.();
+      await runRouteWithFirebase(async () => {
+        oniAiModule.mount(root);
+        activeRouteTeardown = () => oniAiModule.unmount?.();
+      });
       return;
     }
   });
@@ -616,8 +725,10 @@ function registerRoutes() {
     setActive("meet");
     if (meetModule && typeof meetModule.mount === "function") {
       clearRouteMount();
-      meetModule.mount(root);
-      activeRouteTeardown = () => meetModule.unmount?.();
+      await runRouteWithFirebase(async () => {
+        meetModule.mount(root);
+        activeRouteTeardown = () => meetModule.unmount?.();
+      });
       return;
     }
   });
@@ -628,8 +739,10 @@ function registerRoutes() {
     setActive("join");
     if (joinModule && typeof joinModule.mount === "function") {
       clearRouteMount();
-      joinModule.mount(root);
-      activeRouteTeardown = () => joinModule.unmount?.();
+      await runRouteWithFirebase(async () => {
+        joinModule.mount(root);
+        activeRouteTeardown = () => joinModule.unmount?.();
+      });
       return;
     }
   });
@@ -639,7 +752,7 @@ function setupOfflineState() {
   const update = () => {
     const online = navigator.onLine;
     offlineBanner.hidden = online;
-    if (!online) showToast("Offline mode enabled");
+    if (!online) showToast("Офлайн горим идэвхжлээ");
   };
 
   addEventListener("online", update, { passive: true });
@@ -652,7 +765,7 @@ async function registerServiceWorker() {
 
   const triggerWaitingWorker = registration => {
     if (!registration?.waiting) return;
-    showToast("Update available. Reloading…", 2600);
+    showToast("Шинэчлэл бэлэн боллоо. Дахин ачаалж байна…", 2600);
     registration.waiting.postMessage({ type: "SKIP_WAITING" });
   };
 
@@ -719,23 +832,6 @@ function setupMoreActions() {
   });
 }
 
-function setupAdminVisibility() {
-  if (!(moreAdminLink instanceof HTMLElement)) return;
-
-  const onAuth = user => {
-    const email = asText(user?.email).toLowerCase();
-    const authorized = !!email && email === ADMIN_EMAIL;
-    moreAdminLink.hidden = !authorized;
-  };
-
-  try {
-    const auth = getAuth(getFirebase().app);
-    adminAuthUnsubscribe = onAuthStateChanged(auth, onAuth, () => onAuth(null));
-  } catch {
-    onAuth(null);
-  }
-}
-
 function setupUiActions() {
   document.addEventListener("click", event => {
     const target = event.target;
@@ -768,12 +864,17 @@ function setupUiActions() {
 
     if (target.closest("[data-more-info]")) {
       closeMoreSheet();
-      openModal("<p>ONI &amp; KISHIN бол Монголын CPM anime underground clan. Гишүүн, гараж, meet болон ONI AI бүх өгөгдөл одоогийн production Firestore-оос ачаалж байна.</p>");
+      openModal("<p>ONI &amp; KISHIN бол Монголын CPM anime underground clan. Бүх хэсэг бодит цагаар шинэчлэгдсэн мэдээллээр ажиллана.</p>");
       return;
     }
 
     if (target.closest("[data-home-retry]")) {
       renderHome();
+      return;
+    }
+
+    if (target.closest("[data-firebase-retry]")) {
+      retryFirebaseBootstrap();
     }
   });
 
@@ -869,6 +970,16 @@ function setupMotionUtilities() {
   });
 }
 
+async function retryFirebaseBootstrap() {
+  try {
+    await ensureFirebaseReady();
+    await navigate(`#${getCurrentRoute()}`);
+  } catch (error) {
+    logDevError("firebase_init_failed", error);
+    renderFirebaseBlockedState();
+  }
+}
+
 function bootstrap() {
   if (isBootstrapped) return;
   isBootstrapped = true;
@@ -881,17 +992,7 @@ function bootstrap() {
   setupViewportHandling();
   setupMotionUtilities();
   registerServiceWorker();
-
-  try {
-    getFirebase();
-    setupAdminVisibility();
-    meetWorldUnsubscribe = subscribeMeetWorldState(snapshot => {
-      applyMeetWorldState(snapshot.state);
-    });
-  } catch (error) {
-    console.error("firebase_init_failed", error);
-    showToast("Firebase bootstrap failed");
-  }
+  retryFirebaseBootstrap();
 
   root.setAttribute("aria-busy", "false");
   root.classList.add("ready");

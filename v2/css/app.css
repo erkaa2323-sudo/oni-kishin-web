@@ -1988,7 +1988,15 @@ body.oni-keyboard-open .oni-bottom-nav {
   --oni-world-light-a: radial-gradient(circle at 18% 20%, rgba(255, 34, 73, 0.22), transparent 36rem);
   --oni-world-light-b: radial-gradient(circle at 85% 7%, rgba(122, 96, 255, 0.16), transparent 30rem);
   --oni-world-light-c: radial-gradient(circle at 52% 92%, rgba(36, 78, 167, 0.2), transparent 32rem);
+  --oni-world-fog: radial-gradient(circle at 48% 102%, rgba(24, 42, 86, 0.22), transparent 55%);
+  --oni-world-vignette: radial-gradient(circle at center, rgba(6, 10, 20, 0.02) 22%, rgba(4, 8, 15, 0.76) 100%);
   --oni-world-art: none;
+  --oni-world-art-home: none;
+  --oni-world-art-garage: none;
+  --oni-world-art-crew: none;
+  --oni-world-art-oni-ai: none;
+  --oni-world-art-meet: none;
+  --oni-world-art-join: none;
   --oni-parallax-x: 0;
   --oni-parallax-y: 0;
 }
@@ -2006,7 +2014,7 @@ body.oni-keyboard-open .oni-bottom-nav {
 }
 
 body {
-  background: var(--oni-world-light-b), var(--oni-world-light-a), var(--oni-world-light-c), var(--oni-world-base);
+  background: var(--oni-world-light-b), var(--oni-world-light-a), var(--oni-world-light-c), var(--oni-world-fog), var(--oni-world-base);
 }
 
 .oni-shell {
@@ -2035,44 +2043,58 @@ body {
 .oni-shell::after {
   z-index: -1;
   background:
+    var(--oni-world-vignette),
     radial-gradient(circle at 50% -12%, rgba(255, 38, 90, 0.12), transparent 45%),
     linear-gradient(180deg, rgba(5, 8, 16, 0.06), rgba(5, 8, 16, 0.72));
 }
 
 body[data-oni-atmosphere="home"] {
-  --oni-world-base: linear-gradient(177deg, #060910, #070b18 58%, #060a13);
-  --oni-world-light-a: radial-gradient(circle at 16% 18%, rgba(255, 48, 102, 0.25), transparent 35rem);
-  --oni-world-light-b: radial-gradient(circle at 84% 12%, rgba(135, 91, 255, 0.2), transparent 30rem);
+  --oni-world-base: linear-gradient(177deg, #05070f, #070b18 46%, #061327);
+  --oni-world-light-a: radial-gradient(circle at 16% 18%, rgba(255, 48, 102, 0.28), transparent 35rem);
+  --oni-world-light-b: radial-gradient(circle at 84% 12%, rgba(135, 91, 255, 0.24), transparent 30rem);
+  --oni-world-light-c: radial-gradient(circle at 62% 92%, rgba(39, 92, 190, 0.24), transparent 30rem);
+  --oni-world-fog: radial-gradient(circle at 50% 104%, rgba(14, 31, 71, 0.38), transparent 58%);
+  --oni-world-art: var(--oni-world-art-home);
 }
 
 body[data-oni-atmosphere="garage"] {
-  --oni-world-base: linear-gradient(177deg, #05070f, #040b1d 55%, #060914);
-  --oni-world-light-a: radial-gradient(circle at 12% 80%, rgba(255, 44, 86, 0.18), transparent 30rem);
-  --oni-world-light-b: radial-gradient(circle at 86% 8%, rgba(58, 99, 188, 0.22), transparent 30rem);
+  --oni-world-base: linear-gradient(177deg, #04060c, #070d1f 54%, #0a1324);
+  --oni-world-light-a: radial-gradient(circle at 12% 80%, rgba(255, 44, 86, 0.21), transparent 30rem);
+  --oni-world-light-b: radial-gradient(circle at 86% 8%, rgba(58, 99, 188, 0.26), transparent 30rem);
+  --oni-world-light-c: radial-gradient(circle at 48% 72%, rgba(255, 88, 136, 0.14), transparent 29rem);
+  --oni-world-art: var(--oni-world-art-garage);
 }
 
 body[data-oni-atmosphere="crew"] {
-  --oni-world-base: linear-gradient(176deg, #070810, #080a18 52%, #090914);
-  --oni-world-light-a: radial-gradient(circle at 12% 20%, rgba(255, 44, 86, 0.22), transparent 32rem);
-  --oni-world-light-b: radial-gradient(circle at 82% 10%, rgba(153, 102, 255, 0.22), transparent 30rem);
+  --oni-world-base: linear-gradient(176deg, #06070f, #090d1d 50%, #131429);
+  --oni-world-light-a: radial-gradient(circle at 12% 20%, rgba(255, 44, 86, 0.24), transparent 32rem);
+  --oni-world-light-b: radial-gradient(circle at 82% 10%, rgba(153, 102, 255, 0.24), transparent 30rem);
+  --oni-world-light-c: radial-gradient(circle at 54% 86%, rgba(48, 86, 180, 0.2), transparent 34rem);
+  --oni-world-art: var(--oni-world-art-crew);
 }
 
 body[data-oni-atmosphere="oni-ai"] {
-  --oni-world-base: linear-gradient(177deg, #05070e, #070a18 55%, #050810);
-  --oni-world-light-a: radial-gradient(circle at 22% 24%, rgba(255, 54, 92, 0.2), transparent 33rem);
-  --oni-world-light-b: radial-gradient(circle at 80% 7%, rgba(119, 116, 255, 0.24), transparent 32rem);
+  --oni-world-base: linear-gradient(177deg, #04060d, #070c1d 50%, #0a1225);
+  --oni-world-light-a: radial-gradient(circle at 22% 24%, rgba(255, 54, 92, 0.22), transparent 33rem);
+  --oni-world-light-b: radial-gradient(circle at 80% 7%, rgba(119, 116, 255, 0.28), transparent 32rem);
+  --oni-world-light-c: radial-gradient(circle at 54% 88%, rgba(73, 125, 245, 0.2), transparent 33rem);
+  --oni-world-art: var(--oni-world-art-oni-ai);
 }
 
 body[data-oni-atmosphere="meet"] {
-  --oni-world-base: linear-gradient(177deg, #070911, #070b1b 52%, #070a14);
-  --oni-world-light-a: radial-gradient(circle at 16% 16%, rgba(255, 56, 103, 0.24), transparent 30rem);
-  --oni-world-light-b: radial-gradient(circle at 86% 8%, rgba(111, 98, 255, 0.2), transparent 30rem);
+  --oni-world-base: linear-gradient(177deg, #060811, #0a0d20 48%, #16122b);
+  --oni-world-light-a: radial-gradient(circle at 16% 16%, rgba(255, 56, 103, 0.26), transparent 30rem);
+  --oni-world-light-b: radial-gradient(circle at 86% 8%, rgba(111, 98, 255, 0.25), transparent 30rem);
+  --oni-world-light-c: radial-gradient(circle at 42% 88%, rgba(172, 64, 255, 0.14), transparent 28rem);
+  --oni-world-art: var(--oni-world-art-meet);
 }
 
 body[data-oni-atmosphere="join"] {
-  --oni-world-base: linear-gradient(177deg, #06080f, #060b17 55%, #070914);
-  --oni-world-light-a: radial-gradient(circle at 18% 14%, rgba(255, 55, 104, 0.2), transparent 32rem);
-  --oni-world-light-b: radial-gradient(circle at 85% 10%, rgba(144, 108, 255, 0.2), transparent 30rem);
+  --oni-world-base: linear-gradient(177deg, #05070f, #090c1d 50%, #141424);
+  --oni-world-light-a: radial-gradient(circle at 18% 14%, rgba(255, 55, 104, 0.23), transparent 32rem);
+  --oni-world-light-b: radial-gradient(circle at 85% 10%, rgba(144, 108, 255, 0.24), transparent 30rem);
+  --oni-world-light-c: radial-gradient(circle at 56% 90%, rgba(255, 95, 148, 0.13), transparent 30rem);
+  --oni-world-art: var(--oni-world-art-join);
 }
 
 .oni-route-slash {

@@ -15,7 +15,7 @@ function asText(value) {
 
 function toErrorText(error) {
   if (error instanceof Error) return error.message;
-  return String(error || "Unknown error");
+  return String(error || "Алдаа гарлаа");
 }
 
 function escapeHtml(value) {
@@ -87,7 +87,7 @@ function routeMarkup() {
           <strong>ONI AI</strong>
           <div class="oni-oa-chat-head-actions">
             <button type="button" class="oni-btn oni-btn-ghost" data-oa-cancel>Cancel</button>
-            <button type="button" class="oni-btn oni-btn-ghost" data-oa-retry>Retry</button>
+            <button type="button" class="oni-btn oni-btn-ghost" data-oa-retry>ДАХИН</button>
           </div>
         </div>
         <div class="oni-oa-chat-body" data-oa-body aria-live="polite"></div>
@@ -431,7 +431,7 @@ export function createOniAiModule() {
       setTyping(false);
       const reason = error instanceof Error && error.name === "AbortError"
         ? "30 секундийн дотор хариу ирсэнгүй."
-        : toErrorText(error);
+        : "Мэдээлэлтэй холбогдож чадсангүй.";
       inlineError = reason;
       lastFailurePrompt = message;
       appendMessage("ai", `⚠️ ${reason}`);

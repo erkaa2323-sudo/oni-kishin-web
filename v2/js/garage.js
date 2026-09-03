@@ -1,5 +1,7 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
+const LOAD_TIMEOUT_MS = 12_000;
+const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
 
 
 function escapeHtml(value) {
@@ -76,6 +78,14 @@ function initials(text) {
 
 function hasListenerApi(node) {
   return !!node && typeof node.addEventListener === "function" && typeof node.removeEventListener === "function";
+}
+
+function withTimeout(task, timeoutMs = LOAD_TIMEOUT_MS) {
+  let timeoutId = 0;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
+  });
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 function badge(label, value) {
@@ -236,6 +246,21 @@ function detailMeta(label, value) {
   const text = asText(value);
   if (!text) return "";
   return `<li><small>${escapeHtml(label)}</small><b>${escapeHtml(text)}</b></li>`;
+}
+
+function hasValidDetail(record) {
+  if (!record || typeof record !== "object") return false;
+  if (!asText(record.id)) return false;
+  return [
+    record.buildName,
+    record.brand,
+    record.model,
+    record.owner,
+    record.type,
+    record.category,
+    record.status,
+    record.cpmId
+  ].some(value => asText(value).length > 0) || (Array.isArray(record.images) && record.images.length > 0);
 }
 
 export function garageRouteMarkup() {
@@ -401,7 +426,7 @@ export function createGarageModule() {
     const gallery = record.images.length
       ? `
         <div class="oni-garage-detail-gallery" data-garage-gallery>
-          ${record.images.map(image => `<figure><img src="${escapeHtml(image)}" alt="${escapeHtml(record.buildName)} зураг" loading="lazy" decoding="async"></figure>`).join("")}
+          ${record.images.map(image => `<figure><img src="${escapeHtml(image)}" alt="${escapeHtml(record.buildName)} зураг" loading="lazy" decoding="async" data-garage-detail-image></figure>`).join("")}
         </div>
       `
       : `<div class="oni-garage-detail-empty-media">${escapeHtml(initials(record.buildName))}</div>`;
@@ -430,12 +455,19 @@ export function createGarageModule() {
   function openDetail(recordId) {
     selectedId = asText(recordId);
     const target = records.find(item => item.id === selectedId);
-    if (!target || !detailEl || !detailBody) {
+    if (!target || !detailEl || !detailBody || !hasValidDetail(target)) {
       closeDetail();
+      if (stateEl) stateEl.textContent = "Сонгосон build-ийн мэдээлэл олдсонгүй.";
       return;
     }
 
-    detailBody.innerHTML = detailMarkup(target);
+    const markup = detailMarkup(target);
+    if (!asText(markup)) {
+      closeDetail();
+      if (stateEl) stateEl.textContent = "Сонгосон build-ийн мэдээлэл олдсонгүй.";
+      return;
+    }
+    detailBody.innerHTML = markup;
     detailEl.hidden = false;
     if (typeof document !== "undefined") {
       document.body.classList.add("oni-modal-open");
@@ -445,6 +477,7 @@ export function createGarageModule() {
   function closeDetail() {
     selectedId = "";
     if (detailEl) detailEl.hidden = true;
+    if (detailBody) detailBody.innerHTML = "";
     if (typeof document !== "undefined") {
       document.body.classList.remove("oni-modal-open");
     }
@@ -484,7 +517,7 @@ export function createGarageModule() {
       gridEl.innerHTML = `
         <article class="oni-card oni-garage-empty">
           <h2>${records.length ? "Build олдсонгүй" : "GARAGE хоосон байна"}</h2>
-          <p>${records.length ? "Өөр түлхүүр үг эсвэл шүүлтүүр сонгоно уу." : "Firestore холбоо хэвийн боловч одоогоор мэдээлэл алга."}</p>
+          <p>${records.length ? "Өөр түлхүүр үг эсвэл шүүлтүүр сонгоно уу." : "Одоогоор харагдах мэдээлэл алга."}</p>
         </article>
       `;
       return;
@@ -509,13 +542,14 @@ export function createGarageModule() {
     if (!host || !isMounted) return;
 
     const token = ++requestId;
+    closeDetail();
     loading = true;
     errorMessage = "";
     renderState();
 
     try {
       const db = getFirestoreDb();
-      const snapshot = await getDocs(collection(db, "garage"));
+      const snapshot = await withTimeout(getDocs(collection(db, "garage")));
       if (!isMounted || token !== requestId) return;
 
       records = snapshot.docs
@@ -528,7 +562,8 @@ export function createGarageModule() {
     } catch (error) {
       if (!isMounted || token !== requestId) return;
       loading = false;
-      errorMessage = error instanceof Error ? error.message : "Firestore уншилтын алдаа";
+      errorMessage = LOAD_ERROR_MESSAGE;
+      if (error instanceof Error) console.error("garage_load_failed", error);
       renderState();
     }
   }
@@ -615,16 +650,30 @@ export function createGarageModule() {
       target.closest(".oni-garage-build-media")?.classList.add("is-fallback");
       target.remove?.();
     };
+    const onDetailImageError = event => {
+      const target = event.target;
+      if (!target || typeof target.matches !== "function") return;
+      if (!target.matches("[data-garage-detail-image]")) return;
+      const label = asText(target.getAttribute?.("alt")).replace(/\s+зураг$/u, "");
+      const figure = target.closest("figure");
+      figure?.remove();
+      const gallery = detailBody?.querySelector?.("[data-garage-gallery]");
+      if (!(gallery instanceof HTMLElement)) return;
+      if (gallery.querySelector("img")) return;
+      gallery.innerHTML = `<div class="oni-garage-detail-empty-media">${escapeHtml(initials(label || "ONI BUILD"))}</div>`;
+    };
     if (typeof host?.addEventListener === "function") {
       host.addEventListener("error", onImageError, true);
       dispose.push(() => host?.removeEventListener?.("error", onImageError, true));
+      host.addEventListener("error", onDetailImageError, true);
+      dispose.push(() => host?.removeEventListener?.("error", onDetailImageError, true));
     }
   }
 
   return {
     key: "garage",
     title: "ONI GARAGE",
-    description: "Cinematic гараж маршрут нь Firestore garage цуглуулгын real build өгөгдлийг зураг төвтэй харуулна.",
+    description: "Cinematic гараж маршрут нь бодит build мэдээллийг зураг төвтэй харуулна.",
     status: "live",
 
     mount(root) {

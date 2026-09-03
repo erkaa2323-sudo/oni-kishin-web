@@ -219,16 +219,16 @@ export function joinRouteMarkup() {
     <section class="oni-join-view" data-join-view>
       <header class="oni-section-head">
         <h1>Join ONI &amp; KISHIN</h1>
-        <p>Application writes to Firestore <code>applications</code> with production-compatible fields for Admin review.</p>
+        <p>ONI кланд нэгдэх хүсэлтээ илгээнэ үү.</p>
       </header>
 
       <article class="oni-card oni-join-card">
         <form data-join-form novalidate>
           <div class="oni-join-grid">${fields.map(fieldMarkup).join("")}</div>
           <div class="oni-join-actions">
-            <button class="oni-btn oni-btn-primary" type="submit" data-join-submit>Submit application</button>
-            <button class="oni-btn oni-btn-ghost" type="button" data-join-reset>Reset</button>
-            <a class="oni-btn oni-btn-ghost oni-join-return" href="#garage">Go to Garage</a>
+            <button class="oni-btn oni-btn-primary" type="submit" data-join-submit>ИЛГЭЭХ</button>
+            <button class="oni-btn oni-btn-ghost" type="button" data-join-reset>ЦЭВЭРЛЭХ</button>
+            <a class="oni-btn oni-btn-ghost oni-join-return" href="#garage">ГАРАЖ РУУ ОРОХ</a>
           </div>
           <p class="oni-join-state" data-join-state role="status" aria-live="polite"></p>
           <p class="oni-join-error" data-join-error role="alert"></p>
@@ -323,13 +323,14 @@ export function createJoinModule() {
     if (error) error.textContent = errorMessage;
     if (submit instanceof HTMLButtonElement) {
       submit.disabled = submitting || submitted;
-      submit.textContent = submitting ? "Submitting..." : submitted ? "Application submitted" : "Submit application";
+      submit.textContent = submitting ? "Илгээж байна..." : submitted ? "Илгээгдсэн" : "ИЛГЭЭХ";
     }
   }
 
   async function submitApplication(event) {
     event.preventDefault();
     if (!isMounted || submitting || submitted) return;
+    submitting = true;
 
     const token = ++requestId;
     const draft = readDraftFromDom();
@@ -339,7 +340,8 @@ export function createJoinModule() {
     stateMessage = "";
 
     if (!validation.valid) {
-      errorMessage = validation.errors[0] || "Invalid submission.";
+      errorMessage = "Маягтын мэдээллээ шалгана уу.";
+      submitting = false;
       render();
       return;
     }
@@ -347,13 +349,13 @@ export function createJoinModule() {
     const key = submissionKey(draft);
     const local = readLastSubmission();
     if (local && local.key === key && Date.now() - local.at < RESUBMIT_BLOCK_MS) {
-      errorMessage = "You already submitted recently. Please wait before retrying.";
+      errorMessage = "Та саяхан илгээсэн байна. Түр хүлээгээд дахин оролдоно уу.";
+      submitting = false;
       render();
       return;
     }
 
-    submitting = true;
-    stateMessage = "Submitting application...";
+    stateMessage = "Илгээж байна...";
     render();
 
     try {
@@ -371,7 +373,7 @@ export function createJoinModule() {
       writeLastSubmission(key);
       submitted = true;
       preserveIdentityFields();
-      stateMessage = "Application submitted successfully. Admin will review it soon.";
+      stateMessage = "Хүсэлт амжилттай илгээгдлээ.";
       errorMessage = "";
       const submitButton = host?.querySelector("[data-join-submit]");
       if (submitButton instanceof HTMLElement) {
@@ -381,9 +383,9 @@ export function createJoinModule() {
       if (!isMounted || token !== requestId) return;
 
       if (error instanceof Error && error.message === "DUPLICATE_APPLICATION") {
-        errorMessage = "An active application with the same CPM ID and nick already exists.";
+        errorMessage = "Ижил CPM ID болон nick-тэй идэвхтэй хүсэлт байна.";
       } else {
-        errorMessage = "Unable to submit application right now. Please retry.";
+        errorMessage = "Мэдээлэлтэй холбогдож чадсангүй.";
       }
       stateMessage = "";
       submitted = false;
