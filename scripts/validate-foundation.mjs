@@ -155,7 +155,7 @@ function checkProtectedProductionFilesUnchanged() {
   }
 }
 
-function compileMembersValidationExports({ docs = [] } = {}) {
+function compileMembersValidationExports({ docs = [], documentImpl, windowImpl } = {}) {
     const source = read("v2/js/members.js");
     const transformed = source
         .replace(/^import\s.+?;\s*$/gm, "")
@@ -171,6 +171,8 @@ function compileMembersValidationExports({ docs = [] } = {}) {
       Date,
       setTimeout,
       clearTimeout,
+      document: documentImpl,
+      window: windowImpl || { matchMedia: () => ({ matches: true }) },
       HTMLElement: class HTMLElement {},
       getCurrentRoute: () => "members",
       collection: () => ({ name: "members" }),
@@ -233,7 +235,7 @@ function createFakeMembersRoot(HTMLElementCtor) {
     return new FakeRoot();
   }
 
-function compileGarageValidationExports({ docs = [], getDocsImpl } = {}) {
+function compileGarageValidationExports({ docs = [], getDocsImpl, documentImpl, windowImpl } = {}) {
     const source = read("v2/js/garage.js");
     const transformed = source
         .replace(/^import\s.+?;\s*$/gm, "")
@@ -250,6 +252,9 @@ function compileGarageValidationExports({ docs = [], getDocsImpl } = {}) {
       Date,
       setTimeout,
       clearTimeout,
+      document: documentImpl,
+      window: windowImpl || { matchMedia: () => ({ matches: true }) },
+      requestAnimationFrame: callback => callback(),
       Element: class Element {},
       HTMLElement: class HTMLElement {},
       HTMLSelectElement: class HTMLSelectElement {},
@@ -292,6 +297,8 @@ function createFakeGarageRoot(ElementCtor, HTMLElementCtor, HTMLSelectElementCto
         this.value = "";
         this.textContent = "";
         this.innerHTML = "";
+        this.hidden = false;
+        this.dataset = {};
         this.listeners = new Map();
       }
       addEventListener(type, handler) {
@@ -306,6 +313,9 @@ function createFakeGarageRoot(ElementCtor, HTMLElementCtor, HTMLSelectElementCto
       }
       querySelector() {
         return null;
+      }
+      querySelectorAll() {
+        return [];
       }
       listenerCount(type) {
         return this.listeners.get(type)?.size || 0;
@@ -346,16 +356,62 @@ function createFakeGarageRoot(ElementCtor, HTMLElementCtor, HTMLSelectElementCto
       }
     }
 
+    class FakeToggleButton extends FakeNode {
+      setAttribute(name, value) {
+        this[name] = value;
+      }
+    }
+
+    class FakeShowcaseWrap extends FakeNode {}
+
+    class FakeDetailBody extends FakeNode {
+      replaceChildren() {
+        this.innerHTML = "";
+      }
+      appendChild() {}
+      querySelector(selector) {
+        if (selector === "[data-garage-gallery]") {
+          return this.innerHTML.includes("data-garage-gallery") ? {} : null;
+        }
+        if (selector === "[data-garage-gallery], .oni-garage-detail-empty-media, .oni-garage-detail-copy") {
+          return /data-garage-gallery|oni-garage-detail-empty-media|oni-garage-detail-copy/.test(this.innerHTML) ? {} : null;
+        }
+        return null;
+      }
+    }
+
+    class FakeDetailShell extends FakeNode {
+      constructor(closeButton) {
+        super();
+        this.hidden = true;
+        this.closeButton = closeButton;
+      }
+      querySelector(selector) {
+        if (selector === "[data-garage-detail-close]") return this.closeButton;
+        return null;
+      }
+    }
+
     class FakeRoot extends HTMLElementCtor {
       constructor() {
         super();
         this.innerHTML = "";
+        const detailCloseButton = new FakeNode();
+        detailCloseButton.focus = () => {
+          detailCloseButton.focused = true;
+        };
         this.nodes = new Map([
           ["[data-garage-search]", new FakeNode()],
           ["[data-garage-filter-grid]", new FakeFilterGrid()],
+          ["[data-garage-filter-panel]", new FakeNode()],
+          ["[data-garage-filter-toggle]", new FakeToggleButton()],
           ["[data-garage-retry]", new FakeNode()],
           ["[data-garage-state]", new FakeNode()],
-          ["[data-garage-grid]", new FakeNode()]
+          ["[data-garage-showcase-wrap]", new FakeShowcaseWrap()],
+          ["[data-garage-showcase]", new FakeNode()],
+          ["[data-garage-grid]", new FakeNode()],
+          ["[data-garage-detail]", new FakeDetailShell(detailCloseButton)],
+          ["[data-garage-detail-body]", new FakeDetailBody()]
         ]);
       }
       querySelector(selector) {
@@ -576,6 +632,60 @@ async function checkGarageModuleBehavior() {
     await Promise.resolve();
     await Promise.resolve();
     assert(flakyGrid?.listenerCount("click") === 1, "Garage delegated retry listener must be reattached once on remount");
+
+    const modalLock = new Set();
+    const behaviorRoot = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
+    const opener = new HTMLElement();
+    opener.focus = () => {
+      opener.focused = true;
+    };
+    const behaviorDocument = {
+      activeElement: opener,
+      body: {
+        classList: {
+          toggle(name, enabled) {
+            if (enabled) modalLock.add(name);
+            else modalLock.delete(name);
+          },
+          contains(name) {
+            return modalLock.has(name);
+          }
+        }
+      },
+      querySelector(selector) {
+        if (selector !== ".oni-modal:not([hidden]), .oni-bottom-sheet:not([hidden]), .oni-garage-detail:not([hidden]), .oni-member-profile:not([hidden])") {
+          return null;
+        }
+        const detail = behaviorRoot.node("[data-garage-detail]");
+        return detail && !detail.hidden ? detail : null;
+      },
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    const behaviorDocs = compileGarageValidationExports({
+      docs: sampleDocs,
+      documentImpl: behaviorDocument,
+      windowImpl: { matchMedia: () => ({ matches: true }) }
+    });
+    const behaviorGarage = behaviorDocs.exports.createGarageModule();
+    behaviorGarage.mount(behaviorRoot);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert(!behaviorDocument.body.classList.contains("oni-modal-open"), "Hidden overlays must not lock body scroll");
+
+    const openTarget = new behaviorDocs.Element();
+    openTarget.dataset = { garageOpen: "g1" };
+    openTarget.closest = function (selector) {
+      return selector === "[data-garage-open]" ? this : null;
+    };
+    behaviorRoot.node("[data-garage-grid]").trigger("click", { target: openTarget });
+
+    const detailShell = behaviorRoot.node("[data-garage-detail]");
+    const detailBody = behaviorRoot.node("[data-garage-detail-body]");
+    assert(detailShell && detailShell.hidden === false, "Valid Garage detail must open after removing the hidden attribute");
+    assert(detailBody?.innerHTML.includes("AKUMA EVO IX"), "Garage detail open flow must render the selected build content");
+    assert(behaviorDocument.body.classList.contains("oni-modal-open"), "Visible Garage detail must lock body scroll");
   }
 
   function createBaseFakeNodeClasses() {
@@ -1450,6 +1560,8 @@ function checkV2AppShellContracts() {
   assert(v2Css.includes("body.oni-modal-open"), "v2/css/app.css must include modal-open scroll locking styles");
   assert(v2Css.includes("body.oni-keyboard-open .oni-bottom-nav"), "v2/css/app.css must prevent keyboard overlap with bottom nav");
   assert(v2Css.includes(".oni-modal[hidden]"), "v2/css/app.css must force hidden modals to not intercept touch input");
+  assert(v2Css.includes(".oni-garage-detail[hidden]"), "v2/css/app.css must force hidden Garage detail overlays to stay hidden");
+  assert(v2Css.includes(".oni-member-profile[hidden]"), "v2/css/app.css must force hidden Member profile overlays to stay hidden");
 
   assert(v2Sw.includes("MAX_RUNTIME_ENTRIES"), "v2/sw.js must cap runtime cache growth");
   assert(v2Sw.includes("cache: \"no-store\""), "v2/sw.js must network-refresh fast-changing assets to avoid stale cache");
@@ -1702,6 +1814,25 @@ function checkStage4ReliabilityContracts() {
   assert(swSource.includes("staticCache.put(request, fresh.clone())"), "v2/sw.js must update versioned static cache for fast-changing assets");
 }
 
+function checkOverlayHiddenContracts() {
+  const appCss = read("v2/css/app.css");
+  const appSource = read("v2/js/app.js");
+  const membersSource = read("v2/js/members.js");
+  const garageSource = read("v2/js/garage.js");
+  const componentsCss = read("v2/css/components.css");
+
+  assert(
+    appCss.includes(".oni-garage-detail[hidden],\n.oni-member-profile[hidden] {\n  display: none !important;\n}"),
+    "v2/css/app.css must explicitly keep Garage detail and Member profile hidden when `[hidden]` is present"
+  );
+  assert(componentsCss.includes(".oni-modal[hidden],"), "v2/css/components.css must keep hidden modal shells non-interactive");
+  assert(componentsCss.includes(".oni-bottom-sheet[hidden]"), "v2/css/components.css must keep hidden sheet shells non-interactive");
+  assert(appSource.includes(".oni-garage-detail:not([hidden])"), "v2/js/app.js body lock must ignore hidden Garage detail overlays");
+  assert(appSource.includes(".oni-member-profile:not([hidden])"), "v2/js/app.js body lock must ignore hidden Member profile overlays");
+  assert(garageSource.includes(".oni-garage-detail:not([hidden])"), "v2/js/garage.js must ignore hidden overlays when syncing body lock");
+  assert(membersSource.includes(".oni-member-profile:not([hidden])"), "v2/js/members.js must ignore hidden overlays when syncing body lock");
+}
+
 async function run() {
   checkRequiredFiles();
   checkManifest();
@@ -1719,6 +1850,7 @@ async function run() {
   checkStage3BackendContracts();
   checkSharedMeetWorldModule();
   checkStage4ReliabilityContracts();
+  checkOverlayHiddenContracts();
   await checkMembersModuleBehavior();
   await checkGarageModuleBehavior();
   await checkMeetModuleBehavior();
