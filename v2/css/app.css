@@ -2452,6 +2452,15 @@ body[data-oni-atmosphere="join"] {
   position: fixed;
   inset: 0;
   z-index: 48;
+}
+
+.oni-garage-detail[hidden],
+.oni-member-profile[hidden] {
+  display: none !important;
+}
+
+.oni-garage-detail,
+.oni-member-profile {
   display: grid;
   place-items: center;
   padding: max(12px, var(--oni-safe-top)) max(10px, var(--oni-safe-right)) max(12px, var(--oni-safe-bottom)) max(10px, var(--oni-safe-left));
