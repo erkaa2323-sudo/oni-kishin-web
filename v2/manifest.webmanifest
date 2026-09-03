@@ -1,7 +1,7 @@
 {
   "name": "ONI HUB — ONI & KISHIN",
   "short_name": "ONI HUB",
-  "description": "ONI & KISHIN community mobile PWA.",
+  "description": "ONI & KISHIN anime × JDM clan world mobile PWA.",
   "lang": "mn",
   "id": "/oni-kishin-web/v2/",
   "start_url": "/oni-kishin-web/v2/",
@@ -9,8 +9,8 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "background_color": "#06080f",
-  "theme_color": "#080b14",
+  "background_color": "#05070d",
+  "theme_color": "#100914",
   "prefer_related_applications": false,
   "categories": ["social", "entertainment"],
   "icons": [

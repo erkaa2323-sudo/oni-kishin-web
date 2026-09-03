@@ -246,13 +246,14 @@ function skeletonMarkup() {
 export function meetRouteMarkup() {
   return `
     <section class="oni-meet-view" data-meet-view>
-      <header class="oni-section-head">
-        <h1>ONI MEET</h1>
-        <p>ONI MEET-ийн бодит цагийн төлөв, бүртгэл, болон event мэдээлэл.</p>
+      <header class="oni-section-head oni-route-head">
+        <p class="oni-route-kicker">ONI NIGHT EVENT ARENA</p>
+        <h1 class="oni-route-title">ONI MEET</h1>
+        <p class="oni-route-copy">Бодит цагийн төлөв, countdown, нэвтрэх мэдээлэл болон оролцогчдыг нэг arena орчинд харуулна.</p>
       </header>
 
       <article class="oni-card oni-meet-hero" data-meet-hero>
-        <p class="oni-meet-kicker">ONI / KISHIN ШУУД EVENT</p>
+        <p class="oni-meet-kicker">ONI / KISHIN LIVE ARENA</p>
         <div class="oni-meet-hero-head">
           <div>
             <p class="oni-meet-state" data-meet-state-pill>ИДЭВХГҮЙ</p>
@@ -425,6 +426,7 @@ export function createMeetModule() {
   function resolveNodes() {
     if (!(host instanceof HTMLElement)) return {};
     return {
+      hero: host.querySelector("[data-meet-hero]"),
       statePill: host.querySelector("[data-meet-state-pill]"),
       title: host.querySelector("[data-meet-title]"),
       roomLabel: host.querySelector("[data-meet-room-label]"),
@@ -478,6 +480,13 @@ export function createMeetModule() {
     const visibleParticipants = state === "expired" ? [] : participants;
     const count = Math.min(maxPlayers, visibleParticipants.length);
     const isFull = count >= maxPlayers;
+    if (nodes.hero instanceof HTMLElement) {
+      nodes.hero.dataset.meetState = !currentMeet || state === "none"
+        ? "inactive"
+        : state === "active"
+          ? (isFull ? "full" : "live")
+          : state;
+    }
 
     if (nodes.title) nodes.title.textContent = currentMeet?.title || "ONI NIGHT MEET";
     if (nodes.roomLabel) nodes.roomLabel.textContent = currentMeet?.roomLabel || "ONI & KISHIN · CPM 1";

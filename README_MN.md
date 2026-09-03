@@ -25,3 +25,12 @@ OpenAI secret API key-г GitHub Pages-ийн HTML/JS дотор хийж бол�
 - Unknown facts дээр hallucination хийхгүй байх policy
 - OpenAI key server-side
 - Tool calling
+
+## ONI HUB V3 Stage 4B-2 визуал дүрэм
+- `/v2` app нь нэг холбоотой ONI world байх бөгөөд route бүр өөр location шиг мэдрэмж өгөх ёстой: Home = ONI CITY, Members = ONI CREW HQ, Garage = ONI UNDERGROUND GARAGE, ONI AI = ONI AI CHAMBER, Meet = ONI NIGHT EVENT ARENA, Join = ONI RECRUITMENT GATE.
+- Ambient layer нь нэг reusable системээр ажиллана: haze, skyline, structure, street glow, particles, rain/light streak зэрэг давхаргуудыг route бүр intensity-ээр тохируулна.
+- Motion нь хөнгөн CSS transform/opacity дээр суурилна; route transition хурдан, reduced-motion үед parallax болон continuous ambience буурна эсвэл унтарна.
+- UI нь Mongolian-first хэвээр байна; брэнд үгс болох ONI, KISHIN, ONI AI, JDM, MEET зэргийг л англи хэлбэрээр үлдээнэ.
+- ONI AI 4B-1 motion architecture-г хадгална; production illustration asset байхгүй үед fallback rig үнэн зөвөөр тэмдэглэгдэж, asset slot strategy-г ашиглана.
+- PWA cache-г визуал stage бүртэй уялдуулан version bump хийж хуучин CSS/JS mismatch-ээс сэргийлнэ.
+- Performance чиглэл: WebGL/video-оос зайлсхийж, CSS/SVG/pseudo-element ambient, lazy image, low-cost shadows/light sweep ашиглана.

@@ -6,6 +6,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_MESSAGE_CHARS = 2000;
 const HISTORY_LIMIT = 18;
 const HISTORY_TEXT_LIMIT = 1200;
+const LOCAL_CHARACTER_ASSET = "./assets/oni-ai-character.webp";
 
 const EMOTIONS = new Set(["neutral", "happy", "excited", "thinking", "confused", "serious", "concerned", "sad", "sorry", "proud", "playful", "surprised", "music", "meet-live"]);
 const GESTURES = new Set(["idle", "listen", "talk", "wave", "nod", "shake-head", "think", "point", "cheer", "laugh", "bow", "hands-on-hip", "surprised", "calm", "dance-subtle", "battle-ready"]);
@@ -274,12 +275,13 @@ function sourceCardsMarkup(sources) {
 function routeMarkup() {
   return `
     <section class="oni-oa-view" data-oa-view>
-      <article class="oni-card oni-oa-scene" data-oa-scene data-oa-asset="fallback">
+      <article class="oni-card oni-oa-scene" data-oa-scene data-oa-asset="fallback" data-oa-glitch="0">
         <div class="oni-oa-room" aria-hidden="true">
           <span class="oni-oa-room-glow"></span>
           <span class="oni-oa-room-grid"></span>
           <span class="oni-oa-room-panels"></span>
           <span class="oni-oa-room-fog"></span>
+          <span class="oni-oa-room-runes"></span>
         </div>
 
         <div class="oni-oa-layout">
@@ -287,41 +289,41 @@ function routeMarkup() {
             <div class="oni-oa-stage" data-oa-stage data-oa-emotion="neutral" data-oa-gesture="idle" data-oa-posture="relaxed" data-oa-gaze="user" data-oa-state="idle">
               <div class="oni-oa-world" data-oa-world>
                 <span class="oni-oa-aura" data-oa-aura></span>
+                <span class="oni-oa-floor-shadow"></span>
+                <span class="oni-oa-floor-reflection"></span>
+                <span class="oni-oa-holo-particles"></span>
                 <span class="oni-oa-stage-mark oni-oa-stage-mark-left"></span>
                 <span class="oni-oa-stage-mark oni-oa-stage-mark-right"></span>
                 <button type="button" class="oni-oa-character" data-oa-character aria-label="ONI AI дүр">
-                  <span class="oni-oa-layer oni-oa-part-aura-core" data-oa-part="aura"></span>
-                  <span class="oni-oa-layer oni-oa-part-hair-back" data-oa-part="hair-back"></span>
-                  <span class="oni-oa-layer oni-oa-part-legs" data-oa-part="legs"></span>
-                  <span class="oni-oa-layer oni-oa-part-hips" data-oa-part="hips"></span>
-                  <span class="oni-oa-layer oni-oa-part-torso" data-oa-part="torso"></span>
-                  <span class="oni-oa-layer oni-oa-part-clothes" data-oa-part="clothes"></span>
-                  <span class="oni-oa-layer oni-oa-part-accessories" data-oa-part="accessories"></span>
-                  <span class="oni-oa-layer oni-oa-part-neck" data-oa-part="neck"></span>
-                  <span class="oni-oa-layer oni-oa-part-shoulders" data-oa-part="shoulders"></span>
-                  <span class="oni-oa-layer oni-oa-part-left-upper-arm" data-oa-part="left-upper-arm"></span>
-                  <span class="oni-oa-layer oni-oa-part-left-forearm" data-oa-part="left-forearm"></span>
-                  <span class="oni-oa-layer oni-oa-part-left-hand" data-oa-part="left-hand"></span>
-                  <span class="oni-oa-layer oni-oa-part-right-upper-arm" data-oa-part="right-upper-arm"></span>
-                  <span class="oni-oa-layer oni-oa-part-right-forearm" data-oa-part="right-forearm"></span>
-                  <span class="oni-oa-layer oni-oa-part-right-hand" data-oa-part="right-hand"></span>
-                  <span class="oni-oa-layer oni-oa-part-head" data-oa-part="head"></span>
-                  <span class="oni-oa-layer oni-oa-part-horns" data-oa-part="horns"></span>
-                  <span class="oni-oa-layer oni-oa-part-hair-front" data-oa-part="hair-front"></span>
-                  <span class="oni-oa-layer oni-oa-part-eyebrows" data-oa-part="eyebrows"></span>
-                  <span class="oni-oa-layer oni-oa-part-eyelids" data-oa-part="eyelids"></span>
-                  <span class="oni-oa-layer oni-oa-part-eyes" data-oa-part="eyes"></span>
-                  <span class="oni-oa-layer oni-oa-part-mouth" data-oa-part="mouth"></span>
+                  <span class="oni-oa-character-rim"></span>
+                  <span class="oni-oa-character-frame"></span>
+                  <img class="oni-oa-character-asset" data-oa-asset-image alt="" hidden>
+                  <span class="oni-oa-semantic-part" data-oa-part="legs" aria-hidden="true"></span>
+                  <span class="oni-oa-semantic-part" data-oa-part="left-upper-arm" aria-hidden="true"></span>
+                  <span class="oni-oa-semantic-part" data-oa-part="right-hand" aria-hidden="true"></span>
+                  <span class="oni-oa-character-fallback" data-oa-fallback-art aria-hidden="true">
+                    <span class="oni-oa-fallback-horns"></span>
+                    <span class="oni-oa-fallback-hair"></span>
+                    <span class="oni-oa-fallback-face"></span>
+                    <span class="oni-oa-fallback-core"></span>
+                    <span class="oni-oa-fallback-jacket"></span>
+                    <span class="oni-oa-fallback-skirt"></span>
+                    <span class="oni-oa-fallback-legs"></span>
+                    <span class="oni-oa-fallback-sleeve is-left"></span>
+                    <span class="oni-oa-fallback-sleeve is-right"></span>
+                  </span>
                 </button>
               </div>
 
               <div class="oni-oa-stage-meta">
                 <div class="oni-oa-stage-chip-row">
+                  <small>ONI AI CHAMBER</small>
                   <small data-oa-mood>Тайван</small>
                   <small data-oa-stage-state>Бэлэн байна.</small>
                 </div>
                 <b data-oa-live-state>MEET хүлээлттэй</b>
-                <p data-oa-stage-text>Сайн уу. ONI AI энд байна.</p>
+                <p data-oa-stage-text>Scarlet chamber-ийн дотор ONI AI бэлэн байна.</p>
+                <small class="oni-oa-asset-note" data-oa-asset-note>SCARLET LINK STABLE.</small>
               </div>
             </div>
           </section>
@@ -330,7 +332,7 @@ function routeMarkup() {
             <div class="oni-oa-chat-head">
               <div>
                 <strong>ONI AI</strong>
-                <small>Таны хажууд, нэг өрөөнд</small>
+                <small>ONI CITY-ийн scarlet chamber дотор, яг таны хажууд</small>
               </div>
               <div class="oni-oa-chat-head-actions">
                 <button type="button" class="oni-btn oni-btn-ghost" data-oa-cancel>ЦУЦЛАХ</button>
@@ -386,6 +388,7 @@ export function createOniAiModule() {
   let blinkTimer = 0;
   let idleTimer = 0;
   let talkingTimer = 0;
+  let glitchTimer = 0;
 
   function nodes() {
     if (!(host instanceof HTMLElement)) return {};
@@ -405,7 +408,9 @@ export function createOniAiModule() {
       mood: host.querySelector("[data-oa-mood]"),
       liveState: host.querySelector("[data-oa-live-state]"),
       character: host.querySelector("[data-oa-character]"),
-      aura: host.querySelector("[data-oa-aura]")
+      aura: host.querySelector("[data-oa-aura]"),
+      assetImage: host.querySelector("[data-oa-asset-image]"),
+      fallbackArt: host.querySelector("[data-oa-fallback-art]")
     };
   }
 
@@ -423,6 +428,7 @@ export function createOniAiModule() {
     blinkTimer = clearScheduled(blinkTimer);
     idleTimer = clearScheduled(idleTimer);
     talkingTimer = clearScheduled(talkingTimer);
+    glitchTimer = clearScheduled(glitchTimer);
   }
 
   function teardownListeners() {
@@ -666,16 +672,107 @@ export function createOniAiModule() {
     }, randomInt(3200, 5600));
   }
 
-  function ensureAssetMode() {
-    const scene = nodes().scene;
-    if (!(scene instanceof HTMLElement)) return;
+  function isAssetPath(value) {
+    return /^(\.\/|\.\.\/|https?:\/\/|\/)/i.test(asText(value));
+  }
+
+  function resolveAssetCandidates() {
+    const seen = new Set();
+    const ordered = [];
+    const push = value => {
+      const text = asText(value);
+      if (!text || !isAssetPath(text) || seen.has(text)) return;
+      seen.add(text);
+      ordered.push(text);
+    };
+
     const slots = window.ONI_AI_CHARACTER_ASSETS;
-    usingAssetFallback = true;
-    if (slots && typeof slots === "object" && Object.keys(slots).length > 0) {
-      const required = ["head", "torso", "legs"];
-      usingAssetFallback = !required.every(key => /^(\.\/|\.\.\/|https?:\/\/|\/)/i.test(asText(slots[key])));
+    if (slots && typeof slots === "object") {
+      [slots.full, slots.character, slots.body, slots.portrait, slots.art].forEach(push);
+      Object.values(slots).forEach(push);
     }
-    scene.dataset.oaAsset = usingAssetFallback ? "fallback" : "layered";
+    push(LOCAL_CHARACTER_ASSET);
+    return ordered;
+  }
+
+  function setAssetPresentation(mode) {
+    const n = nodes();
+    const scene = n.scene;
+    if (!(scene instanceof HTMLElement)) return;
+    usingAssetFallback = mode !== "art";
+    scene.dataset.oaAsset = usingAssetFallback ? "spectral" : "art";
+    scene.dataset.oaGlitch = scene.dataset.oaGlitch || "0";
+    if (n.assetImage instanceof HTMLImageElement) n.assetImage.hidden = usingAssetFallback;
+    if (n.fallbackArt instanceof HTMLElement) n.fallbackArt.hidden = !usingAssetFallback;
+    const assetNote = scene.querySelector("[data-oa-asset-note]");
+    if (assetNote instanceof HTMLElement) {
+      assetNote.textContent = usingAssetFallback
+        ? "SCARLET SPECTRAL AVATAR ONLINE."
+        : "SCARLET ORIGINAL AVATAR ONLINE.";
+    }
+  }
+
+  function scheduleGlitchLoop() {
+    glitchTimer = clearScheduled(glitchTimer);
+    if (!mounted || prefersMotionReduction()) return;
+    glitchTimer = setTimeout(() => {
+      const scene = nodes().scene;
+      if (!(scene instanceof HTMLElement) || !mounted) return;
+      scene.dataset.oaGlitch = "1";
+      scheduleVisual(randomInt(130, 220), () => {
+        const liveScene = nodes().scene;
+        if (liveScene instanceof HTMLElement) liveScene.dataset.oaGlitch = "0";
+      });
+      scheduleGlitchLoop();
+    }, randomInt(7000, 15000));
+  }
+
+  function ensureAssetMode() {
+    const n = nodes();
+    if (!(n.scene instanceof HTMLElement)) return;
+    const candidates = resolveAssetCandidates();
+    if (!(n.assetImage instanceof HTMLImageElement)) {
+      setAssetPresentation("spectral");
+      return;
+    }
+
+    n.scene.dataset.oaGlitch = "0";
+    if (!candidates.length) {
+      n.assetImage.removeAttribute("src");
+      setAssetPresentation("spectral");
+      return;
+    }
+
+    let index = 0;
+    const assetImage = n.assetImage;
+
+    const cleanup = () => {
+      assetImage.removeEventListener("load", onLoad);
+      assetImage.removeEventListener("error", onError);
+    };
+    const tryNext = () => {
+      const next = candidates[index];
+      if (!next) {
+        assetImage.removeAttribute("src");
+        cleanup();
+        setAssetPresentation("spectral");
+        return;
+      }
+      assetImage.src = next;
+    };
+    const onLoad = () => {
+      cleanup();
+      setAssetPresentation("art");
+    };
+    const onError = () => {
+      index += 1;
+      tryNext();
+    };
+
+    assetImage.hidden = true;
+    assetImage.addEventListener("load", onLoad);
+    assetImage.addEventListener("error", onError);
+    tryNext();
   }
 
   function applyCharacterState({
@@ -783,6 +880,7 @@ export function createOniAiModule() {
   function setTalking(active, duration = 0) {
     isTalking = !!active;
     talkingTimer = clearScheduled(talkingTimer);
+    glitchTimer = clearScheduled(glitchTimer);
     const stage = nodes().stage;
     if (stage instanceof HTMLElement) stage.dataset.oaSpeaking = active ? "1" : "0";
     if (active && duration > 0) {
@@ -1096,6 +1194,7 @@ export function createOniAiModule() {
       if (handleQueuedPrompt()) return;
       scheduleBlinkLoop();
       scheduleIdleLife();
+      scheduleGlitchLoop();
     }
   }
 
@@ -1273,6 +1372,7 @@ export function createOniAiModule() {
       renderUiState();
       scheduleBlinkLoop();
       scheduleIdleLife();
+      scheduleGlitchLoop();
     },
 
     unmount() {
