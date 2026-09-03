@@ -634,13 +634,8 @@ async function checkGarageModuleBehavior() {
     assert(flakyGrid?.listenerCount("click") === 1, "Garage delegated retry listener must be reattached once on remount");
 
     const modalLock = new Set();
-    const behaviorRoot = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
-    const opener = new HTMLElement();
-    opener.focus = () => {
-      opener.focused = true;
-    };
     const behaviorDocument = {
-      activeElement: opener,
+      activeElement: null,
       body: {
         classList: {
           toggle(name, enabled) {
@@ -667,10 +662,19 @@ async function checkGarageModuleBehavior() {
       documentImpl: behaviorDocument,
       windowImpl: { matchMedia: () => ({ matches: true }) }
     });
+    const behaviorRoot = createFakeGarageRoot(
+      behaviorDocs.Element,
+      behaviorDocs.HTMLElement,
+      behaviorDocs.HTMLSelectElement
+    );
+    const opener = new behaviorDocs.HTMLElement();
+    opener.focus = () => {
+      opener.focused = true;
+    };
+    behaviorDocument.activeElement = opener;
     const behaviorGarage = behaviorDocs.exports.createGarageModule();
     behaviorGarage.mount(behaviorRoot);
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise(resolve => setTimeout(resolve, 0));
 
     assert(!behaviorDocument.body.classList.contains("oni-modal-open"), "Hidden overlays must not lock body scroll");
 
