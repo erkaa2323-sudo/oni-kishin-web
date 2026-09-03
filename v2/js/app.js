@@ -533,19 +533,29 @@ function renderHomeView(data) {
         <div class="oni-home-city" aria-hidden="true">
           <span class="oni-city-skyline is-far"></span>
           <span class="oni-city-skyline is-mid"></span>
-          <span class="oni-city-sign"></span>
-          <span class="oni-city-street"></span>
+          <span class="oni-city-structures"></span>
+          <span class="oni-city-sign is-left"></span>
+          <span class="oni-city-sign is-right"></span>
+          <span class="oni-city-haze"></span>
+          <span class="oni-city-platform"></span>
+          <span class="oni-city-reflections"></span>
           <span class="oni-city-rain"></span>
+          <span class="oni-city-particles"></span>
           <span class="oni-city-lights"></span>
         </div>
         <div class="oni-home-hero-overlay"></div>
-        <div class="oni-home-hero-art" aria-hidden="true">
-          <img src="../oni-kishin-logo.jpg" alt="" loading="eager" decoding="async">
+        <div class="oni-home-brand-card" aria-hidden="true">
+          <img src="../oni-kishin-logo.jpg" alt="" loading="lazy" decoding="async">
+          <div>
+            <small>ONI &amp; KISHIN</small>
+            <b>CLAN SIGIL</b>
+          </div>
         </div>
         <div class="oni-home-hero-copy">
-          <p class="oni-hero-meta">ONI CITY · 鬼 • KISHIN • MONGOLIA</p>
-          <h1><span>ONI &amp; KISHIN</span><small>МОНГОЛЫН ANIME × JDM CLAN HQ</small></h1>
-          <p class="oni-hero-sub">Шөнийн хотын гүнд байрлах ONI clan-ийн дижитал штабт тавтай морил. Build, crew, meet, ONI AI бүгд нэг ертөнцөд холбогдоно.</p>
+          <p class="oni-hero-meta">ONI CITY · 鬼 • KISHIN · MONGOLIA</p>
+          <h1><span>ONI HUB</span><small>ANIME CYBERPUNK CLAN DIGITAL HEADQUARTERS</small></h1>
+          <p class="oni-hero-sub">Distant skyline, underground garage, live night arena, ONI AI chamber бүгд нэг cohesive digital city дотор холбогдоно.</p>
+          <p class="oni-hero-lead">Oni And Kishin clan-ийн premium anime × JDM headquarters-д тавтай морил.</p>
           <div class="oni-stat-row">
             <span class="oni-stat-pill"><b>${data.stats.members}</b><small>ГИШҮҮН</small></span>
             <span class="oni-stat-pill"><b>${data.stats.builds}</b><small>BUILD</small></span>
@@ -553,9 +563,15 @@ function renderHomeView(data) {
           </div>
           <div class="oni-home-hero-actions">
             <a class="oni-btn oni-btn-primary" href="#join">CLAN-Д НЭГДЭХ</a>
+            <a class="oni-btn oni-btn-ghost" href="#meet">LIVE ARENA</a>
             <a class="oni-btn oni-btn-ghost" href="#garage">UNDERGROUND ГАРАЖ</a>
           </div>
         </div>
+        <aside class="oni-home-clan-card" aria-label="ONI CITY identity">
+          <small>ONI CITY STATUS</small>
+          <b>Anime cyberpunk clan digital headquarters</b>
+          <p>Wet street reflections · crew dossiers · underground machines · scarlet AI chamber.</p>
+        </aside>
       </article>
 
       <section class="oni-home-actions" aria-label="Түргэн үйлдлүүд">

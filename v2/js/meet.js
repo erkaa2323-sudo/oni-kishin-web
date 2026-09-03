@@ -426,6 +426,7 @@ export function createMeetModule() {
   function resolveNodes() {
     if (!(host instanceof HTMLElement)) return {};
     return {
+      hero: host.querySelector("[data-meet-hero]"),
       statePill: host.querySelector("[data-meet-state-pill]"),
       title: host.querySelector("[data-meet-title]"),
       roomLabel: host.querySelector("[data-meet-room-label]"),
@@ -479,6 +480,13 @@ export function createMeetModule() {
     const visibleParticipants = state === "expired" ? [] : participants;
     const count = Math.min(maxPlayers, visibleParticipants.length);
     const isFull = count >= maxPlayers;
+    if (nodes.hero instanceof HTMLElement) {
+      nodes.hero.dataset.meetState = !currentMeet || state === "none"
+        ? "inactive"
+        : state === "active"
+          ? (isFull ? "full" : "live")
+          : state;
+    }
 
     if (nodes.title) nodes.title.textContent = currentMeet?.title || "ONI NIGHT MEET";
     if (nodes.roomLabel) nodes.roomLabel.textContent = currentMeet?.roomLabel || "ONI & KISHIN · CPM 1";

@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-v2-shell-9";
+const VERSION = "oni-hub-v2-shell-10";
 const BASE = "/oni-kishin-web/v2/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
@@ -25,6 +25,7 @@ const APP_SHELL = [
   BASE + "js/market.js",
   BASE + "js/oni-ai.js",
   BASE + "admin/index.html",
+  BASE + "assets/oni-ai-character.webp",
   BASE + "worker/index.js",
   "/oni-kishin-web/offline.html",
   "/oni-kishin-web/icons/icon-192.png",
