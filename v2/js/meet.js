@@ -228,8 +228,8 @@ function skeletonMarkup() {
   return `
     <section class="oni-meet-view" data-meet-view>
       <header class="oni-section-head">
-        <h1>Meet</h1>
-        <p>Live ONI &amp; KISHIN meet status.</p>
+        <h1>ONI MEET</h1>
+        <p>ONI MEET-ийн шууд төлөв ачаалж байна.</p>
       </header>
       <article class="oni-card oni-meet-hero is-loading" aria-hidden="true">
         <div class="oni-meet-line"></div>
@@ -247,15 +247,15 @@ export function meetRouteMarkup() {
   return `
     <section class="oni-meet-view" data-meet-view>
       <header class="oni-section-head">
-        <h1>Meet</h1>
-        <p>ONI Meet-ийн бодит цагийн төлөв, бүртгэл, болон event мэдээлэл.</p>
+        <h1>ONI MEET</h1>
+        <p>ONI MEET-ийн бодит цагийн төлөв, бүртгэл, болон event мэдээлэл.</p>
       </header>
 
       <article class="oni-card oni-meet-hero" data-meet-hero>
-        <p class="oni-meet-kicker">ONI / KISHIN LIVE EVENT</p>
+        <p class="oni-meet-kicker">ONI / KISHIN ШУУД EVENT</p>
         <div class="oni-meet-hero-head">
           <div>
-            <p class="oni-meet-state" data-meet-state-pill>NO ACTIVE MEET</p>
+            <p class="oni-meet-state" data-meet-state-pill>ИДЭВХГҮЙ</p>
             <h2 data-meet-title>ONI NIGHT MEET</h2>
             <p class="oni-meet-sub" data-meet-room-label>ONI &amp; KISHIN · CPM 1</p>
           </div>
@@ -263,14 +263,14 @@ export function meetRouteMarkup() {
         </div>
 
         <div class="oni-meet-countdown-box">
-          <small data-meet-countdown-label>MEET STARTS IN</small>
+          <small data-meet-countdown-label>ЭХЛЭХ ХУГАЦАА</small>
           <strong data-meet-countdown>00:00:00</strong>
         </div>
 
         <div class="oni-meet-meta-grid">
-          <div class="oni-meet-meta-item"><small>START</small><b data-meet-start>—</b></div>
-          <div class="oni-meet-meta-item"><small>END</small><b data-meet-end>—</b></div>
-          <div class="oni-meet-meta-item"><small>PLAYERS</small><b data-meet-capacity>0 / ${DEFAULT_MAX_PLAYERS}</b></div>
+          <div class="oni-meet-meta-item"><small>ЭХЛЭХ</small><b data-meet-start>—</b></div>
+          <div class="oni-meet-meta-item"><small>ДУУСАХ</small><b data-meet-end>—</b></div>
+          <div class="oni-meet-meta-item"><small>ОРОЛЦОГЧ</small><b data-meet-capacity>0 / ${DEFAULT_MAX_PLAYERS}</b></div>
         </div>
 
         <div class="oni-meet-secret-grid">
@@ -278,24 +278,24 @@ export function meetRouteMarkup() {
             <small>MEET ID</small>
             <code data-meet-room-id>—</code>
           </label>
-          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="roomId">Copy ID</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="roomId">ID ХУУЛАХ</button>
           <label class="oni-meet-secret">
-            <small>PASS</small>
-            <code data-meet-password>LOCKED</code>
+            <small>НУУЦ ҮГ</small>
+            <code data-meet-password>НУУЦЛАГДСАН</code>
           </label>
-          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="password">Copy PASS</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-copy-target="password">НУУЦ ҮГ ХУУЛАХ</button>
         </div>
 
         <form class="oni-meet-form" data-meet-form novalidate>
           <label class="oni-meet-field">
-            <span>CPM Nick</span>
+            <span>CPM нэр</span>
             <input data-meet-nick type="text" maxlength="50" autocomplete="nickname" required placeholder="Kitsune">
           </label>
           <label class="oni-meet-field">
             <span>CPM ID</span>
             <input data-meet-cpm type="text" maxlength="40" autocomplete="off" required placeholder="ONI0001">
           </label>
-          <button type="submit" class="oni-btn oni-btn-primary" data-meet-join>Join Meet</button>
+          <button type="submit" class="oni-btn oni-btn-primary" data-meet-join>MEET-Д НЭГДЭХ</button>
         </form>
 
         <p class="oni-meet-inline-state" data-meet-registration-state role="status" aria-live="polite"></p>
@@ -304,7 +304,7 @@ export function meetRouteMarkup() {
 
       <article class="oni-card oni-meet-participants" data-meet-participants-card>
         <div class="oni-meet-participants-head">
-          <h3>Participants</h3>
+          <h3>Оролцогчид</h3>
           <small data-meet-participants-count>0 / ${DEFAULT_MAX_PLAYERS}</small>
         </div>
         <div class="oni-meet-participant-list" data-meet-participant-list></div>
@@ -488,7 +488,7 @@ export function createMeetModule() {
 
     if (nodes.roomId) nodes.roomId.textContent = currentMeet?.roomId || "—";
     if (nodes.password) {
-      nodes.password.textContent = hasJoinedCurrentMeet && currentMeet?.password ? currentMeet.password : "LOCKED";
+      nodes.password.textContent = hasJoinedCurrentMeet && currentMeet?.password ? currentMeet.password : "НУУЦЛАГДСАН";
     }
 
     if (nodes.registrationState) {
@@ -507,24 +507,24 @@ export function createMeetModule() {
       else if (state === "expired") nodes.joinButton.textContent = "MEET ДУУССАН";
       else if (isFull) nodes.joinButton.textContent = "ДҮҮРСЭН";
       else if (hasJoinedCurrentMeet) nodes.joinButton.textContent = "БҮРТГҮҮЛСЭН";
-      else nodes.joinButton.textContent = "MEET JOIN";
+      else nodes.joinButton.textContent = "MEET-Д НЭГДЭХ";
     }
 
     if (nodes.statePill && nodes.countdownLabel && nodes.countdown) {
       if (!currentMeet || state === "none") {
-        nodes.statePill.textContent = loading ? "АЧААЛЖ БАЙНА" : "NONE";
+        nodes.statePill.textContent = loading ? "АЧААЛЖ БАЙНА" : "ИДЭВХГҮЙ";
         nodes.countdownLabel.textContent = "ONI MEET";
         nodes.countdown.textContent = loading ? "—" : "ДАРААГИЙН MEET ХҮЛЭЭЖ БАЙНА";
       } else if (state === "upcoming") {
-        nodes.statePill.textContent = "UPCOMING";
+        nodes.statePill.textContent = "ТУН УДАХГҮЙ";
         nodes.countdownLabel.textContent = "ЭХЛЭХ ХУГАЦАА";
         nodes.countdown.textContent = formatCountdown(currentMeet.startAtMs - now);
       } else if (state === "active") {
-        nodes.statePill.textContent = isFull ? "FULL" : "LIVE";
+        nodes.statePill.textContent = isFull ? "ДҮҮРСЭН" : "ШУУД";
         nodes.countdownLabel.textContent = isFull ? "ДҮҮРСЭН" : "ДУУСАХ ХУГАЦАА";
         nodes.countdown.textContent = formatCountdown(currentMeet.endAtMs - now);
       } else {
-        nodes.statePill.textContent = "ENDED";
+        nodes.statePill.textContent = "ДУУССАН";
         nodes.countdownLabel.textContent = "MEET ДУУССАН";
         nodes.countdown.textContent = "00:00:00";
       }

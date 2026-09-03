@@ -1,4 +1,4 @@
-const VERSION = "oni-hub-v2-shell-6";
+const VERSION = "oni-hub-v2-shell-7";
 const BASE = "/oni-kishin-web/v2/";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;

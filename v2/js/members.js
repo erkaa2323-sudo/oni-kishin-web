@@ -1,6 +1,7 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
 import { normalizeGarageRecord } from "./garage.js";
+import { getCurrentRoute } from "./router.js";
 
 const ROLE_LABELS = {
   leader: "Ахлагч",
@@ -10,6 +11,12 @@ const ROLE_LABELS = {
 };
 const LOAD_TIMEOUT_MS = 12_000;
 const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
+const PROFILE_STATES = Object.freeze({
+  CLOSED: "closed",
+  OPENING: "opening",
+  OPEN: "open",
+  ERROR: "error"
+});
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -65,6 +72,12 @@ function initials(text) {
 
 function hasListenerApi(node) {
   return !!node && typeof node.addEventListener === "function" && typeof node.removeEventListener === "function";
+}
+
+function syncBodyOverlayLock() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  const visible = !!document.querySelector(".oni-modal:not([hidden]), .oni-bottom-sheet:not([hidden]), .oni-garage-detail:not([hidden]), .oni-member-profile:not([hidden])");
+  document.body.classList.toggle("oni-modal-open", visible);
 }
 
 function withTimeout(task, timeoutMs = LOAD_TIMEOUT_MS) {
@@ -235,6 +248,9 @@ export function createMembersModule() {
   let gridEl;
   let profileEl;
   let profileBody;
+  let profileState = PROFILE_STATES.CLOSED;
+  let profileLastFocus = null;
+  let profileOpenToken = 0;
 
   function removeListeners() {
     while (dispose.length) {
@@ -302,6 +318,25 @@ export function createMembersModule() {
     `;
   }
 
+  function setProfileState(nextState) {
+    profileState = nextState;
+    if (profileEl?.dataset) profileEl.dataset.profileState = nextState;
+  }
+
+  function clearProfileBody() {
+    if (!profileBody) return;
+    if (typeof profileBody.replaceChildren === "function") profileBody.replaceChildren();
+    profileBody.innerHTML = "";
+  }
+
+  function hasProfileContent() {
+    if (!profileBody) return false;
+    if (profileBody.querySelector?.(".oni-member-profile-top, .oni-member-profile-meta, .oni-member-related")) {
+      return true;
+    }
+    return asText(profileBody.textContent).length > 0;
+  }
+
   async function ensureGarageRecords() {
     if (garageLoaded) return;
     try {
@@ -319,27 +354,66 @@ export function createMembersModule() {
   }
 
   async function openProfile(memberId) {
-    selectedMemberId = asText(memberId);
+    const nextId = asText(memberId);
+    const openToken = ++profileOpenToken;
+    setProfileState(PROFILE_STATES.OPENING);
     await ensureGarageRecords();
-    const target = records.find(member => member.id === selectedMemberId);
-    if (!target || !profileEl || !profileBody) {
+    const target = records.find(member => member.id === nextId);
+    if (!target || !profileEl || !profileBody || !isMounted || getCurrentRoute() !== "members") {
       closeProfile();
+      setProfileState(PROFILE_STATES.ERROR);
       return;
     }
 
-    profileBody.innerHTML = profileMarkup(target);
-    profileEl.hidden = false;
-    if (typeof document !== "undefined") {
-      document.body.classList.add("oni-modal-open");
+    const markup = profileMarkup(target);
+    if (!asText(markup)) {
+      closeProfile();
+      setProfileState(PROFILE_STATES.ERROR);
+      return;
     }
+
+    if (typeof document !== "undefined" && typeof document.createElement === "function") {
+      const template = document.createElement("template");
+      template.innerHTML = markup;
+      if (!template.content.childElementCount) {
+        closeProfile();
+        setProfileState(PROFILE_STATES.ERROR);
+        return;
+      }
+      clearProfileBody();
+      profileBody.appendChild(template.content.cloneNode(true));
+    } else {
+      profileBody.innerHTML = markup;
+    }
+
+    if (!isMounted || getCurrentRoute() !== "members" || openToken !== profileOpenToken || !hasProfileContent()) {
+      closeProfile();
+      setProfileState(PROFILE_STATES.ERROR);
+      return;
+    }
+
+    selectedMemberId = nextId;
+    profileLastFocus = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    profileEl.hidden = false;
+    setProfileState(PROFILE_STATES.OPEN);
+    syncBodyOverlayLock();
+    const closeButton = profileEl.querySelector?.("[data-member-profile-close]");
+    if (closeButton instanceof HTMLElement) closeButton.focus();
   }
 
   function closeProfile() {
+    profileOpenToken += 1;
     selectedMemberId = "";
+    setProfileState(PROFILE_STATES.CLOSED);
     if (profileEl) profileEl.hidden = true;
-    if (typeof document !== "undefined") {
-      document.body.classList.remove("oni-modal-open");
+    clearProfileBody();
+    syncBodyOverlayLock();
+    if (profileLastFocus instanceof HTMLElement && typeof profileLastFocus.focus === "function") {
+      profileLastFocus.focus();
     }
+    profileLastFocus = null;
   }
 
   function renderState() {
@@ -465,6 +539,17 @@ export function createMembersModule() {
       profileEl.addEventListener("click", onProfileClose);
       dispose.push(() => profileEl?.removeEventListener?.("click", onProfileClose));
     }
+
+    const onKeyDown = event => {
+      if (event.key !== "Escape") return;
+      if (profileState !== PROFILE_STATES.OPEN && profileState !== PROFILE_STATES.OPENING) return;
+      event.preventDefault();
+      closeProfile();
+    };
+    if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+      document.addEventListener("keydown", onKeyDown);
+      dispose.push(() => document.removeEventListener("keydown", onKeyDown));
+    }
   }
 
   return {
@@ -499,6 +584,7 @@ export function createMembersModule() {
       gridEl = host.querySelector("[data-members-grid]");
       profileEl = host.querySelector("[data-member-profile]");
       profileBody = host.querySelector("[data-member-profile-body]");
+      setProfileState(PROFILE_STATES.CLOSED);
 
       bindInputs();
       loadMembers();

@@ -1,7 +1,15 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
 import { getFirestoreDb } from "./firebase.js";
+import { getCurrentRoute } from "./router.js";
 const LOAD_TIMEOUT_MS = 12_000;
 const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
+const INVALID_DETAIL_MESSAGE = "Сонгосон build-ийн мэдээлэл олдсонгүй.";
+const DETAIL_STATES = Object.freeze({
+  CLOSED: "closed",
+  OPENING: "opening",
+  OPEN: "open",
+  ERROR: "error"
+});
 
 
 function escapeHtml(value) {
@@ -78,6 +86,16 @@ function initials(text) {
 
 function hasListenerApi(node) {
   return !!node && typeof node.addEventListener === "function" && typeof node.removeEventListener === "function";
+}
+
+function hasVisibleOverlay() {
+  if (typeof document === "undefined" || typeof document.querySelector !== "function") return false;
+  return !!document.querySelector(".oni-modal:not([hidden]), .oni-bottom-sheet:not([hidden]), .oni-garage-detail:not([hidden]), .oni-member-profile:not([hidden])");
+}
+
+function syncBodyOverlayLock() {
+  if (typeof document === "undefined") return;
+  document.body.classList.toggle("oni-modal-open", hasVisibleOverlay());
 }
 
 function withTimeout(task, timeoutMs = LOAD_TIMEOUT_MS) {
@@ -347,6 +365,9 @@ export function createGarageModule() {
   let typeSelect;
   let categorySelect;
   let statusSelect;
+  let detailState = DETAIL_STATES.CLOSED;
+  let detailLastFocus = null;
+  let detailOpenToken = 0;
 
   function removeListeners() {
     while (dispose.length) {
@@ -452,35 +473,108 @@ export function createGarageModule() {
     `;
   }
 
+  function setDetailState(nextState) {
+    detailState = nextState;
+    if (detailEl?.dataset) detailEl.dataset.detailState = nextState;
+  }
+
+  function canShowDetail(recordId) {
+    return !!(
+      isMounted
+      && host
+      && detailEl
+      && detailBody
+      && asText(recordId)
+      && getCurrentRoute() === "garage"
+    );
+  }
+
+  function resolveSelectedRecord(recordId) {
+    const targetId = asText(recordId);
+    if (!targetId) return null;
+    const target = records.find(item => item.id === targetId);
+    if (!target || !hasValidDetail(target)) return null;
+    return target;
+  }
+
+  function clearDetailBody() {
+    if (!detailBody) return;
+    if (typeof detailBody.replaceChildren === "function") detailBody.replaceChildren();
+    detailBody.innerHTML = "";
+  }
+
+  function hasDetailContent() {
+    if (!detailBody) return false;
+    if (detailBody.querySelector?.("[data-garage-gallery], .oni-garage-detail-empty-media, .oni-garage-detail-copy")) {
+      return true;
+    }
+    return asText(detailBody.textContent).length > 0;
+  }
+
   function openDetail(recordId) {
-    selectedId = asText(recordId);
-    const target = records.find(item => item.id === selectedId);
-    if (!target || !detailEl || !detailBody || !hasValidDetail(target)) {
+    const nextId = asText(recordId);
+    const openToken = ++detailOpenToken;
+    const target = resolveSelectedRecord(nextId);
+    if (!target || !canShowDetail(nextId)) {
       closeDetail();
-      if (stateEl) stateEl.textContent = "Сонгосон build-ийн мэдээлэл олдсонгүй.";
+      setDetailState(DETAIL_STATES.ERROR);
+      if (stateEl) stateEl.textContent = INVALID_DETAIL_MESSAGE;
       return;
     }
 
-    const markup = detailMarkup(target);
-    if (!asText(markup)) {
+    const markup = asText(detailMarkup(target));
+    if (!markup) {
       closeDetail();
-      if (stateEl) stateEl.textContent = "Сонгосон build-ийн мэдээлэл олдсонгүй.";
+      setDetailState(DETAIL_STATES.ERROR);
+      if (stateEl) stateEl.textContent = INVALID_DETAIL_MESSAGE;
       return;
     }
-    detailBody.innerHTML = markup;
-    detailEl.hidden = false;
-    if (typeof document !== "undefined") {
-      document.body.classList.add("oni-modal-open");
+
+    setDetailState(DETAIL_STATES.OPENING);
+    if (typeof document !== "undefined" && typeof document.createElement === "function") {
+      const template = document.createElement("template");
+      template.innerHTML = markup;
+      if (!template.content.childElementCount) {
+        closeDetail();
+        setDetailState(DETAIL_STATES.ERROR);
+        if (stateEl) stateEl.textContent = INVALID_DETAIL_MESSAGE;
+        return;
+      }
+      clearDetailBody();
+      detailBody.appendChild(template.content.cloneNode(true));
+    } else {
+      detailBody.innerHTML = markup;
     }
+
+    if (!canShowDetail(nextId) || openToken !== detailOpenToken || !hasDetailContent()) {
+      closeDetail();
+      setDetailState(DETAIL_STATES.ERROR);
+      if (stateEl) stateEl.textContent = INVALID_DETAIL_MESSAGE;
+      return;
+    }
+
+    selectedId = nextId;
+    detailLastFocus = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    detailEl.hidden = false;
+    setDetailState(DETAIL_STATES.OPEN);
+    syncBodyOverlayLock();
+    const closeButton = detailEl.querySelector?.("[data-garage-detail-close]");
+    if (closeButton instanceof HTMLElement) closeButton.focus();
   }
 
   function closeDetail() {
+    detailOpenToken += 1;
     selectedId = "";
+    setDetailState(DETAIL_STATES.CLOSED);
     if (detailEl) detailEl.hidden = true;
-    if (detailBody) detailBody.innerHTML = "";
-    if (typeof document !== "undefined") {
-      document.body.classList.remove("oni-modal-open");
+    clearDetailBody();
+    syncBodyOverlayLock();
+    if (detailLastFocus instanceof HTMLElement && typeof detailLastFocus.focus === "function") {
+      detailLastFocus.focus();
     }
+    detailLastFocus = null;
   }
 
   function renderState() {
@@ -643,6 +737,17 @@ export function createGarageModule() {
       dispose.push(() => detailEl?.removeEventListener?.("click", onCloseDetail));
     }
 
+    const onKeyDown = event => {
+      if (event.key !== "Escape") return;
+      if (detailState !== DETAIL_STATES.OPEN && detailState !== DETAIL_STATES.OPENING) return;
+      event.preventDefault();
+      closeDetail();
+    };
+    if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+      document.addEventListener("keydown", onKeyDown);
+      dispose.push(() => document.removeEventListener("keydown", onKeyDown));
+    }
+
     const onImageError = event => {
       const target = event.target;
       if (!target || typeof target.matches !== "function") return;
@@ -707,6 +812,7 @@ export function createGarageModule() {
       gridEl = host.querySelector("[data-garage-grid]");
       detailEl = host.querySelector("[data-garage-detail]");
       detailBody = host.querySelector("[data-garage-detail-body]");
+      setDetailState(DETAIL_STATES.CLOSED);
 
       toggleFilters(false);
       renderFilterOptions();

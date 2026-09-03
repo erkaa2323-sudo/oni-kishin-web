@@ -172,6 +172,7 @@ function compileMembersValidationExports({ docs = [] } = {}) {
       setTimeout,
       clearTimeout,
       HTMLElement: class HTMLElement {},
+      getCurrentRoute: () => "members",
       collection: () => ({ name: "members" }),
       getFirestoreDb: () => ({}),
       getDocs: async () => {
@@ -253,6 +254,7 @@ function compileGarageValidationExports({ docs = [], getDocsImpl } = {}) {
       HTMLElement: class HTMLElement {},
       HTMLSelectElement: class HTMLSelectElement {},
       HTMLImageElement: class HTMLImageElement {},
+      getCurrentRoute: () => "garage",
       collection: (_, name) => {
         collections.push(name);
         return { name };
@@ -503,6 +505,17 @@ async function checkGarageModuleBehavior() {
 
     const byStatus = filterGarageRecords(records, "", { type: "all", category: "all", status: "active" });
     assert(byStatus.length === 1, "Garage filter must support status filtering");
+
+    const garageSource = read("v2/js/garage.js");
+    assert(garageSource.includes("DETAIL_STATES"), "Garage detail flow must define explicit modal states");
+    assert(garageSource.includes("INVALID_DETAIL_MESSAGE"), "Garage detail flow must surface inline unavailable-build feedback");
+    assert(garageSource.includes("getCurrentRoute"), "Garage detail flow must verify the active route before opening");
+    assert(garageSource.includes("setDetailState(DETAIL_STATES.OPENING)"), "Garage detail flow must enter an opening state before reveal");
+    assert(garageSource.includes("document.addEventListener(\"keydown\", onKeyDown)"), "Garage detail flow must support Escape close");
+    assert(
+      garageSource.indexOf("detailEl.hidden = false") > garageSource.indexOf("const markup = asText(detailMarkup(target));"),
+      "Garage detail modal must build content before revealing the shell"
+    );
 
     const module = createGarageModule();
     const root = createFakeGarageRoot(Element, HTMLElement, HTMLSelectElement);
@@ -1063,6 +1076,9 @@ async function checkGarageModuleBehavior() {
 
     const routeMarkup = meetRouteMarkup();
     assert(routeMarkup.includes("data-meet-form"), "Meet route markup must include registration form");
+    assert(routeMarkup.includes("MEET-Д НЭГДЭХ"), "Meet route markup must localize the join action");
+    assert(routeMarkup.includes("НУУЦЛАГДСАН"), "Meet route markup must hide password values behind Mongolian placeholder text");
+    assert(!routeMarkup.includes("NO ACTIVE MEET"), "Meet route markup must not expose raw English internal state labels");
 
     const registerValidation = compileMeetValidationExports({
       meetDoc: { ...currentMeetDoc, startAt: new Date(Date.now() - 60_000).toISOString() },
@@ -1192,6 +1208,11 @@ async function checkGarageModuleBehavior() {
     assert(typeof validateJoinDraft === "function", "v2/js/join.js must export validateJoinDraft()");
     assert(typeof buildApplicationPayload === "function", "v2/js/join.js must export buildApplicationPayload()");
     assert(typeof joinRouteMarkup === "function", "v2/js/join.js must export joinRouteMarkup()");
+    const joinMarkup = joinRouteMarkup();
+    assert(joinMarkup.includes("Овог *"), "Join route must localize applicant name labels");
+    assert(joinMarkup.includes("Чиглэл *"), "Join route must localize direction label");
+    assert(joinMarkup.includes("Холбоо барих төрөл *"), "Join route must localize contact-type label");
+    assert(!joinMarkup.includes("Last name *"), "Join route must not expose English field labels");
 
     const current = normalizeApplicationRecord({ first: "A", last: "B", nick: "K", cpmid: "CPM-1", status: "Шинэ" }, "1");
     assert(current.firstName === "A", "Join current schema normalization must keep first field");
@@ -1532,6 +1553,7 @@ function compileMusicValidationExports() {
 }
 
 function checkMusicModuleBehavior() {
+  const musicSource = read("v2/js/music.js");
   const validation = compileMusicValidationExports();
   const {
     createMusicModule,
@@ -1573,6 +1595,8 @@ function checkMusicModuleBehavior() {
   const unknownCommand = parseMusicCommand("execute javascript alert(1)");
   assert(unknownCommand === null, "Music parser must reject non-allow-listed commands");
   assert(runMusicCommand(songsCommand).handled === true, "Music command runner must handle allow-listed commands");
+  assert(musicSource.includes("Энэ дууг тоглуулах боломжгүй байна."), "Music errors must be localized for users");
+  assert(!musicSource.includes("Music playback failed for this track."), "Music route must not expose English playback errors");
 
   unsubscribe();
   stopMusicIntegration();
@@ -1599,6 +1623,18 @@ function checkOniAiModuleContracts() {
   assert(source.includes("subscribeMeetWorldState"), "v2/js/oni-ai.js must consume shared meet world state");
   assert(source.includes("data-oa-character"), "v2/js/oni-ai.js must render character-stage interactions");
   assert(source.includes("data-oa-typing"), "v2/js/oni-ai.js must provide thinking state before final answer");
+  assert(source.includes("ЦУЦЛАХ"), "v2/js/oni-ai.js must localize the cancel button");
+  assert(source.includes("ИЛГЭЭХ"), "v2/js/oni-ai.js must localize the send button");
+  assert(source.includes("Илгээж байна…"), "v2/js/oni-ai.js must localize sending state");
+  assert(source.includes("ЭХ СУРВАЛЖ"), "v2/js/oni-ai.js must localize source cards");
+  assert(source.includes("ТА"), "v2/js/oni-ai.js must localize the user label");
+  assert(!source.includes("MEET: NONE"), "v2/js/oni-ai.js must not expose raw meet debug labels");
+  assert(!source.includes("YOU"), "v2/js/oni-ai.js must not expose raw English user labels");
+  assert(!source.includes("SOURCE"), "v2/js/oni-ai.js must not expose raw English source labels");
+  assert(!source.includes("ONI AI ready."), "v2/js/oni-ai.js must not expose raw internal ready labels");
+  assert(!source.includes('data-oa-cancel>Cancel</button>'), "v2/js/oni-ai.js must not expose English cancel text");
+  assert(!source.includes('data-oa-send>Send</button>'), "v2/js/oni-ai.js must not expose English send text");
+  assert(!source.includes('sending ? "Sending…" : "Send"'), "v2/js/oni-ai.js must not expose English sending text");
   assert(!source.includes("OPENAI_API_KEY"), "v2/js/oni-ai.js must not contain provider secrets");
   assert(!/innerHTML\s*=\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
 }
@@ -1649,8 +1685,14 @@ function checkStage4ReliabilityContracts() {
   assert(appSource.includes("data-firebase-retry"), "v2/js/app.js must expose a recoverable Firebase retry control");
   assert(appSource.includes("if (typeof adminAuthUnsubscribe === \"function\") return;"), "v2/js/app.js Firebase retry must avoid duplicate auth listeners");
   assert(appSource.includes("if (typeof meetWorldUnsubscribe === \"function\") return;"), "v2/js/app.js Firebase retry must avoid duplicate meet-world listeners");
+  assert(appSource.includes(".oni-garage-detail:not([hidden])"), "v2/js/app.js body lock must account for Garage detail overlays");
+  assert(appSource.includes(".oni-member-profile:not([hidden])"), "v2/js/app.js body lock must account for Member profile overlays");
+  assert(appSource.includes("ТУН УДАХГҮЙ"), "v2/js/app.js home meet card must localize upcoming state");
+  assert(appSource.includes("ДҮҮРСЭН"), "v2/js/app.js home meet card must localize full state");
+  assert(appSource.includes("ШУУД"), "v2/js/app.js home meet card must localize live state");
 
   assert(membersSource.includes("LOAD_TIMEOUT_MS"), "v2/js/members.js must timeout member loading to avoid infinite skeleton state");
+  assert(membersSource.includes("PROFILE_STATES"), "v2/js/members.js member profile must use explicit modal states");
   assert(garageSource.includes("LOAD_TIMEOUT_MS"), "v2/js/garage.js must timeout garage loading to avoid infinite skeleton state");
   assert(garageSource.includes("hasValidDetail"), "v2/js/garage.js must guard detail modal against stale or empty records");
   assert(meetSource.includes("startLoadWatchdog"), "v2/js/meet.js must enforce meet loading timeout protection");

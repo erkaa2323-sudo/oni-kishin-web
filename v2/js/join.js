@@ -192,33 +192,33 @@ function fieldMarkup(config) {
 
 export function joinRouteMarkup() {
   const fields = [
-    { name: "last", label: "Last name *", max: 40, placeholder: "Family name" },
-    { name: "first", label: "First name *", max: 40, placeholder: "Given name" },
-    { name: "age", label: "Age *", type: "number", max: 2, inputmode: "numeric", placeholder: "17" },
-    { name: "gender", label: "Gender *", type: "select", options: ["", "Эрэгтэй", "Эмэгтэй"] },
+    { name: "last", label: "Овог *", max: 40, placeholder: "Овог" },
+    { name: "first", label: "Нэр *", max: 40, placeholder: "Нэр" },
+    { name: "age", label: "Нас *", type: "number", max: 2, inputmode: "numeric", placeholder: "17" },
+    { name: "gender", label: "Хүйс *", type: "select", options: ["", "Эрэгтэй", "Эмэгтэй"] },
     { name: "cpmid", label: "CPM ID *", max: 40, placeholder: "ONI0001" },
-    { name: "nick", label: "CPM Nick *", max: 50, placeholder: "Kitsune" },
+    { name: "nick", label: "CPM нэр *", max: 50, placeholder: "Kitsune" },
     {
       name: "direction",
-      label: "Direction *",
+      label: "Чиглэл *",
       type: "select",
-      options: ["", "Clean Car", "Anime Car", "Racer / Drifter", "Drag Racer", "Content Creator", "Other"]
+      options: ["", "Цэвэр машин", "Анимэ машин", "Уралдаан / Дрифт", "Драг", "Контент бүтээгч", "Бусад"]
     },
     {
       name: "experience",
-      label: "Experience *",
+      label: "Туршлага *",
       type: "select",
       options: ["", "6 сараас бага", "6 сар – 1 жил", "1 – 2 жил", "2 жилээс дээш"]
     },
-    { name: "contactType", label: "Contact type *", type: "select", options: ["", "Instagram", "Discord", "Phone"] },
-    { name: "contact", label: "Contact *", max: 120, placeholder: "@username / phone / discord" },
-    { name: "message", label: "Message", type: "textarea", max: 500, placeholder: "Optional note about your profile" }
+    { name: "contactType", label: "Холбоо барих төрөл *", type: "select", options: ["", "Instagram", "Discord", "Утас"] },
+    { name: "contact", label: "Холбоо барих хаяг *", max: 120, placeholder: "@username / утас / discord" },
+    { name: "message", label: "Нэмэлт зурвас", type: "textarea", max: 500, placeholder: "Өөрийн талаар товч бичнэ үү" }
   ];
 
   return `
     <section class="oni-join-view" data-join-view>
       <header class="oni-section-head">
-        <h1>Join ONI &amp; KISHIN</h1>
+        <h1>ONI &amp; KISHIN-Д НЭГДЭХ</h1>
         <p>ONI кланд нэгдэх хүсэлтээ илгээнэ үү.</p>
       </header>
 

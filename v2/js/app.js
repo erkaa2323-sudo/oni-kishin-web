@@ -156,6 +156,15 @@ function applyMeetWorldState(worldState) {
   meetLink.classList.toggle("is-live", state === "LIVE" || state === "FULL");
 }
 
+function homeMeetStateBadge(baseState, participantsCount, maxPlayers) {
+  if (baseState === "active") {
+    return participantsCount >= maxPlayers ? "ДҮҮРСЭН" : "ШУУД";
+  }
+  if (baseState === "upcoming") return "ТУН УДАХГҮЙ";
+  if (baseState === "expired") return "ДУУССАН";
+  return "ХҮЛЭЭЛТ";
+}
+
 function setActive(route) {
   const mapped = route === "members" || route === "join" ? "more" : route;
 
@@ -232,7 +241,7 @@ function stopHomeCountdown() {
 }
 
 function refreshBodyLock() {
-  const lock = !modal.hidden || !(moreSheet?.hidden ?? true);
+  const lock = !!document.querySelector(".oni-modal:not([hidden]), .oni-bottom-sheet:not([hidden]), .oni-garage-detail:not([hidden]), .oni-member-profile:not([hidden])");
   document.body.classList.toggle("oni-modal-open", lock);
 }
 
@@ -398,7 +407,7 @@ function renderMeetCard(meet, participantsCount) {
   return `
     <article class="oni-live-card ${state === "upcoming" ? "is-upcoming" : "is-live"}">
       <header>
-        <p class="oni-live-kicker">ONI MEET ${state === "upcoming" ? "UPCOMING" : state === "full" ? "FULL" : "LIVE"}</p>
+        <p class="oni-live-kicker">ONI MEET ${state === "upcoming" ? "ТУН УДАХГҮЙ" : state === "full" ? "ДҮҮРСЭН" : "ШУУД"}</p>
         <h3>${escapeHtml(meet.title || "ONI NIGHT MEET")}</h3>
       </header>
       <p class="oni-live-copy">${escapeHtml(meet.roomLabel || "ONI & KISHIN")}</p>
@@ -462,13 +471,11 @@ async function fetchHomeData() {
     .filter(item => participantBelongsToMeet(item, meet));
 
   const meetState = getMeetState(meet);
-  const meetStateLabel = meetState === "active"
-    ? (participants.length >= Math.max(1, Number(meet?.maxPlayers || 20) || 20) ? "FULL" : "LIVE")
-    : meetState === "upcoming"
-      ? "ТУН УДАХГҮЙ"
-      : meetState === "expired"
-        ? "ENDED"
-        : "ХҮЛЭЭЛТ";
+  const meetStateLabel = homeMeetStateBadge(
+    meetState,
+    participants.length,
+    Math.max(1, Number(meet?.maxPlayers || 20) || 20)
+  );
 
   return {
     members,
