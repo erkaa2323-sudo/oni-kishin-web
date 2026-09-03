@@ -61,6 +61,25 @@ function sanitizeSources(value) {
   return [...unique.values()];
 }
 
+function emotionLabel(value) {
+  if (value === "happy" || value === "excited" || value === "proud") return "Эрчтэй";
+  if (value === "thinking") return "Бодож байна";
+  if (value === "confused" || value === "concerned" || value === "serious") return "Анхаарч байна";
+  if (value === "sad" || value === "sorry") return "Зөөлөн";
+  if (value === "playful" || value === "surprised") return "Сэргэг";
+  if (value === "music") return "Хөгжимтэй";
+  if (value === "meet-live") return "MEET идэвхтэй";
+  return "Тайван";
+}
+
+function meetStateLabel(value) {
+  if (value === "LIVE") return "MEET идэвхтэй";
+  if (value === "FULL") return "MEET дүүрсэн";
+  if (value === "UPCOMING") return "MEET тун удахгүй";
+  if (value === "ENDED") return "MEET дууссан";
+  return "MEET хүлээлттэй";
+}
+
 function routeMarkup() {
   return `
     <section class="oni-oa-view" data-oa-view>
@@ -76,9 +95,9 @@ function routeMarkup() {
           </button>
         </div>
         <div class="oni-oa-stage-meta">
-          <small data-oa-mood>NEUTRAL</small>
-          <b data-oa-live-state>MEET: NONE</b>
-          <p data-oa-stage-text>ONI AI listening…</p>
+          <small data-oa-mood>Тайван</small>
+          <b data-oa-live-state>MEET хүлээлттэй</b>
+          <p data-oa-stage-text>Сонсож байна…</p>
         </div>
       </article>
 
@@ -86,22 +105,22 @@ function routeMarkup() {
         <div class="oni-oa-chat-head">
           <strong>ONI AI</strong>
           <div class="oni-oa-chat-head-actions">
-            <button type="button" class="oni-btn oni-btn-ghost" data-oa-cancel>Cancel</button>
+            <button type="button" class="oni-btn oni-btn-ghost" data-oa-cancel>ЦУЦЛАХ</button>
             <button type="button" class="oni-btn oni-btn-ghost" data-oa-retry>ДАХИН</button>
           </div>
         </div>
         <div class="oni-oa-chat-body" data-oa-body aria-live="polite"></div>
         <p class="oni-oa-inline-error" data-oa-error role="alert"></p>
-        <div class="oni-oa-prompts" role="list" aria-label="ONI quick prompts">
+        <div class="oni-oa-prompts" role="list" aria-label="ONI AI хурдан асуултууд">
           <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Өнөөдөр meet байгаа юу?">MEET</button>
           <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="2-р дуу тоглуул">MUSIC</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Энэ өгүүлбэрийг англи хэл рүү орчуул">TRANSLATE</button>
-          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Надад Instagram caption бич">CAPTION</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Энэ өгүүлбэрийг англи хэл рүү орчуул">ОРЧУУЛГА</button>
+          <button type="button" class="oni-btn oni-btn-ghost" data-oa-prompt="Надад Instagram caption бич">ТАЙЛБАР</button>
         </div>
         <form class="oni-oa-compose" data-oa-form novalidate>
-          <textarea data-oa-input maxlength="2000" placeholder="ONI AI-д асуу…" aria-label="ONI AI message"></textarea>
+          <textarea data-oa-input maxlength="2000" placeholder="ONI AI-д асуу…" aria-label="ONI AI зурвас"></textarea>
           <div class="oni-oa-compose-actions">
-            <button type="submit" class="oni-btn oni-btn-primary" data-oa-send>Send</button>
+            <button type="submit" class="oni-btn oni-btn-primary" data-oa-send>ИЛГЭЭХ</button>
           </div>
         </form>
       </article>
@@ -127,7 +146,7 @@ function sourceCardsMarkup(sources) {
     <div class="oni-oa-sources">
       ${sources.map(source => `
         <a class="oni-oa-source" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">
-          <small>SOURCE</small>
+          <small>ЭХ СУРВАЛЖ</small>
           <b>${escapeHtml(source.title)}</b>
         </a>
       `).join("")}
@@ -198,7 +217,7 @@ export function createOniAiModule() {
 
     const label = document.createElement("small");
     label.className = "oni-oa-msg-label";
-    label.textContent = role === "user" ? "YOU" : "ONI AI";
+    label.textContent = role === "user" ? "ТА" : "ONI AI";
 
     const content = document.createElement("p");
     content.className = "oni-oa-msg-text";
@@ -260,7 +279,7 @@ export function createOniAiModule() {
       n.aura.style.setProperty("--oa-aura", String(Math.max(0.08, safeIntensity).toFixed(2)));
     }
     if (n.stageText instanceof HTMLElement && text) n.stageText.textContent = text;
-    if (n.mood instanceof HTMLElement) n.mood.textContent = safeEmotion.toUpperCase();
+    if (n.mood instanceof HTMLElement) n.mood.textContent = emotionLabel(safeEmotion);
     mood = safeEmotion;
   }
 
@@ -269,7 +288,7 @@ export function createOniAiModule() {
 
     if (n.sendButton instanceof HTMLButtonElement) {
       n.sendButton.disabled = sending;
-      n.sendButton.textContent = sending ? "Sending…" : "Send";
+      n.sendButton.textContent = sending ? "Илгээж байна…" : "ИЛГЭЭХ";
     }
 
     if (n.retryButton instanceof HTMLButtonElement) {
@@ -285,7 +304,7 @@ export function createOniAiModule() {
     }
 
     if (n.liveState instanceof HTMLElement) {
-      n.liveState.textContent = `MEET: ${meetState}`;
+      n.liveState.textContent = meetStateLabel(meetState);
     }
   }
 
@@ -334,7 +353,7 @@ export function createOniAiModule() {
       }
 
       const packet = normalizeAiPacket(data);
-      if (!packet.text) throw new Error("Malformed AI response.");
+      if (!packet.text) throw new Error("Хариуны бүтэц буруу байна.");
       return packet;
     } finally {
       clearTimeout(timeoutId);
@@ -383,7 +402,7 @@ export function createOniAiModule() {
 
     setTimeout(() => {
       if (!mounted || sending) return;
-      applyCharacterState({ emotion: mood, gesture: "idle", intensity: 0.28, text: "ONI AI ready." });
+      applyCharacterState({ emotion: mood, gesture: "idle", intensity: 0.28, text: "Бэлэн байна." });
     }, 1400);
   }
 
@@ -406,9 +425,9 @@ export function createOniAiModule() {
 
     const quick = handleMusicQuickCommand(message);
     if (quick?.handled) {
-      appendMessage("ai", quick.message || "OK");
+      appendMessage("ai", quick.message || "Боллоо.");
       lastFailurePrompt = "";
-      applyCharacterState({ emotion: "music", gesture: "dance-subtle", intensity: 0.6, text: "Music control done." });
+      applyCharacterState({ emotion: "music", gesture: "dance-subtle", intensity: 0.6, text: "Хөгжим удирдлаа." });
       renderUiState();
       return;
     }
@@ -528,7 +547,7 @@ export function createOniAiModule() {
       if (!mounted) return;
       meetState = snapshot.state;
       if (snapshot.state === "LIVE") {
-        applyCharacterState({ emotion: "meet-live", gesture: "battle-ready", intensity: 0.68, text: "ONI MEET LIVE" });
+        applyCharacterState({ emotion: "meet-live", gesture: "battle-ready", intensity: 0.68, text: "MEET идэвхтэй байна." });
       }
       renderUiState();
     });
@@ -560,7 +579,7 @@ export function createOniAiModule() {
       bindDom();
       startMusicIntegration();
       appendMessage("ai", "Сайн уу. Би ONI AI — чөлөөтэй асуугаарай.");
-      applyCharacterState({ emotion: "neutral", gesture: "idle", intensity: 0.25, text: "ONI AI ready." });
+      applyCharacterState({ emotion: "neutral", gesture: "idle", intensity: 0.25, text: "Бэлэн байна." });
       renderUiState();
     },
 

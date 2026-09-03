@@ -554,7 +554,9 @@ export function createGarageModule() {
     }
 
     selectedId = nextId;
-    detailLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    detailLastFocus = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     detailEl.hidden = false;
     setDetailState(DETAIL_STATES.OPEN);
     syncBodyOverlayLock();
@@ -741,7 +743,7 @@ export function createGarageModule() {
       event.preventDefault();
       closeDetail();
     };
-    if (typeof document?.addEventListener === "function") {
+    if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
       document.addEventListener("keydown", onKeyDown);
       dispose.push(() => document.removeEventListener("keydown", onKeyDown));
     }

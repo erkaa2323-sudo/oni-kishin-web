@@ -35,7 +35,7 @@ function normalizeTrack(raw = {}, docId = "") {
 
   return {
     id: asText(docId) || `track-${Math.random().toString(36).slice(2, 10)}`,
-    title: pickFirstText(raw.title, raw.name, "UNTITLED"),
+    title: pickFirstText(raw.title, raw.name, "Нэргүй дуу"),
     artist: pickFirstText(raw.artist, "ONI RADIO"),
     url,
     cover: pickFirstText(raw.cover),
@@ -78,7 +78,7 @@ function bindAudioEvents() {
     loadCurrentTrack(true);
   });
   audio.addEventListener("error", () => {
-    state.error = "Music playback failed for this track.";
+    state.error = "Энэ дууг тоглуулах боломжгүй байна.";
     notify();
   });
 }
@@ -101,7 +101,7 @@ function loadCurrentTrack(autoplay = false) {
 
   if (autoplay) {
     audio.play().catch(() => {
-      state.error = "Tap play to start music playback.";
+      state.error = "Тоглуулахын тулд дахин дарна уу.";
       notify();
     });
   } else {
@@ -159,7 +159,7 @@ function subscribeTracks() {
     loadCurrentTrack(false);
   }, error => {
     state.loading = false;
-    state.error = error instanceof Error ? error.message : "Unable to load music tracks.";
+    state.error = error instanceof Error ? error.message : "Дуунуудыг ачаалж чадсангүй.";
     notify();
   });
 }
