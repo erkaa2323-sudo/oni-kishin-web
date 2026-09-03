@@ -5336,3 +5336,10 @@ body[data-oni-atmosphere="oni-ai"] .oni-world-route-sign {
     transform: translateX(calc(-50% + var(--oa-torso-x, 0px))) translateY(calc(var(--oa-float, 0px) * -0.24));
   }
 }
+.oni-oa-semantic-part {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}

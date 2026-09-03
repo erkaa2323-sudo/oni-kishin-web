@@ -275,7 +275,7 @@ function sourceCardsMarkup(sources) {
 function routeMarkup() {
   return `
     <section class="oni-oa-view" data-oa-view>
-      <article class="oni-card oni-oa-scene" data-oa-scene data-oa-asset="spectral" data-oa-glitch="0">
+      <article class="oni-card oni-oa-scene" data-oa-scene data-oa-asset="fallback" data-oa-glitch="0">
         <div class="oni-oa-room" aria-hidden="true">
           <span class="oni-oa-room-glow"></span>
           <span class="oni-oa-room-grid"></span>
@@ -298,6 +298,9 @@ function routeMarkup() {
                   <span class="oni-oa-character-rim"></span>
                   <span class="oni-oa-character-frame"></span>
                   <img class="oni-oa-character-asset" data-oa-asset-image alt="" hidden>
+                  <span class="oni-oa-semantic-part" data-oa-part="legs" aria-hidden="true"></span>
+                  <span class="oni-oa-semantic-part" data-oa-part="left-upper-arm" aria-hidden="true"></span>
+                  <span class="oni-oa-semantic-part" data-oa-part="right-hand" aria-hidden="true"></span>
                   <span class="oni-oa-character-fallback" data-oa-fallback-art aria-hidden="true">
                     <span class="oni-oa-fallback-horns"></span>
                     <span class="oni-oa-fallback-hair"></span>
