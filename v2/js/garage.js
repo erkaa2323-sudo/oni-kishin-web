@@ -284,13 +284,13 @@ function hasValidDetail(record) {
 export function garageRouteMarkup() {
   return `
     <section class="oni-garage-view" data-garage-view>
-      <header class="oni-garage-head oni-panel-reveal">
+      <header class="oni-garage-head oni-panel-reveal oni-route-head">
         <div>
-          <p class="oni-garage-kicker">ONI GARAGE</p>
-          <h1>ONI GARAGE</h1>
-          <p class="oni-garage-sub">JDM × Anime build цуглуулга</p>
+          <p class="oni-garage-kicker oni-route-kicker">ONI UNDERGROUND GARAGE</p>
+          <h1 class="oni-route-title">JDM SHOWCASE</h1>
+          <p class="oni-garage-sub oni-route-copy">Clan build бүрийг dark concrete, light sweep, showroom depth-тэй underground тайзанд байрлуулна.</p>
         </div>
-        <p class="oni-garage-state" data-garage-state role="status" aria-live="polite"></p>
+        <p class="oni-garage-state oni-route-status" data-garage-state role="status" aria-live="polite"></p>
       </header>
 
       <section class="oni-garage-top-controls oni-panel-reveal" aria-label="ONI GARAGE хайлт">
@@ -318,7 +318,10 @@ export function garageRouteMarkup() {
 
       <section class="oni-garage-showcase-wrap oni-panel-reveal" data-garage-showcase-wrap>
         <div class="oni-section-header">
-          <h2>ОНЦЛОХ BUILD</h2>
+          <div>
+            <p class="oni-section-kicker">SELECTED MACHINE</p>
+            <h2>ОНЦЛОХ BUILD</h2>
+          </div>
         </div>
         <div class="oni-garage-showcase" data-garage-showcase></div>
       </section>

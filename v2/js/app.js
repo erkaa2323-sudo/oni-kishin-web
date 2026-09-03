@@ -104,10 +104,10 @@ function roleRank(member) {
 }
 
 function roleLabel(role) {
-  if (role === "leader") return "LEADER";
-  if (role === "co-leader") return "CO-LEADER";
-  if (role === "special") return "SPECIAL";
-  return "MEMBER";
+  if (role === "leader") return "АХЛАГЧ";
+  if (role === "co-leader") return "ДЭД АХЛАГЧ";
+  if (role === "special") return "ТУСГАЙ";
+  return "ГИШҮҮН";
 }
 
 function roleClass(role) {
@@ -124,6 +124,19 @@ function prefersReducedMotion() {
 function setAtmosphere(route) {
   const mood = ATMOSPHERE_BY_ROUTE[route] || "home";
   document.body.dataset.oniAtmosphere = mood;
+  document.body.dataset.oniRoute = route;
+  const routeLabel = document.getElementById("oniRouteLabel");
+  if (routeLabel) {
+    const labels = {
+      home: "ONI CITY",
+      garage: "ONI UNDERGROUND GARAGE",
+      members: "ONI CREW HQ",
+      music: "ONI AI CHAMBER",
+      meet: "ONI NIGHT EVENT ARENA",
+      join: "ONI RECRUITMENT GATE"
+    };
+    routeLabel.textContent = labels[route] || "ONI CITY";
+  }
 }
 
 function playRouteSlash() {
@@ -307,6 +320,7 @@ function buildCardsMarkup(records) {
       <a class="oni-build-card" href="#garage" aria-label="${escapeHtml(title)} build-ийг Garage дээр нээх">
         <div class="oni-build-media${record.image ? "" : " is-fallback"}">${media}</div>
         <div class="oni-build-overlay">
+          <p class="oni-build-kicker">ONI UNDERGROUND / ${escapeHtml(record.year || "JDM DOSSIER")}</p>
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(owner)}</p>
           <div class="oni-build-badges">${tags}</div>
@@ -324,6 +338,7 @@ function crewCardsMarkup(records) {
   return records.map(member => {
     const nick = pickFirstText(member.nickname, "ONI MEMBER");
     const cpmId = pickFirstText(member.cpmId, "CPM ID");
+    const title = pickFirstText(member.title, member.direction, "ONI CREW");
     const avatar = member.avatarUrl
       ? `<img src="${escapeHtml(member.avatarUrl)}" alt="${escapeHtml(nick)} avatar" loading="lazy" decoding="async">`
       : `<span class="oni-media-fallback" aria-hidden="true">${escapeHtml(initials(nick))}</span>`;
@@ -331,8 +346,10 @@ function crewCardsMarkup(records) {
     return `
       <article class="oni-crew-card ${roleClass(member.role)}">
         <div class="oni-crew-avatar${member.avatarUrl ? "" : " is-fallback"}">${avatar}</div>
+        <p class="oni-crew-kicker">DOSSIER · ${escapeHtml(roleLabel(member.role))}</p>
         <h3>${escapeHtml(nick)}</h3>
         <p>${escapeHtml(cpmId)}</p>
+        <small>${escapeHtml(title)}</small>
         <span class="oni-role-badge">${escapeHtml(roleLabel(member.role))}</span>
       </article>
     `;
@@ -373,10 +390,10 @@ function renderMeetCard(meet, participantsCount) {
     return `
       <article class="oni-live-card is-empty">
         <header>
-          <p class="oni-live-kicker">ONI MEET</p>
+          <p class="oni-live-kicker">ONI NIGHT ARENA</p>
           <h3>Идэвхтэй meet алга</h3>
         </header>
-        <p class="oni-live-copy">Дараагийн meet зарлагдмагц энд автоматаар харагдана.</p>
+        <p class="oni-live-copy">Дараагийн шөнийн цугларалт зарлагдмагц энэ arena автоматаар асна.</p>
         <a class="oni-btn oni-btn-ghost" href="#meet">MEET ХЭСЭГ РҮҮ</a>
       </article>
     `;
@@ -389,7 +406,7 @@ function renderMeetCard(meet, participantsCount) {
     return `
       <article class="oni-live-card is-expired">
         <header>
-          <p class="oni-live-kicker">ONI MEET</p>
+          <p class="oni-live-kicker">ONI NIGHT ARENA</p>
           <h3>${escapeHtml(meet.title || "ONI MEET")}</h3>
         </header>
         <p class="oni-live-copy">Сүүлд дууссан meet · ${escapeHtml(formatMeetStart(meet.endAtMs))}</p>
@@ -407,10 +424,10 @@ function renderMeetCard(meet, participantsCount) {
   return `
     <article class="oni-live-card ${state === "upcoming" ? "is-upcoming" : "is-live"}">
       <header>
-        <p class="oni-live-kicker">ONI MEET ${state === "upcoming" ? "ТУН УДАХГҮЙ" : state === "full" ? "ДҮҮРСЭН" : "ШУУД"}</p>
+        <p class="oni-live-kicker">ONI NIGHT ARENA ${state === "upcoming" ? "ТУН УДАХГҮЙ" : state === "full" ? "ДҮҮРСЭН" : "ШУУД"}</p>
         <h3>${escapeHtml(meet.title || "ONI NIGHT MEET")}</h3>
       </header>
-      <p class="oni-live-copy">${escapeHtml(meet.roomLabel || "ONI & KISHIN")}</p>
+      <p class="oni-live-copy">${escapeHtml(meet.roomLabel || "ONI & KISHIN")} · JDM шөнийн цэг</p>
       <div class="oni-live-meta">
         <span>${count} / ${maxPlayers}</span>
         <span>${escapeHtml(formatMeetStart(meet.startAtMs))}</span>
@@ -513,32 +530,47 @@ function renderHomeView(data) {
   return `
     <section class="oni-home-view">
       <article class="oni-home-hero" aria-label="ONI HUB hero">
+        <div class="oni-home-city" aria-hidden="true">
+          <span class="oni-city-skyline is-far"></span>
+          <span class="oni-city-skyline is-mid"></span>
+          <span class="oni-city-sign"></span>
+          <span class="oni-city-street"></span>
+          <span class="oni-city-rain"></span>
+          <span class="oni-city-lights"></span>
+        </div>
         <div class="oni-home-hero-overlay"></div>
         <div class="oni-home-hero-art" aria-hidden="true">
           <img src="../oni-kishin-logo.jpg" alt="" loading="eager" decoding="async">
         </div>
         <div class="oni-home-hero-copy">
-          <p class="oni-hero-meta">ONI HUB · 鬼 • KISHIN</p>
-          <h1>ONI &amp; KISHIN</h1>
-          <p class="oni-hero-sub">Монголын CPM Anime Underground Clan</p>
+          <p class="oni-hero-meta">ONI CITY · 鬼 • KISHIN • MONGOLIA</p>
+          <h1><span>ONI &amp; KISHIN</span><small>МОНГОЛЫН ANIME × JDM CLAN HQ</small></h1>
+          <p class="oni-hero-sub">Шөнийн хотын гүнд байрлах ONI clan-ийн дижитал штабт тавтай морил. Build, crew, meet, ONI AI бүгд нэг ертөнцөд холбогдоно.</p>
           <div class="oni-stat-row">
             <span class="oni-stat-pill"><b>${data.stats.members}</b><small>ГИШҮҮН</small></span>
             <span class="oni-stat-pill"><b>${data.stats.builds}</b><small>BUILD</small></span>
             <span class="oni-stat-pill"><b>${escapeHtml(data.stats.meet)}</b><small>MEET</small></span>
           </div>
+          <div class="oni-home-hero-actions">
+            <a class="oni-btn oni-btn-primary" href="#join">CLAN-Д НЭГДЭХ</a>
+            <a class="oni-btn oni-btn-ghost" href="#garage">UNDERGROUND ГАРАЖ</a>
+          </div>
         </div>
       </article>
 
       <section class="oni-home-actions" aria-label="Түргэн үйлдлүүд">
-        <a class="oni-action-tile is-ai" href="#music">ONI AI</a>
-        <a class="oni-action-tile" href="#members">ГИШҮҮД</a>
-        <a class="oni-action-tile" href="#garage">ГАРАЖ</a>
-        <a class="oni-action-tile" href="#join">НЭГДЭХ</a>
+        <a class="oni-action-tile is-ai" href="#music"><small>CHAMBER</small><b>ONI AI</b></a>
+        <a class="oni-action-tile" href="#members"><small>CREW HQ</small><b>ГИШҮҮД</b></a>
+        <a class="oni-action-tile" href="#garage"><small>UNDERGROUND</small><b>ГАРАЖ</b></a>
+        <a class="oni-action-tile" href="#join"><small>GATE</small><b>НЭГДЭХ</b></a>
       </section>
 
       <section class="oni-home-section">
         <header class="oni-section-header">
-          <h2>ОНЦЛОХ BUILD</h2>
+          <div>
+            <p class="oni-section-kicker">ONI UNDERGROUND GARAGE</p>
+            <h2>ОНЦЛОХ BUILD</h2>
+          </div>
           <a href="#garage">БҮГДИЙГ ХАРАХ</a>
         </header>
         <div class="oni-carousel" data-home-builds>${buildCardsMarkup(builds)}</div>
@@ -546,7 +578,10 @@ function renderHomeView(data) {
 
       <section class="oni-home-section">
         <header class="oni-section-header">
-          <h2>ONI CREW</h2>
+          <div>
+            <p class="oni-section-kicker">ONI CREW HQ</p>
+            <h2>CLAN DOSSIER</h2>
+          </div>
           <a href="#members">БҮГДИЙГ ХАРАХ</a>
         </header>
         <div class="oni-carousel oni-crew-carousel" data-home-crew>${crewCardsMarkup(crew)}</div>
@@ -554,7 +589,10 @@ function renderHomeView(data) {
 
       <section class="oni-home-section">
         <header class="oni-section-header">
-          <h2>ONI MEET</h2>
+          <div>
+            <p class="oni-section-kicker">ONI NIGHT EVENT ARENA</p>
+            <h2>LIVE MEET</h2>
+          </div>
           <a href="#meet">ДЭЛГЭРЭНГҮЙ</a>
         </header>
         ${renderMeetCard(data.meet, data.participantsCount)}

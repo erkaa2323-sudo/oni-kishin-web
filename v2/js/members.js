@@ -150,10 +150,12 @@ function cardMarkup(member, index = 0) {
     <button type="button" class="oni-member-card${roleClass}" data-member-open="${escapeHtml(member.id)}" style="--oni-stagger:${Math.min(index, 12)};">
       <div class="oni-member-avatar">${avatar}</div>
       <div class="oni-member-copy">
+        <p class="oni-member-kicker">DOSSIER · ${escapeHtml(member.roleLabel)}</p>
         <h3>${escapeHtml(member.nickname)}</h3>
         <p class="oni-member-id">CPM ID · ${escapeHtml(member.cpmId)}</p>
         <p class="oni-member-meta">${meta}</p>
       </div>
+      <span class="oni-member-mark" aria-hidden="true">鬼</span>
       <span class="oni-member-role">${escapeHtml(member.roleLabel)}</span>
     </button>
   `;
@@ -179,13 +181,13 @@ export function renderMembersCards(records) {
 export function membersRouteMarkup() {
   return `
     <section class="oni-members-view" data-members-view>
-      <header class="oni-members-head oni-panel-reveal">
+      <header class="oni-members-head oni-panel-reveal oni-route-head">
         <div>
-          <p class="oni-members-kicker">ONI CREW</p>
-          <h1>ONI CREW</h1>
-          <p class="oni-members-sub">Рольт бүтэцтэй үндсэн roster</p>
+          <p class="oni-members-kicker oni-route-kicker">ONI CREW HQ</p>
+          <h1 class="oni-route-title">CLAN DOSSIER</h1>
+          <p class="oni-members-sub oni-route-copy">Гишүүн бүрийг role, чиглэл, clan identity-тай character dossier хэлбэрээр үзүүлнэ.</p>
         </div>
-        <p class="oni-members-state" data-members-state role="status" aria-live="polite"></p>
+        <p class="oni-members-state oni-route-status" data-members-state role="status" aria-live="polite"></p>
       </header>
 
       <section class="oni-members-controls oni-panel-reveal" aria-label="ONI CREW хайлт">

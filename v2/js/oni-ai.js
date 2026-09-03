@@ -317,11 +317,13 @@ function routeMarkup() {
 
               <div class="oni-oa-stage-meta">
                 <div class="oni-oa-stage-chip-row">
+                  <small>ONI AI CHAMBER</small>
                   <small data-oa-mood>Тайван</small>
                   <small data-oa-stage-state>Бэлэн байна.</small>
                 </div>
                 <b data-oa-live-state>MEET хүлээлттэй</b>
                 <p data-oa-stage-text>Сайн уу. ONI AI энд байна.</p>
+                <small class="oni-oa-asset-note" data-oa-asset-note>Production art slot бэлэн.</small>
               </div>
             </div>
           </section>
@@ -330,7 +332,7 @@ function routeMarkup() {
             <div class="oni-oa-chat-head">
               <div>
                 <strong>ONI AI</strong>
-                <small>Таны хажууд, нэг өрөөнд</small>
+                <small>ONI world-ийн chamber дотор, яг таны хажууд</small>
               </div>
               <div class="oni-oa-chat-head-actions">
                 <button type="button" class="oni-btn oni-btn-ghost" data-oa-cancel>ЦУЦЛАХ</button>
@@ -676,6 +678,12 @@ export function createOniAiModule() {
       usingAssetFallback = !required.every(key => /^(\.\/|\.\.\/|https?:\/\/|\/)/i.test(asText(slots[key])));
     }
     scene.dataset.oaAsset = usingAssetFallback ? "fallback" : "layered";
+    const assetNote = scene.querySelector("[data-oa-asset-note]");
+    if (assetNote) {
+      assetNote.textContent = usingAssetFallback
+        ? "Final original illustration asset хараахан холбогдоогүй · fallback rig идэвхтэй."
+        : "Original layered illustration asset идэвхтэй.";
+    }
   }
 
   function applyCharacterState({

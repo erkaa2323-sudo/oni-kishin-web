@@ -73,35 +73,35 @@ export function normalizeJoinDraft(raw = {}) {
 export function validateJoinDraft(draft) {
   const errors = [];
 
-  if (!draft.last) errors.push("Last name is required.");
-  if (!draft.first) errors.push("First name is required.");
+  if (!draft.last) errors.push("Овог шаардлагатай.");
+  if (!draft.first) errors.push("Нэр шаардлагатай.");
   if (!Number.isFinite(draft.age) || draft.age < 17 || draft.age > 99) {
-    errors.push("Age must be between 17 and 99.");
+    errors.push("Нас 17-99 хооронд байх ёстой.");
   }
-  if (!draft.gender) errors.push("Gender is required.");
+  if (!draft.gender) errors.push("Хүйсээ сонгоно уу.");
 
   if (!draft.cpmid) {
-    errors.push("CPM ID is required.");
+    errors.push("CPM ID шаардлагатай.");
   } else {
     if (draft.cpmid.length < 2 || draft.cpmid.length > 40) {
-      errors.push("CPM ID must be 2-40 characters.");
+      errors.push("CPM ID 2-40 тэмдэгт байх ёстой.");
     }
     if (/\s{2,}/.test(draft.cpmid)) {
-      errors.push("CPM ID cannot contain repeated spaces.");
+      errors.push("CPM ID давхар зайтай байж болохгүй.");
     }
   }
 
-  if (!draft.nick) errors.push("CPM Nick is required.");
-  if (!draft.direction) errors.push("Direction is required.");
-  if (!draft.contactType) errors.push("Contact type is required.");
-  if (!draft.contact) errors.push("Contact value is required.");
-  if (!draft.experience) errors.push("Experience is required.");
+  if (!draft.nick) errors.push("CPM нэр шаардлагатай.");
+  if (!draft.direction) errors.push("Чиглэлээ сонгоно уу.");
+  if (!draft.contactType) errors.push("Холбоо барих төрлөө сонгоно уу.");
+  if (!draft.contact) errors.push("Холбоо барих хаягаа оруулна уу.");
+  if (!draft.experience) errors.push("Туршлагаа сонгоно уу.");
 
-  if (draft.first.length > 40) errors.push("First name is too long.");
-  if (draft.last.length > 40) errors.push("Last name is too long.");
-  if (draft.nick.length > 50) errors.push("CPM Nick is too long.");
-  if (draft.contact.length > 120) errors.push("Contact value is too long.");
-  if (draft.message.length > 500) errors.push("Message is too long.");
+  if (draft.first.length > 40) errors.push("Нэр хэт урт байна.");
+  if (draft.last.length > 40) errors.push("Овог хэт урт байна.");
+  if (draft.nick.length > 50) errors.push("CPM нэр хэт урт байна.");
+  if (draft.contact.length > 120) errors.push("Холбоо барих хаяг хэт урт байна.");
+  if (draft.message.length > 500) errors.push("Зурвас хэт урт байна.");
 
   return {
     valid: errors.length === 0,
@@ -217,9 +217,10 @@ export function joinRouteMarkup() {
 
   return `
     <section class="oni-join-view" data-join-view>
-      <header class="oni-section-head">
-        <h1>ONI &amp; KISHIN-Д НЭГДЭХ</h1>
-        <p>ONI кланд нэгдэх хүсэлтээ илгээнэ үү.</p>
+      <header class="oni-section-head oni-route-head">
+        <p class="oni-route-kicker">ONI RECRUITMENT GATE</p>
+        <h1 class="oni-route-title">ONI &amp; KISHIN-Д НЭГДЭХ</h1>
+        <p class="oni-route-copy">Кланд элсэх хүсэлтээ илгээнэ үү. Энэ бол application submit бөгөөд автоматаар accepted гэсэн утга биш.</p>
       </header>
 
       <article class="oni-card oni-join-card">
@@ -340,7 +341,7 @@ export function createJoinModule() {
     stateMessage = "";
 
     if (!validation.valid) {
-      errorMessage = "Маягтын мэдээллээ шалгана уу.";
+      errorMessage = validation.errors[0] || "Маягтын мэдээллээ шалгана уу.";
       submitting = false;
       render();
       return;
@@ -373,7 +374,7 @@ export function createJoinModule() {
       writeLastSubmission(key);
       submitted = true;
       preserveIdentityFields();
-      stateMessage = "Хүсэлт амжилттай илгээгдлээ.";
+      stateMessage = "Хүсэлт илгээгдлээ. Энэ нь зөвшөөрөгдсөн гэсэн үг биш — crew review хүлээгдэж байна.";
       errorMessage = "";
       const submitButton = host?.querySelector("[data-join-submit]");
       if (submitButton instanceof HTMLElement) {
