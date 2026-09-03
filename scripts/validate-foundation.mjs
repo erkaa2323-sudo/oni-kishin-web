@@ -1720,10 +1720,96 @@ function checkMusicModuleBehavior() {
   assert(validation.unsubCalls() === 1, "Music integration must cleanup listener once when ref-count reaches zero");
 }
 
+function compileOniAiValidationExports() {
+  const source = read("v2/js/oni-ai.js");
+  const transformed = source
+    .replace(/import[\s\S]*?from\s+["'][^"']+["'];\s*/g, "")
+    .replace(/export function\s+/g, "function ")
+    + "\nmodule.exports = { createOniAiModule, clampIntensity, sanitizeEmotion, sanitizeGesture, sanitizePosture, sanitizeGazeTarget, sanitizeConversationState, routeMarkup, createMotionProfile };";
+
+  const context = {
+    module: { exports: {} },
+    exports: {},
+    console,
+    Math,
+    Date,
+    Set,
+    Map,
+    requestAnimationFrame: callback => callback(),
+    window: {
+      ONI_AI_CONFIG: {},
+      ONI_AI_CHARACTER_ASSETS: null,
+      matchMedia: () => ({ matches: false })
+    },
+    document: {
+      createElement() {
+        return {
+          className: "",
+          dataset: {},
+          textContent: "",
+          innerHTML: "",
+          append() {},
+          appendChild() {},
+          querySelector() { return null; },
+          querySelectorAll() { return []; }
+        };
+      }
+    },
+    HTMLElement: class HTMLElement {},
+    HTMLButtonElement: class HTMLButtonElement {},
+    HTMLTextAreaElement: class HTMLTextAreaElement {},
+    HTMLFormElement: class HTMLFormElement {},
+    fetch: async () => ({ ok: true, json: async () => ({ text: "ok" }) }),
+    AbortController: class AbortController {
+      constructor() {
+        this.signal = {};
+      }
+      abort() {}
+    },
+    parseMusicCommand: () => null,
+    runMusicCommand: () => ({ handled: false }),
+    startMusicIntegration() {},
+    stopMusicIntegration() {},
+    subscribeMusicState() { return () => {}; },
+    subscribeMeetWorldState() { return () => {}; },
+    setTimeout,
+    clearTimeout
+  };
+
+  vm.runInNewContext(transformed, context, { filename: "v2/js/oni-ai.js" });
+  return {
+    exports: context.module.exports
+  };
+}
+
 function checkOniAiModuleContracts() {
   const source = read("v2/js/oni-ai.js");
+  const css = read("v2/css/app.css");
+  const contract = read("v2/ONI_BRAIN_STAGE3_CONTRACT.md");
+  const validation = compileOniAiValidationExports();
+  const {
+    createOniAiModule,
+    clampIntensity,
+    sanitizeEmotion,
+    sanitizeGesture,
+    sanitizePosture,
+    sanitizeGazeTarget,
+    sanitizeConversationState,
+    routeMarkup,
+    createMotionProfile
+  } = validation.exports;
 
   assert(source.includes("createOniAiModule"), "v2/js/oni-ai.js must export createOniAiModule()");
+  assert(typeof createOniAiModule === "function", "v2/js/oni-ai.js validation exports must expose createOniAiModule()");
+  assert(typeof clampIntensity === "function", "v2/js/oni-ai.js must expose intensity clamping logic");
+  assert(clampIntensity(2) === 1, "ONI AI intensity must clamp above 1.0");
+  assert(clampIntensity(-1) === 0, "ONI AI intensity must clamp below 0.0");
+  assert(sanitizeEmotion("invalid") === "neutral", "ONI AI emotion must fallback to neutral");
+  assert(sanitizeGesture("invalid") === "talk", "ONI AI gesture must fallback to talk");
+  assert(sanitizePosture("invalid") === "relaxed", "ONI AI posture must fallback to relaxed");
+  assert(sanitizeGazeTarget("invalid") === "user", "ONI AI gaze target must fallback to user");
+  assert(sanitizeConversationState("invalid") === "idle", "ONI AI conversation state must fallback to idle");
+  assert(typeof createMotionProfile({ emotion: "happy", gesture: "wave", posture: "confident", intensity: 2 })["--oa-mouth-open"] === "string", "ONI AI motion composer must return deterministic CSS variable outputs");
   assert(source.includes("AbortController"), "v2/js/oni-ai.js must support request cancellation");
   assert(source.includes("REQUEST_TIMEOUT_MS"), "v2/js/oni-ai.js must define request timeout handling");
   assert(source.includes("if (sending) return;"), "v2/js/oni-ai.js must block duplicate send actions");
@@ -1736,9 +1822,22 @@ function checkOniAiModuleContracts() {
   assert(source.includes("sanitizeEmotion"), "v2/js/oni-ai.js must validate emotion metadata against allow-list");
   assert(source.includes("sanitizeGesture"), "v2/js/oni-ai.js must validate gesture metadata against allow-list");
   assert(source.includes("clampIntensity"), "v2/js/oni-ai.js must clamp intensity metadata");
+  assert(source.includes("sanitizePosture"), "v2/js/oni-ai.js must validate posture metadata against allow-list");
+  assert(source.includes("sanitizeGazeTarget"), "v2/js/oni-ai.js must validate gaze targets against allow-list");
+  assert(source.includes("sanitizeConversationState"), "v2/js/oni-ai.js must validate visual state transitions against allow-list");
   assert(source.includes("subscribeMeetWorldState"), "v2/js/oni-ai.js must consume shared meet world state");
   assert(source.includes("data-oa-character"), "v2/js/oni-ai.js must render character-stage interactions");
+  assert(source.includes("data-oa-scene"), "v2/js/oni-ai.js must render character and chat in one shared scene");
+  assert(source.includes("data-oa-posture"), "v2/js/oni-ai.js must render posture metadata on the stage");
+  assert(source.includes("data-oa-gaze"), "v2/js/oni-ai.js must render semantic gaze metadata on the stage");
+  assert(source.includes("data-oa-state"), "v2/js/oni-ai.js must render explicit conversation state metadata on the stage");
   assert(source.includes("data-oa-typing"), "v2/js/oni-ai.js must provide thinking state before final answer");
+  assert(source.includes("pendingPrompt"), "v2/js/oni-ai.js must safely queue a new message while a response is active");
+  assert(source.includes("interruptForLatestPrompt"), "v2/js/oni-ai.js must interrupt visual sequences for the latest message");
+  assert(source.includes("Хүсэлт цуцлагдлаа."), "v2/js/oni-ai.js must exit thinking state cleanly on cancel");
+  assert(source.includes("window.matchMedia?.(\"(prefers-reduced-motion: reduce)\")"), "v2/js/oni-ai.js must respect reduced-motion preferences");
+  assert(source.includes("data-oa-asset=\"fallback\""), "v2/js/oni-ai.js must provide a character fallback path");
+  assert(source.includes("scene.dataset.oaAsset"), "v2/js/oni-ai.js must mark character asset fallback state");
   assert(source.includes("ЦУЦЛАХ"), "v2/js/oni-ai.js must localize the cancel button");
   assert(source.includes("ИЛГЭЭХ"), "v2/js/oni-ai.js must localize the send button");
   assert(source.includes("Илгээж байна…"), "v2/js/oni-ai.js must localize sending state");
@@ -1753,6 +1852,26 @@ function checkOniAiModuleContracts() {
   assert(!source.includes('sending ? "Sending…" : "Send"'), "v2/js/oni-ai.js must not expose English sending text");
   assert(!source.includes("OPENAI_API_KEY"), "v2/js/oni-ai.js must not contain provider secrets");
   assert(!/innerHTML\s*=\s*[^;]*(reply|message)/i.test(source), "v2/js/oni-ai.js must not inject AI output into innerHTML");
+
+  const markup = routeMarkup();
+  assert(markup.includes("oni-oa-scene"), "ONI AI route markup must include shared scene shell");
+  assert(markup.includes('data-oa-part="left-upper-arm"'), "ONI AI route markup must expose semantic left arm channel");
+  assert(markup.includes('data-oa-part="right-hand"'), "ONI AI route markup must expose semantic hand channel");
+  assert(markup.includes('data-oa-part="legs"'), "ONI AI route markup must expose full-body leg channel");
+  assert(markup.includes("data-oa-compose-anchor"), "ONI AI route markup must expose a composer gaze anchor");
+
+  assert(css.includes(".oni-oa-layout"), "v2/css/app.css must define the integrated ONI AI scene layout");
+  assert(css.includes(".oni-oa-part-left-upper-arm"), "v2/css/app.css must style left arm motion layers");
+  assert(css.includes(".oni-oa-part-right-upper-arm"), "v2/css/app.css must style right arm motion layers");
+  assert(css.includes("@keyframes oniCharacterBreath"), "v2/css/app.css must define breathing animation");
+  assert(css.includes("@keyframes oniTalk"), "v2/css/app.css must define talking animation");
+  assert(css.includes("body.oni-keyboard-open .oni-oa-world"), "v2/css/app.css must compact the ONI AI stage when the keyboard opens");
+  assert(css.includes("@media (prefers-reduced-motion: reduce)"), "v2/css/app.css must reduce ONI AI motion when requested");
+  assert(css.includes(".oni-oa-room-grid"), "v2/css/app.css must provide a shared ONI AI room background");
+
+  assert(contract.includes("gaze target"), "ONI AI contract documentation must define semantic gaze targets");
+  assert(contract.includes("arm_left_upper"), "ONI AI contract documentation must define arm layer naming");
+  assert(contract.includes("fallback silhouette/emblem mode"), "ONI AI contract documentation must define fallback behavior");
 }
 
 function checkStage3BackendContracts() {
