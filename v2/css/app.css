@@ -2878,7 +2878,7 @@ body[data-oni-atmosphere="join"] {
   }
 }
 
-/* Stage 3 ONI AI character-first layout */
+/* Stage 4B-1 ONI AI living scene */
 .oni-nav-link.is-live {
   color: #ffd6df;
   animation: oniMeetPulse 1.4s ease-in-out infinite;
@@ -2891,146 +2891,584 @@ body[data-oni-atmosphere="join"] {
 
 .oni-oa-view {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  min-width: 0;
+}
+
+.oni-oa-scene {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 33, 79, 0.18), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgba(132, 89, 255, 0.18), transparent 26rem),
+    linear-gradient(180deg, rgba(4, 8, 18, 0.98), rgba(7, 11, 23, 0.98));
+}
+
+.oni-oa-room,
+.oni-oa-layout {
+  position: relative;
+}
+
+.oni-oa-room {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.oni-oa-room-glow,
+.oni-oa-room-grid,
+.oni-oa-room-panels,
+.oni-oa-room-fog {
+  position: absolute;
+  inset: 0;
+}
+
+.oni-oa-room-glow {
+  background:
+    radial-gradient(circle at 22% 32%, rgba(255, 32, 76, 0.16), transparent 22%),
+    radial-gradient(circle at 72% 16%, rgba(139, 84, 255, 0.16), transparent 22%);
+}
+
+.oni-oa-room-grid {
+  inset: auto 0 0;
+  height: 42%;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 100% 22px, 22px 100%;
+  opacity: 0.12;
+  mask-image: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.9) 32%, rgba(0, 0, 0, 0.98));
+}
+
+.oni-oa-room-panels {
+  background:
+    linear-gradient(90deg, transparent 8%, rgba(255, 255, 255, 0.04) 8%, rgba(255, 255, 255, 0.04) 9%, transparent 9%, transparent 56%, rgba(255, 255, 255, 0.05) 56%, rgba(255, 255, 255, 0.05) 57%, transparent 57%),
+    linear-gradient(180deg, transparent 10%, rgba(255, 255, 255, 0.03) 10%, rgba(255, 255, 255, 0.03) 11%, transparent 11%, transparent 46%, rgba(255, 255, 255, 0.03) 46%, rgba(255, 255, 255, 0.03) 47%, transparent 47%);
+  opacity: 0.5;
+}
+
+.oni-oa-room-fog {
+  background:
+    radial-gradient(circle at 24% 68%, rgba(255, 34, 79, 0.14), transparent 24%),
+    radial-gradient(circle at 88% 72%, rgba(150, 101, 255, 0.12), transparent 22%);
+  filter: blur(28px);
+  opacity: 0.75;
+}
+
+.oni-oa-layout {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(126px, 40%) minmax(0, 1fr);
+  min-height: min(82dvh, 920px);
+}
+
+.oni-oa-stage-pane,
+.oni-oa-chat-pane {
+  min-width: 0;
+}
+
+.oni-oa-stage-pane {
+  padding: 16px 10px 16px 16px;
 }
 
 .oni-oa-stage {
-  position: relative;
+  position: sticky;
+  top: calc(var(--oni-safe-top) + 12px);
   overflow: hidden;
-  min-height: clamp(220px, 46vh, 420px);
+  min-height: min(74dvh, 760px);
   display: grid;
   align-content: end;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(120, 78, 255, 0.24), transparent 44%),
-    radial-gradient(circle at 50% 100%, rgba(255, 25, 74, 0.18), transparent 52%),
-    linear-gradient(180deg, rgba(6, 9, 19, 0.95), rgba(10, 14, 28, 0.98));
+  padding: 10px 0 10px;
 }
 
 .oni-oa-world {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  min-height: min(60dvh, 650px);
   display: grid;
   place-items: end center;
 }
 
 .oni-oa-character {
-  width: min(72vw, 260px);
-  height: min(72vw, 340px);
+  width: min(35vw, 320px);
+  min-width: 112px;
+  height: min(75dvh, 620px);
   border: 0;
   padding: 0;
   background: transparent;
   position: relative;
   cursor: pointer;
-  transform: translateY(calc((1 - var(--oa-intensity, 0.25)) * 2px));
+  transform: translate3d(var(--oa-torso-x, 0), 0, 0);
+  transition: transform 240ms ease, filter 240ms ease;
+  filter: drop-shadow(0 22px 28px rgba(1, 5, 12, 0.45));
+  animation: oniCharacterBreath 4.8s ease-in-out infinite;
 }
 
 .oni-oa-layer {
   position: absolute;
   left: 50%;
+  top: 0;
   transform: translateX(-50%);
+  pointer-events: none;
 }
 
-.oni-oa-body {
+.oni-oa-part-aura-core {
+  bottom: 6%;
+  width: 78%;
+  height: 74%;
+  border-radius: 46% 46% 40% 40%;
+  background: radial-gradient(circle, rgba(255, 32, 75, calc(var(--oa-aura, 0.18))) 0%, rgba(138, 91, 255, calc(var(--oa-aura, 0.16))) 42%, transparent 76%);
+  filter: blur(22px);
+}
+
+.oni-oa-part-hair-back,
+.oni-oa-part-hair-front,
+.oni-oa-part-head,
+.oni-oa-part-horns,
+.oni-oa-part-eyebrows,
+.oni-oa-part-eyelids,
+.oni-oa-part-eyes,
+.oni-oa-part-mouth {
+  left: calc(50% + var(--oa-head-x, 0px));
+  transform: translateX(-50%) translateY(var(--oa-head-y, 0px)) rotate(var(--oa-head-tilt, 0deg));
+  transform-origin: 50% 78%;
+  transition: transform 220ms ease, opacity 160ms ease, height 160ms ease;
+}
+
+.oni-oa-part-legs {
   bottom: 0;
-  width: 64%;
-  height: 52%;
-  border-radius: 44% 44% 20% 20%;
-  background: linear-gradient(180deg, #0f1628, #070b14);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 33%;
+  height: 33%;
+  border-radius: 32% 32% 20% 20%;
+  background: linear-gradient(180deg, #12162a, #090d16 70%, #111928);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
-.oni-oa-head {
-  bottom: 46%;
-  width: 38%;
-  height: 24%;
-  border-radius: 44%;
-  background: linear-gradient(180deg, #1a2136, #0f1525);
+.oni-oa-part-hips {
+  bottom: 26%;
+  width: 34%;
+  height: 8%;
+  border-radius: 38%;
+  background: linear-gradient(180deg, #151a31, #0b111f);
+}
+
+.oni-oa-part-torso,
+.oni-oa-part-clothes,
+.oni-oa-part-accessories,
+.oni-oa-part-neck,
+.oni-oa-part-shoulders,
+.oni-oa-part-left-upper-arm,
+.oni-oa-part-left-forearm,
+.oni-oa-part-left-hand,
+.oni-oa-part-right-upper-arm,
+.oni-oa-part-right-forearm,
+.oni-oa-part-right-hand {
+  transform-origin: 50% 100%;
+  transition: transform 240ms ease, opacity 180ms ease, filter 180ms ease;
+}
+
+.oni-oa-part-torso {
+  bottom: 31%;
+  width: 36%;
+  height: 26%;
+  border-radius: 44% 44% 24% 24%;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 22%),
+    linear-gradient(180deg, #121a30, #090d17);
   border: 1px solid rgba(255, 255, 255, 0.14);
+  transform: translateX(calc(-50% + var(--oa-balance-x, 0%))) rotate(var(--oa-torso-tilt, 0deg)) translateY(var(--oa-talk-shift, 0px));
 }
 
-.oni-oa-eyes {
-  bottom: 56%;
-  width: 22%;
-  height: 5%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, rgba(255, 31, 77, 0.9), rgba(130, 80, 255, 0.92));
+.oni-oa-part-clothes {
+  bottom: 33%;
+  width: 40%;
+  height: 25%;
+  border-radius: 44% 44% 16% 16%;
+  background:
+    linear-gradient(90deg, rgba(255, 38, 76, 0.26), transparent 26%, transparent 74%, rgba(130, 84, 255, 0.2)),
+    linear-gradient(180deg, rgba(8, 12, 25, 0.1), rgba(4, 6, 10, 0.2)),
+    linear-gradient(180deg, #111829, #080b14);
+  box-shadow: inset 0 -2px 0 rgba(255, 34, 79, 0.16);
+  transform: translateX(calc(-50% + var(--oa-balance-x, 0%))) rotate(var(--oa-torso-tilt, 0deg));
 }
 
-.oni-oa-hands {
-  bottom: 30%;
-  width: 76%;
+.oni-oa-part-accessories {
+  bottom: 40%;
+  width: 24%;
+  height: 8%;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    linear-gradient(90deg, rgba(255, 32, 75, 0.65), rgba(128, 82, 255, 0.4));
+  transform: translateX(calc(-50% + var(--oa-balance-x, 0%))) rotate(var(--oa-torso-tilt, 0deg));
+}
+
+.oni-oa-part-neck {
+  bottom: 54%;
+  width: 8%;
+  height: 4%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd2de, #d3a2b5);
+  transform: translateX(calc(-50% + var(--oa-balance-x, 0%))) rotate(var(--oa-torso-tilt, 0deg));
+}
+
+.oni-oa-part-shoulders {
+  bottom: 49%;
+  width: 49%;
+  height: 8%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0));
+  transform: translateX(calc(-50% + var(--oa-balance-x, 0%))) translateY(var(--oa-shoulder-lift, 0px)) rotate(calc(var(--oa-torso-tilt, 0deg) * 0.45));
+}
+
+.oni-oa-part-left-upper-arm,
+.oni-oa-part-right-upper-arm {
+  bottom: 40%;
+  width: 8%;
+  height: 20%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #12182a, #0a0e18);
+}
+
+.oni-oa-part-left-upper-arm {
+  left: 37%;
+  transform: rotate(var(--oa-arm-left-rot, -10deg));
+  transform-origin: 50% 10%;
+}
+
+.oni-oa-part-right-upper-arm {
+  left: 63%;
+  transform: rotate(var(--oa-arm-right-rot, 10deg));
+  transform-origin: 50% 10%;
+}
+
+.oni-oa-part-left-forearm,
+.oni-oa-part-right-forearm {
+  bottom: 24%;
+  width: 6%;
   height: 18%;
   border-radius: 999px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: linear-gradient(180deg, #141b31, #090d17);
 }
 
-.oni-oa-horns {
-  bottom: 67%;
-  width: 30%;
-  height: 14%;
-  background:
-    linear-gradient(65deg, transparent 47%, rgba(255, 45, 88, 0.75) 48%, rgba(255, 45, 88, 0.25) 58%, transparent 60%),
-    linear-gradient(-65deg, transparent 47%, rgba(255, 45, 88, 0.75) 48%, rgba(255, 45, 88, 0.25) 58%, transparent 60%);
+.oni-oa-part-left-forearm {
+  left: 30.5%;
+  transform: rotate(calc(var(--oa-arm-left-rot, -10deg) + 14deg));
+  transform-origin: 50% 12%;
 }
+
+.oni-oa-part-right-forearm {
+  left: 69.5%;
+  transform: rotate(calc(var(--oa-arm-right-rot, 10deg) - 14deg));
+  transform-origin: 50% 12%;
+}
+
+.oni-oa-part-left-hand,
+.oni-oa-part-right-hand {
+  bottom: 18%;
+  width: 6.5%;
+  height: 8%;
+  border-radius: 44% 44% 50% 50%;
+  background: linear-gradient(180deg, #ffdde7, #ddb0c1);
+}
+
+.oni-oa-part-left-hand {
+  left: 28.5%;
+  transform: rotate(var(--oa-hand-left-rot, 0deg));
+}
+
+.oni-oa-part-right-hand {
+  left: 71.5%;
+  transform: rotate(var(--oa-hand-right-rot, 0deg));
+}
+
+.oni-oa-part-head {
+  bottom: 55%;
+  width: 24%;
+  height: 18%;
+  border-radius: 42% 42% 46% 46%;
+  background: linear-gradient(180deg, #ffe2e8, #d7b1bf 82%, #b98697);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.oni-oa-part-hair-back {
+  bottom: 52%;
+  width: 28%;
+  height: 26%;
+  border-radius: 46% 46% 42% 42%;
+  background:
+    linear-gradient(180deg, rgba(130, 84, 255, 0.15), transparent 32%),
+    linear-gradient(180deg, #0f1530, #070910);
+}
+
+.oni-oa-part-hair-front {
+  bottom: 58%;
+  width: 26%;
+  height: 13%;
+  border-radius: 48% 48% 58% 58%;
+  background:
+    linear-gradient(180deg, rgba(255, 34, 79, 0.18), transparent 35%),
+    linear-gradient(180deg, #121a36, #090d17);
+  clip-path: polygon(0 0, 100% 0, 90% 100%, 52% 72%, 10% 100%);
+}
+
+.oni-oa-part-horns {
+  bottom: 70%;
+  width: 22%;
+  height: 11%;
+  background:
+    linear-gradient(65deg, transparent 44%, rgba(255, 45, 88, 0.9) 45%, rgba(255, 45, 88, 0.12) 58%, transparent 60%),
+    linear-gradient(-65deg, transparent 44%, rgba(255, 45, 88, 0.9) 45%, rgba(255, 45, 88, 0.12) 58%, transparent 60%);
+}
+
+.oni-oa-part-eyebrows {
+  bottom: 64%;
+  width: 13%;
+  height: 2%;
+}
+
+.oni-oa-part-eyebrows::before,
+.oni-oa-part-eyebrows::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 46%;
+  height: 100%;
+  border-radius: 999px;
+  background: #261926;
+}
+
+.oni-oa-part-eyebrows::before {
+  left: 0;
+  transform: rotate(calc(var(--oa-brow-tilt, 0deg) * -1));
+}
+
+.oni-oa-part-eyebrows::after {
+  right: 0;
+  transform: rotate(var(--oa-brow-tilt, 0deg));
+}
+
+.oni-oa-part-eyes {
+  bottom: 61.5%;
+  width: 12%;
+  height: calc(10px + (var(--oa-eye-open, 0.55) * 7px));
+  transform: translateX(calc(-50% + var(--oa-eyes-x, 0px))) translateY(calc(var(--oa-head-y, 0px) + var(--oa-eyes-y, 0px))) rotate(var(--oa-head-tilt, 0deg));
+}
+
+.oni-oa-part-eyes::before,
+.oni-oa-part-eyes::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0 14%, transparent 15%),
+    linear-gradient(180deg, #ff2d58, #8e5cff);
+  box-shadow: 0 0 10px rgba(255, 40, 90, 0.5);
+}
+
+.oni-oa-part-eyes::before { left: 0; }
+.oni-oa-part-eyes::after { right: 0; }
+
+.oni-oa-part-eyelids {
+  bottom: 61.6%;
+  width: 12%;
+  height: calc(8px + (1 - var(--oa-eye-open, 0.55)) * 18px);
+  opacity: 0.88;
+  transform: translateX(calc(-50% + var(--oa-eyes-x, 0px))) translateY(calc(var(--oa-head-y, 0px) + var(--oa-eyes-y, 0px))) rotate(var(--oa-head-tilt, 0deg));
+}
+
+.oni-oa-part-eyelids::before,
+.oni-oa-part-eyelids::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 44%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(12, 17, 32, 0.95), rgba(12, 17, 32, 0.18));
+  transform-origin: 50% 0;
+}
+
+.oni-oa-part-eyelids::before { left: 0; }
+.oni-oa-part-eyelids::after { right: 0; }
+
+.oni-oa-part-mouth {
+  bottom: 58.5%;
+  width: 8%;
+  height: calc(6px + var(--oa-mouth-open, 0.12) * 10px);
+  border-radius: 0 0 999px 999px;
+  background:
+    linear-gradient(180deg, rgba(120, 0, 40, 0.32), rgba(10, 10, 12, 0.66)),
+    linear-gradient(180deg, #9d2740, #421326);
+  box-shadow: 0 -1px 0 rgba(255, 230, 236, 0.65) inset;
+}
+
+.oni-oa-stage-mark {
+  position: absolute;
+  bottom: 18%;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  transform: rotate(45deg);
+  opacity: 0.4;
+}
+
+.oni-oa-stage-mark-left { left: 10%; }
+.oni-oa-stage-mark-right { right: 11%; }
 
 .oni-oa-aura {
   position: absolute;
-  inset: 12% 20% 8%;
+  inset: 12% 16% 8%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 20, 66, calc(var(--oa-aura, 0.2))) 0%, rgba(116, 76, 255, calc(var(--oa-aura, 0.2))) 42%, transparent 74%);
-  filter: blur(14px);
+  background: radial-gradient(circle, rgba(255, 20, 66, calc(var(--oa-aura, 0.18))) 0%, rgba(116, 76, 255, calc(var(--oa-aura, 0.18))) 42%, transparent 74%);
+  filter: blur(20px);
+  animation: oniAuraPulse 4.2s ease-in-out infinite;
 }
 
-.oni-oa-stage[data-oa-gesture="battle-ready"] .oni-oa-character,
-.oni-oa-stage[data-oa-gesture="cheer"] .oni-oa-character {
-  transform: translateY(-3px) scale(1.03);
+@keyframes oniAuraPulse {
+  0%, 100% { opacity: 0.72; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1.02); }
 }
 
-.oni-oa-stage[data-oa-emotion="music"] .oni-oa-character {
-  animation: oniDance 1.8s ease-in-out infinite;
+@keyframes oniCharacterBreath {
+  0%, 100% { transform: translate3d(var(--oa-torso-x, 0), 0, 0); }
+  50% { transform: translate3d(var(--oa-torso-x, 0), calc(var(--oa-float, 0px) * -0.32), 0); }
+}
+
+.oni-oa-stage[data-oa-speaking="1"] .oni-oa-part-mouth {
+  animation: oniTalk 280ms steps(2, end) infinite;
+}
+
+@keyframes oniTalk {
+  0%, 100% { height: calc(6px + var(--oa-mouth-open, 0.12) * 6px); }
+  50% { height: calc(8px + var(--oa-mouth-open, 0.12) * 14px); }
+}
+
+.oni-oa-stage[data-oa-blink="1"] .oni-oa-part-eyelids {
+  height: 18px;
+}
+
+.oni-oa-stage[data-oa-blink="1"] .oni-oa-part-eyes {
+  height: 3px;
+}
+
+.oni-oa-stage[data-oa-gesture="dance-subtle"] .oni-oa-character,
+.oni-oa-stage[data-oa-state="music"] .oni-oa-character {
+  animation:
+    oniCharacterBreath 4.8s ease-in-out infinite,
+    oniDance 1.8s ease-in-out infinite;
+}
+
+.oni-oa-stage[data-oa-gesture="wave"] .oni-oa-part-right-upper-arm,
+.oni-oa-stage[data-oa-gesture="wave"] .oni-oa-part-right-forearm {
+  filter: drop-shadow(0 0 6px rgba(255, 45, 88, 0.18));
+}
+
+.oni-oa-stage[data-oa-posture="battle"] .oni-oa-character,
+.oni-oa-stage[data-oa-state="meet-live"] .oni-oa-character {
+  filter: drop-shadow(0 22px 34px rgba(122, 57, 255, 0.22));
 }
 
 @keyframes oniDance {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-2px) rotate(1deg); }
+  0%, 100% { transform: translate3d(var(--oa-torso-x, 0), 0, 0) rotate(-1deg); }
+  50% { transform: translate3d(var(--oa-torso-x, 0), -3px, 0) rotate(1deg); }
 }
 
 .oni-oa-stage-meta {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  margin-top: -4px;
+  padding: 8px 12px 4px;
 }
 
-.oni-oa-stage-meta small {
+.oni-oa-stage-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oni-oa-stage-meta small,
+.oni-oa-chat-head small {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
   font-size: 10px;
   letter-spacing: 0.1em;
   color: #b2bad0;
+  text-transform: uppercase;
 }
 
 .oni-oa-stage-meta b {
   font-size: 13px;
+  color: #f1e8fb;
 }
 
 .oni-oa-stage-meta p {
   margin: 0;
   color: #ccd2e3;
   font-size: 12px;
+  line-height: 1.55;
 }
 
-.oni-oa-chat-card {
-  min-height: 42vh;
+.oni-oa-chat-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+  padding: 16px 16px 16px 8px;
+  min-height: min(82dvh, 920px);
+}
+
+.oni-oa-chat-head {
+  position: sticky;
+  top: calc(var(--oni-safe-top) + 8px);
+  z-index: 2;
+  margin-left: -2px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(10, 14, 26, 0.94), rgba(9, 13, 24, 0.88));
+  backdrop-filter: blur(16px);
+}
+
+.oni-oa-chat-head strong {
+  display: block;
+  font-size: clamp(20px, 4vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+.oni-oa-chat-head > div:first-child {
+  display: grid;
+  gap: 8px;
 }
 
 .oni-oa-chat-body {
-  max-height: 40vh;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 6px 2px 6px 0;
+  mask-image: linear-gradient(180deg, transparent 0, rgba(0, 0, 0, 1) 16px, rgba(0, 0, 0, 1) calc(100% - 16px), transparent 100%);
 }
 
 .oni-oa-prompts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin: 10px 0;
+  margin: 0;
+}
+
+.oni-oa-prompts .oni-btn {
+  min-height: 40px;
 }
 
 .oni-oa-source-wrap {
@@ -3045,12 +3483,12 @@ body[data-oni-atmosphere="join"] {
 .oni-oa-source {
   display: grid;
   gap: 3px;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(169, 121, 255, 0.2);
+  border-radius: 12px;
   color: #dce2f0;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.03);
+  background: linear-gradient(180deg, rgba(13, 17, 28, 0.92), rgba(12, 15, 26, 0.78));
 }
 
 .oni-oa-source small {
@@ -3063,13 +3501,203 @@ body[data-oni-atmosphere="join"] {
   font-size: 12px;
 }
 
+.oni-oa-msg {
+  position: relative;
+  max-width: min(100%, 96%);
+  border-radius: 18px;
+  padding: 12px;
+  transform: translate3d(0, 6px, 0) scale(0.985);
+  opacity: 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.oni-oa-msg.is-ready,
+.oni-oa-msg.is-typing {
+  transform: none;
+  opacity: 1;
+}
+
+.oni-oa-msg.is-user {
+  margin-left: auto;
+  border-color: rgba(255, 42, 88, 0.28);
+  background: linear-gradient(180deg, rgba(88, 14, 30, 0.85), rgba(65, 11, 26, 0.72));
+  box-shadow: inset 0 0 0 1px rgba(255, 84, 117, 0.08);
+}
+
+.oni-oa-msg.is-ai {
+  background: linear-gradient(180deg, rgba(10, 16, 28, 0.96), rgba(13, 18, 34, 0.86));
+  border-color: rgba(142, 95, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 42, 88, 0.05);
+}
+
+.oni-oa-msg.is-ai::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  border-radius: 18px 0 0 18px;
+  background: linear-gradient(180deg, rgba(146, 95, 255, 0.9), rgba(255, 34, 79, 0.75));
+}
+
+.oni-oa-msg.is-typing {
+  opacity: 0.82;
+}
+
+.oni-oa-chat-head-actions {
+  align-items: start;
+}
+
+.oni-oa-compose {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(11, 15, 28, 0.95), rgba(7, 12, 20, 0.98));
+  backdrop-filter: blur(14px);
+}
+
+.oni-oa-compose textarea {
+  min-height: 78px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.oni-oa-inline-error {
+  order: 1;
+  min-height: 18px;
+}
+
+body.oni-keyboard-open .oni-oa-layout {
+  min-height: calc(100dvh - var(--oni-safe-top) - 24px);
+}
+
 body.oni-keyboard-open .oni-oa-stage {
-  min-height: 160px;
+  min-height: 196px;
+}
+
+body.oni-keyboard-open .oni-oa-world {
+  min-height: 190px;
+}
+
+body.oni-keyboard-open .oni-oa-character {
+  height: 210px;
+}
+
+@media (min-width: 768px) {
+  .oni-oa-layout {
+    grid-template-columns: minmax(280px, 40%) minmax(0, 60%);
+  }
+
+  .oni-oa-chat-pane {
+    padding: 18px 18px 18px 6px;
+  }
+
+  .oni-oa-prompts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .oni-oa-compose {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+
+  .oni-oa-compose textarea {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 767px) {
+  .oni-oa-stage-pane {
+    padding-right: 4px;
+  }
+
+  .oni-oa-chat-pane {
+    padding-left: 2px;
+  }
+
+  .oni-oa-chat-head-actions {
+    width: 100%;
+  }
+
+  .oni-oa-chat-head-actions .oni-btn {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .oni-oa-layout {
+    grid-template-columns: minmax(110px, 36%) minmax(0, 1fr);
+  }
+
+  .oni-oa-stage-pane {
+    padding: 10px 2px 10px 10px;
+  }
+
+  .oni-oa-stage {
+    top: calc(var(--oni-safe-top) + 6px);
+    min-height: 420px;
+  }
+
+  .oni-oa-world {
+    min-height: 332px;
+    align-items: end;
+  }
+
+  .oni-oa-character {
+    width: min(36vw, 180px);
+    height: 300px;
+  }
+
+  .oni-oa-chat-pane {
+    padding: 10px 10px 12px 4px;
+    gap: 10px;
+  }
+
+  .oni-oa-chat-head {
+    top: calc(var(--oni-safe-top) + 4px);
+    padding: 10px 12px;
+  }
+
+  .oni-oa-chat-head strong {
+    font-size: 20px;
+  }
+
+  .oni-oa-chat-body {
+    padding-right: 0;
+  }
+
+  .oni-oa-msg {
+    max-width: 100%;
+    border-radius: 16px;
+    padding: 11px;
+  }
+
+  .oni-oa-compose {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .oni-oa-compose textarea {
+    min-height: 70px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .oni-nav-link.is-live,
-  .oni-oa-stage[data-oa-emotion="music"] .oni-oa-character {
+  .oni-oa-character,
+  .oni-oa-stage[data-oa-gesture="dance-subtle"] .oni-oa-character,
+  .oni-oa-stage[data-oa-state="music"] .oni-oa-character,
+  .oni-oa-aura,
+  .oni-oa-msg {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .oni-oa-room-grid,
+  .oni-oa-room-fog {
+    display: none;
   }
 }

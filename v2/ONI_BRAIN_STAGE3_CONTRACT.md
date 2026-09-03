@@ -1,4 +1,4 @@
-# ONI HUB V3 Stage 3 — ONI Brain + Character Asset Contract
+# ONI HUB V3 — ONI Brain + Living ONI AI Asset Contract
 
 ## 1) ONI Brain Response Contract
 
@@ -58,42 +58,130 @@ Security:
 
 Used by ONI AI and global UI indicators to prevent contradictory state rendering.
 
-## 4) Character Asset Slots (Original Art Ready)
+## 4) Living ONI AI Presentation Contract
+
+Frontend semantic allow-lists:
+
+- `emotion`:
+  `neutral, happy, excited, thinking, confused, serious, concerned, sad, sorry, proud, playful, surprised, music, meet-live`
+- `gesture`:
+  `idle, listen, talk, wave, nod, shake-head, think, point, cheer, laugh, bow, hands-on-hip, surprised, calm, dance-subtle, battle-ready`
+- `posture`:
+  `relaxed, attentive, forward, confident, closed, soft, battle, music`
+- `gaze target`:
+  `user, latest-user-message, latest-ai-message, composer, meet-area, neutral-left, neutral-right`
+- `conversation state`:
+  `idle, noticed-message, reading, listening, thinking, tool-working, responding, finished-speaking, error, music, meet-live`
+
+Safety rules:
+
+- unknown `emotion` falls back to `neutral`
+- unknown `gesture` falls back to `talk`
+- unknown `posture` falls back to `relaxed`
+- unknown `gaze target` falls back to `user`
+- `intensity` remains clamped to `0.0-1.0`
+- backend/model must never send raw CSS transforms or raw DOM coordinates
+- chat must continue working if character assets or motion logic fail
+
+## 5) Character Asset Slots (Original Art Ready)
 
 Recommended canvas:
 
-- **Character canvas**: `1536 x 2048` (2D layered master)
-- **Runtime export target**: 2x and 1x responsive variants (e.g. 768x1024, 512x682)
+- **Character canvas**: `1536 x 2048` layered master
+- **Runtime export target**: 2x and 1x responsive variants, for example `768x1024` and `512x682`
 - Transparent background for all character layers.
+- Body origin: center-bottom of the full-body standing pose.
 
 Layer names:
 
-1. `body_base`
-2. `torso`
-3. `legs`
-4. `arm_left`
-5. `arm_right`
-6. `hand_left`
-7. `hand_right`
-8. `neck`
-9. `head`
-10. `hair_back`
-11. `hair_front`
-12. `eyes`
-13. `eyebrows`
-14. `mouth`
-15. `horns`
-16. `clothes`
-17. `accessory`
-18. `aura_fx`
+1. `head`
+2. `eyes`
+3. `eyelids`
+4. `eyebrows`
+5. `mouth`
+6. `hair_back`
+7. `hair_front`
+8. `horns`
+9. `neck`
+10. `shoulders`
+11. `torso`
+12. `arm_left_upper`
+13. `arm_left_forearm`
+14. `hand_left`
+15. `arm_right_upper`
+16. `arm_right_forearm`
+17. `hand_right`
+18. `hips`
+19. `legs`
+20. `clothes`
+21. `accessories`
+22. `aura`
 
 Anchor/pivot guidance:
 
-- root pivot: center-bottom of `body_base`
-- arm pivots: shoulder joints
+- root pivot: center-bottom of body origin
+- torso pivot: lower-center torso
+- shoulder pivots: left/right shoulder joints
+- upper arm pivots: shoulder joints
+- forearm pivots: elbow joints
 - hand pivots: wrist joints
 - head pivot: lower-center neck connection
+- eye motion zone: remain inside the eye whites for every gaze target
 - aura pivot: root pivot
+
+Gaze target expectations:
+
+- `user`: near camera / viewer
+- `latest-user-message`: glance toward the newest user bubble
+- `latest-ai-message`: glance toward the newest ONI AI bubble
+- `composer`: glance toward the message composer area
+- `meet-area`: glance toward the Meet status chip
+- `neutral-left`, `neutral-right`: restrained idle offsets
+
+Expression support requirements:
+
+- neutral
+- happy
+- excited
+- thinking
+- confused
+- serious
+- concerned
+- sorry
+- proud
+- playful
+- surprised
+- music
+- meet-live
+
+Gesture support requirements:
+
+- idle
+- listen
+- talk
+- wave
+- nod
+- think
+- point
+- cheer
+- laugh
+- bow
+- hands-on-hip
+- surprised
+- calm
+- dance-subtle
+- battle-ready
+
+Pose requirements:
+
+- full-body standing neutral
+- attentive listen
+- forward response
+- confident hands-on-hip
+- soft / apologetic
+- restrained battle / meet-live
+- subtle music groove
+- at least 2-3 thinking-friendly arm/head variants
 
 Formats:
 
@@ -106,8 +194,9 @@ Compression:
 - each runtime layer ideally `< 200KB`
 - first-render bundle target `< 1.5MB` on mobile
 - lazy-load non-initial expression/pose assets
+- fallback silhouette/emblem mode must remain available when production art is absent or fails to load
 
-## 5) Expression / Gesture Coverage
+## 6) Expression / Gesture Coverage
 
 Emotion coverage:
 
@@ -117,10 +206,9 @@ Gesture coverage:
 
 - idle, listen, talk, wave, nod, think, point, cheer, laugh, bow, hands-on-hip, surprised, calm, dance-subtle, battle-ready
 
-## 6) External Runtime Configuration Still Required
+## 7) External Runtime Configuration Still Required
 
 - `OPENAI_API_KEY` must remain in Cloudflare Worker secret storage.
 - Optional:
   - `ONI_MODEL`
   - `ONI_ALLOWED_ORIGINS`
-
