@@ -19,6 +19,23 @@ const JOINED_TOKEN_STORAGE = "oni.v2.meet.joinedToken";
 const LOAD_TIMEOUT_MS = 12_000;
 const LOAD_ERROR_MESSAGE = "Мэдээлэлтэй холбогдож чадсангүй.";
 
+function setRuntimeTimeout(handler, timeoutMs) {
+  if (typeof setTimeout === "function") return setTimeout(handler, timeoutMs);
+  if (typeof window !== "undefined" && typeof window.setTimeout === "function") return window.setTimeout(handler, timeoutMs);
+  return 0;
+}
+
+function clearRuntimeTimeout(timerId) {
+  if (!timerId) return;
+  if (typeof clearTimeout === "function") {
+    clearTimeout(timerId);
+    return;
+  }
+  if (typeof window !== "undefined" && typeof window.clearTimeout === "function") {
+    window.clearTimeout(timerId);
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&": "&amp;",
@@ -339,13 +356,13 @@ export function createMeetModule() {
 
   function clearLoadWatchdog() {
     if (!loadWatchdogId) return;
-    clearTimeout(loadWatchdogId);
+    clearRuntimeTimeout(loadWatchdogId);
     loadWatchdogId = 0;
   }
 
   function startLoadWatchdog() {
     clearLoadWatchdog();
-    loadWatchdogId = setTimeout(() => {
+    loadWatchdogId = setRuntimeTimeout(() => {
       if (!isMounted || !loading) return;
       loading = false;
       errorMessage = LOAD_ERROR_MESSAGE;

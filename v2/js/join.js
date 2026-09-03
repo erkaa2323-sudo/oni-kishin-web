@@ -12,7 +12,6 @@ import { getFirestoreDb } from "./firebase.js";
 const RESUBMIT_BLOCK_MS = 10 * 60 * 1000;
 const SUBMISSION_MARKER = "oni.v2.join.lastSubmission";
 const REJECTED_STATUS = "Татгалзсан";
-const SUBMIT_TIMEOUT_MS = 12_000;
 
 function asText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -34,14 +33,6 @@ function pickFirstText(...values) {
     if (text) return text;
   }
   return "";
-}
-
-function withTimeout(task, timeoutMs = SUBMIT_TIMEOUT_MS) {
-  let timeoutId = 0;
-  const timeout = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error("TIMEOUT")), timeoutMs);
-  });
-  return Promise.race([task, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 export function normalizeApplicationRecord(raw = {}, docId = "") {
@@ -339,6 +330,7 @@ export function createJoinModule() {
   async function submitApplication(event) {
     event.preventDefault();
     if (!isMounted || submitting || submitted) return;
+    submitting = true;
 
     const token = ++requestId;
     const draft = readDraftFromDom();
@@ -349,6 +341,7 @@ export function createJoinModule() {
 
     if (!validation.valid) {
       errorMessage = "Маягтын мэдээллээ шалгана уу.";
+      submitting = false;
       render();
       return;
     }
@@ -357,24 +350,24 @@ export function createJoinModule() {
     const local = readLastSubmission();
     if (local && local.key === key && Date.now() - local.at < RESUBMIT_BLOCK_MS) {
       errorMessage = "Та саяхан илгээсэн байна. Түр хүлээгээд дахин оролдоно уу.";
+      submitting = false;
       render();
       return;
     }
 
-    submitting = true;
     stateMessage = "Илгээж байна...";
     render();
 
     try {
       const db = getFirestoreDb();
-      const duplicate = await withTimeout(hasRecentDuplicate(db, draft));
+      const duplicate = await hasRecentDuplicate(db, draft);
       if (!isMounted || token !== requestId) return;
 
       if (duplicate) {
         throw new Error("DUPLICATE_APPLICATION");
       }
 
-      await withTimeout(addDoc(collection(db, "applications"), buildApplicationPayload(draft)));
+      await addDoc(collection(db, "applications"), buildApplicationPayload(draft));
       if (!isMounted || token !== requestId) return;
 
       writeLastSubmission(key);
