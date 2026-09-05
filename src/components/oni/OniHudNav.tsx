@@ -23,7 +23,7 @@ export function OniHudNav() {
     };
   }, [open]);
 
-  const primary = ONI_DESTINATIONS.slice(0, 6);
+  const primary = ONI_DESTINATIONS.filter((d) => d.to !== "/" && d.to !== "/admin");
 
   return (
     <>
