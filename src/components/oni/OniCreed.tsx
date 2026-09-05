@@ -23,6 +23,7 @@ const CREED = [
 export function OniCreed() {
   return (
     <section
+      id="oni-creed"
       aria-labelledby="oni-creed-title"
       className="relative overflow-hidden border-t border-border bg-ink py-20 sm:py-28"
     >
