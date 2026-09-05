@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowUpRight, Crosshair, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUpRight, ShieldCheck } from "lucide-react";
 
 import cityBg from "@/assets/oni-city-2099.webp";
 import oniCar from "@/assets/garage/car-01.webp";
@@ -17,7 +17,6 @@ export function OniHero() {
       <div className="oni-command__city" style={{ ...layer(0.28), scale: "1.08" }}>
         <img src={cityBg} alt="2099 оны ОНИ хотын шөнийн сектор" width={1920} height={1088} fetchPriority="high" />
       </div>
-      <div className="oni-command__grid" aria-hidden="true" />
       <div className="oni-command__flare" aria-hidden="true" />
       <div className="oni-command__rain" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--one" aria-hidden="true" />
@@ -28,12 +27,8 @@ export function OniHero() {
         <img src={oniCar} alt="ОНИ секторын JDM машин" width={1536} height={1024} decoding="async" />
       </div>
       <div className="oni-command__subject" style={layer(1.15)}>
-        <div className="oni-command__halo" aria-hidden="true"><span /><span /><span /></div>
         <img src={oniCharacter} alt="ОНИ хотын гол дүр" width={1024} height={1536} fetchPriority="high" />
-        <div className="oni-command__target" aria-hidden="true"><Crosshair /></div>
       </div>
-      <div className="oni-command__frame" aria-hidden="true" />
-      <div className="oni-command__noise" aria-hidden="true" />
 
       <div className="oni-command__ui">
         <div className="oni-command__eyebrow"><span className="oni-live-dot" /><span>ONI NETWORK / 2099</span><span className="hidden sm:inline">鬼神都市</span></div>

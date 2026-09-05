@@ -1,63 +1,28 @@
-import cityBg from "@/assets/oni-city-bg.jpg";
-import { CLAN_NAME } from "@/lib/oni-nav";
+import cityBg from "@/assets/oni-city-2099.webp";
+import oniCharacter from "@/assets/oni-character.webp";
 
 const CREED = [
-  {
-    kicker: "一 / НЭГ",
-    title: "НЭГ ТЭМДЭГ",
-    body: "Они болон Кишин — нэг тэмдгийн дор нэгдсэн жолооч, бүтээгчид, урлагчид.",
-  },
-  {
-    kicker: "二 / ХОЁР",
-    title: "ШӨНИЙН ЗАМ",
-    body: "Хотын шөнө бол бидний талбар. Хурд биш, хэв маяг, хүндлэл эхэнд.",
-  },
-  {
-    kicker: "三 / ГУРАВ",
-    title: "БҮТЭЭХ СЭТГЭЛ",
-    body: "Машин, хөгжим, дүрс — бүх бүтээл нэг л ертөнцийн хэлээр ярина.",
-  },
-];
+  ["01", "НЭГ ТЭМДЭГ", "Они болон Кишин — нэг тэмдгийн дор нэгдсэн жолооч, бүтээгчид, урлагчид."],
+  ["02", "ШӨНИЙН ЗАМ", "Хотын шөнө бол бидний талбар. Хурд биш, хэв маяг, хүндлэл эхэнд."],
+  ["03", "БҮТЭЭХ СЭТГЭЛ", "Машин, хөгжим, дүрс — бүх бүтээл нэг ертөнцийн хэлээр ярина."],
+] as const;
 
-/** Editorial creed band — establishes the clan's tone between hero and directory. */
 export function OniCreed() {
   return (
-    <section
-      id="oni-creed"
-      aria-labelledby="oni-creed-title"
-      className="relative overflow-hidden border-t border-border bg-ink py-20 sm:py-28"
-    >
-      <img
-        src={cityBg}
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-        width={1920}
-        height={1088}
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25"
-      />
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "var(--gradient-vignette)" }}
-      />
-      <div className="pointer-events-none absolute inset-0 bg-ink/55" />
-
-      <div className="relative mx-auto max-w-[110rem] px-5 sm:px-8">
-        <span className="hud-label hud-rule block pl-11 text-crimson/85">CREED / ЗАРЧИМ</span>
-        <h2
-          id="oni-creed-title"
-          className="mt-4 max-w-3xl text-cinema text-4xl text-foreground sm:text-6xl"
-        >
-          {CLAN_NAME.toUpperCase()} — ХОТЫН ДОР
-        </h2>
-
-        <div className="mt-14 grid gap-px bg-border sm:grid-cols-3">
-          {CREED.map((c) => (
-            <article key={c.title} className="bg-ink/70 p-6 backdrop-blur-sm sm:p-8">
-              <span className="hud-label text-crimson/80">{c.kicker}</span>
-              <h3 className="mt-4 text-cinema text-2xl text-foreground sm:text-3xl">{c.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
+    <section id="oni-creed" aria-labelledby="oni-creed-title" className="oni-creed-scene">
+      <img src={cityBg} alt="" aria-hidden="true" loading="lazy" width={2400} height={1350} />
+      <div className="oni-creed-scene__character" aria-hidden="true">
+        <img src={oniCharacter} alt="" loading="lazy" width={1024} height={1536} />
+      </div>
+      <div className="oni-creed-scene__content">
+        <p className="hud-label text-crimson">ONI / KISHIN MANIFESTO</p>
+        <h2 id="oni-creed-title">БИД ЗҮГЭЭР НЭГ КЛАН БИШ.</h2>
+        <p className="oni-creed-scene__intro">Бид өөрсдийн хот, өөрсдийн дүр төрх, өөрсдийн домгийг бүтээж байна.</p>
+        <div className="oni-creed-scene__principles">
+          {CREED.map(([number, title, body]) => (
+            <article key={number}>
+              <span>{number}</span>
+              <div><h3>{title}</h3><p>{body}</p></div>
             </article>
           ))}
         </div>
