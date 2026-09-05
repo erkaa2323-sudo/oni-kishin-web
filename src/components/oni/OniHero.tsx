@@ -1,12 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowUpRight, Crosshair, Radio, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Crosshair, ShieldCheck } from "lucide-react";
 
-import cityBg from "@/assets/oni-city-bg.jpg";
+import cityBg from "@/assets/oni-city-2099.webp";
 import oniCar from "@/assets/garage/car-01.webp";
 import oniCharacter from "@/assets/oni-character.webp";
 import { useParallax } from "./useParallax";
-
-const telemetry = [["NODE", "UB-00"], ["SYNC", "99.7%"], ["STATUS", "ACTIVE"]] as const;
 
 export function OniHero() {
   const { px, py, sp } = useParallax();
@@ -21,6 +19,9 @@ export function OniHero() {
       </div>
       <div className="oni-command__grid" aria-hidden="true" />
       <div className="oni-command__flare" aria-hidden="true" />
+      <div className="oni-command__rain" aria-hidden="true" />
+      <div className="oni-command__fog oni-command__fog--one" aria-hidden="true" />
+      <div className="oni-command__fog oni-command__fog--two" aria-hidden="true" />
       <div className="oni-command__title" aria-hidden="true"><span>ONI</span><span>CITY</span></div>
 
       <div className="oni-command__car" style={layer(0.72)}>
@@ -45,15 +46,12 @@ export function OniHero() {
             <Link to="/crew" className="oni-secondary-action">ДҮРҮҮДИЙГ НЭЭХ</Link>
           </div>
         </div>
-        <aside className="oni-command__telemetry" aria-label="Системийн мэдээлэл">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3"><span className="hud-label">LIVE TELEMETRY</span><Radio className="h-3.5 w-3.5 text-crimson" /></div>
-          {telemetry.map(([key, value]) => <div key={key} className="oni-telemetry-row"><span>{key}</span><b>{value}</b></div>)}
-          <div className="oni-command__signal"><i /><i /><i /><i /><i /><i /></div>
+        <aside className="oni-command__chapter" aria-label="ОНИ хотын бүлэг">
+          <span>CHAPTER</span><strong>00</strong><small>THE CITY<br />AWAKENS</small>
         </aside>
-        <div className="oni-command__rail"><span>PROTOCOL / KISHIN</span><span>•</span><span>IDENTITY / ONI</span><span>•</span><span>未来都市</span></div>
         <div className="oni-command__bottom">
           <div><ShieldCheck className="h-4 w-4 text-crimson" /><span>NETWORK SECURE</span></div>
-          <a href="#oni-creed" aria-label="Доош гүйлгэх"><ArrowDown className="h-4 w-4" /><span>EXPLORE</span></a>
+          <a href="#oni-creed" aria-label="Доош гүйлгэх"><ArrowDown className="h-4 w-4" /><span>ENTER CITY</span></a>
           <span>43°N / 106°E</span>
         </div>
       </div>
