@@ -327,24 +327,18 @@ export async function answerOni(input: string, history: BrainTurn[] = []): Promi
 
   const bounded = history.slice(-10);
 
-  const direct = classify(n);
-  // Factual intents stay deterministic and authoritative. Conversational
-  // intents (greeting, identity, help) prefer the live model for a natural,
-  // non-canned voice, falling back to the local line when it's unavailable.
-  const CONVERSATIONAL: Intent[] = ["greet", "identity", "help"];
-  if (direct && !CONVERSATIONAL.includes(direct)) return REPLIES[direct]();
-  if (direct && CONVERSATIONAL.includes(direct)) {
-    const general = await generalFallback(n.raw, bounded);
-    return general ?? REPLIES[direct]();
-  }
+  // AI-first: every safe message reaches GPT so ONI keeps one natural voice.
+  // The public clan snapshot is already supplied to the model. Deterministic
+  // handlers remain as an outage fallback, never as the normal conversation.
+  const general = await generalFallback(n.raw, bounded);
+  if (general) return general;
 
+  const direct = classify(n);
+  if (direct) return REPLIES[direct]();
   if (isFollowUp(n)) {
     const prior = lastIntent(bounded);
     if (prior) return REPLIES[prior]();
   }
-
-  const general = await generalFallback(n.raw, bounded);
-  if (general) return general;
 
   return {
     text: `Үүнд яг таарах баталгаатай өгөгдөл надад алга байна. ${HELP}`,
