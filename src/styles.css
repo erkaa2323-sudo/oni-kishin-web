@@ -1,0 +1,456 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.25rem;
+
+  /* ONI core palette — black / midnight / white / crimson */
+  --background: oklch(0.11 0.012 265);
+  --foreground: oklch(0.97 0.004 260);
+  --card: oklch(0.145 0.016 265);
+  --card-foreground: oklch(0.97 0.004 260);
+  --popover: oklch(0.13 0.014 265);
+  --popover-foreground: oklch(0.97 0.004 260);
+
+  --primary: oklch(0.55 0.215 25.5);
+  --primary-foreground: oklch(0.98 0.005 260);
+  --secondary: oklch(0.2 0.02 265);
+  --secondary-foreground: oklch(0.94 0.004 260);
+  --muted: oklch(0.2 0.018 265);
+  --muted-foreground: oklch(0.68 0.015 262);
+  --accent: oklch(0.24 0.03 265);
+  --accent-foreground: oklch(0.97 0.004 260);
+  --destructive: oklch(0.55 0.215 25.5);
+  --destructive-foreground: oklch(0.98 0.005 260);
+
+  --border: oklch(0.98 0.004 260 / 12%);
+  --input: oklch(0.98 0.004 260 / 16%);
+  --ring: oklch(0.55 0.215 25.5 / 60%);
+
+  --ink: oklch(0.06 0.008 265);
+  --midnight: oklch(0.16 0.028 268);
+  --crimson: oklch(0.55 0.215 25.5);
+  --crimson-glow: oklch(0.66 0.21 27);
+  --crimson-deep: oklch(0.36 0.16 25);
+  --bone: oklch(0.97 0.006 90);
+
+  --chart-1: oklch(0.55 0.215 25.5);
+  --chart-2: oklch(0.66 0.21 27);
+  --chart-3: oklch(0.36 0.16 25);
+  --chart-4: oklch(0.68 0.015 262);
+  --chart-5: oklch(0.16 0.028 268);
+  --sidebar: oklch(0.13 0.014 265);
+  --sidebar-foreground: oklch(0.97 0.004 260);
+  --sidebar-primary: oklch(0.55 0.215 25.5);
+  --sidebar-primary-foreground: oklch(0.98 0.005 260);
+  --sidebar-accent: oklch(0.2 0.02 265);
+  --sidebar-accent-foreground: oklch(0.97 0.004 260);
+  --sidebar-border: oklch(0.98 0.004 260 / 10%);
+  --sidebar-ring: oklch(0.55 0.215 25.5 / 60%);
+
+  /* Cinematic composition tokens */
+  --gradient-vignette: radial-gradient(
+    120% 80% at 50% 40%,
+    transparent 0%,
+    oklch(0.06 0.008 265 / 0.35) 55%,
+    oklch(0.05 0.008 265 / 0.92) 100%
+  );
+  --gradient-floor: linear-gradient(
+    to top,
+    oklch(0.06 0.008 265) 0%,
+    oklch(0.06 0.008 265 / 0.85) 22%,
+    transparent 62%
+  );
+  --gradient-crimson: linear-gradient(
+    135deg,
+    var(--crimson-deep) 0%,
+    var(--crimson) 55%,
+    var(--crimson-glow) 100%
+  );
+  --shadow-cinema: 0 40px 120px -40px oklch(0.05 0.008 265 / 0.9);
+  --shadow-crimson: 0 0 40px -8px oklch(0.55 0.215 25.5 / 0.55);
+  --ease-cinema: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-midnight: var(--midnight);
+  --color-crimson: var(--crimson);
+  --color-crimson-glow: var(--crimson-glow);
+  --color-crimson-deep: var(--crimson-deep);
+  --color-bone: var(--bone);
+  --font-display: "Oswald", "Rubik", system-ui, sans-serif;
+  --font-sans: "Rubik", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--ink);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--crimson);
+    color: var(--bone);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--crimson-glow);
+    outline-offset: 3px;
+  }
+}
+
+/* ---------- ONI HUD utilities ---------- */
+
+@utility hud-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@utility hud-rule {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    width: 1.75rem;
+    height: 1px;
+    background: var(--crimson);
+  }
+}
+
+@utility clip-notch {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 0.75rem) 0,
+    100% 0.75rem,
+    100% 100%,
+    0.75rem 100%,
+    0 calc(100% - 0.75rem)
+  );
+}
+
+@utility glass-panel {
+  background: color-mix(in oklab, var(--ink) 62%, transparent);
+  backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid var(--color-border);
+}
+
+@utility text-cinema {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+@utility scanline-veil {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.03) 0px,
+    oklch(1 0 0 / 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes oni-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oni-haze {
+  0% {
+    transform: translate3d(-4%, 0, 0) scale(1.08);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate3d(4%, -1.5%, 0) scale(1.14);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(-4%, 0, 0) scale(1.08);
+    opacity: 0.35;
+  }
+}
+
+@keyframes oni-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -0.8%, 0) scale(1.006);
+  }
+}
+
+@keyframes oni-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes oni-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@utility animate-rise {
+  animation: oni-rise 1s var(--ease-cinema) both;
+}
+
+@utility animate-haze {
+  animation: oni-haze 26s ease-in-out infinite;
+}
+
+@utility animate-breathe {
+  animation: oni-breathe 9s ease-in-out infinite;
+}
+
+/* ---------- ONI character emotion states ----------
+ * One PNG asset only: emotion is expressed through motion, framing and
+ * lighting. Transform/opacity only, so every state stays GPU-composited.
+ */
+
+@keyframes oni-listen {
+  0%,
+  100% {
+    transform: translate3d(0, -0.4%, 0) scale(1.015) rotate(-0.4deg);
+  }
+  50% {
+    transform: translate3d(0.5%, -1.1%, 0) scale(1.02) rotate(0.5deg);
+  }
+}
+
+@keyframes oni-think {
+  0%,
+  100% {
+    transform: translate3d(-0.8%, 0.2%, 0) scale(0.995) rotate(-1deg);
+  }
+  50% {
+    transform: translate3d(0.9%, -0.4%, 0) scale(1) rotate(0.8deg);
+  }
+}
+
+@keyframes oni-happy {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+  30% {
+    transform: translate3d(0, -2.2%, 0) scale(1.035);
+  }
+  60% {
+    transform: translate3d(0, -0.6%, 0) scale(1.025);
+  }
+}
+
+@keyframes oni-excited {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.03) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(-0.8%, -3%, 0) scale(1.055) rotate(-1.4deg);
+  }
+  50% {
+    transform: translate3d(0, -1%, 0) scale(1.04) rotate(0deg);
+  }
+  75% {
+    transform: translate3d(0.8%, -2.6%, 0) scale(1.05) rotate(1.4deg);
+  }
+}
+
+@keyframes oni-surprised {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  12% {
+    transform: translate3d(0, -2.4%, 0) scale(1.06);
+  }
+  30% {
+    transform: translate3d(0, -0.8%, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(0, -0.4%, 0) scale(1.025);
+  }
+}
+
+@keyframes oni-concerned {
+  0%,
+  100% {
+    transform: translate3d(0, 0.8%, 0) scale(0.985) rotate(0.6deg);
+  }
+  50% {
+    transform: translate3d(0, 1.4%, 0) scale(0.98) rotate(-0.3deg);
+  }
+}
+
+@keyframes oni-serious {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.01);
+  }
+  50% {
+    transform: translate3d(0, -0.3%, 0) scale(1.014);
+  }
+}
+
+@keyframes oni-music {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.02) rotate(-0.8deg);
+  }
+  25% {
+    transform: translate3d(0, -1.4%, 0) scale(1.03) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -0.2%, 0) scale(1.022) rotate(0.8deg);
+  }
+  75% {
+    transform: translate3d(0, -1.4%, 0) scale(1.03) rotate(0deg);
+  }
+}
+
+@utility oni-anim-idle {
+  animation: oni-breathe 9s ease-in-out infinite;
+}
+@utility oni-anim-listening {
+  animation: oni-listen 2.6s ease-in-out infinite;
+}
+@utility oni-anim-thinking {
+  animation: oni-think 2s ease-in-out infinite;
+}
+@utility oni-anim-happy {
+  animation: oni-happy 1.6s ease-in-out infinite;
+}
+@utility oni-anim-excited {
+  animation: oni-excited 1.15s ease-in-out infinite;
+}
+@utility oni-anim-surprised {
+  animation: oni-surprised 1.4s var(--ease-cinema) infinite;
+}
+@utility oni-anim-concerned {
+  animation: oni-concerned 4.5s ease-in-out infinite;
+}
+@utility oni-anim-serious {
+  animation: oni-serious 6s ease-in-out infinite;
+}
+@utility oni-anim-music {
+  animation: oni-music 1.9s ease-in-out infinite;
+}
+
+@utility animate-pulse-soft {
+  animation: oni-pulse 3.4s ease-in-out infinite;
+}
+
+@utility animate-sweep {
+  animation: oni-sweep 6s var(--ease-cinema) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
