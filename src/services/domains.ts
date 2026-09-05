@@ -7,6 +7,8 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { collection, getDocs } from "firebase/firestore";
+import { firebaseDb } from "@/integrations/firebase/client";
 import { fail, normalizeError, ok, type ServiceResult } from "@/lib/backend/errors";
 
 export const TABLES = {
@@ -33,6 +35,23 @@ type Row = Record<string, unknown>;
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const opt = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
+
+const firebaseDate = (v: unknown): string | undefined => {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object" && "toDate" in v) {
+    try {
+      return (v as { toDate: () => Date }).toDate().toISOString();
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
+
+async function legacyRows(name: "members" | "garage"): Promise<Row[]> {
+  const snapshot = await getDocs(collection(firebaseDb, name));
+  return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+}
 
 function base(r: Row): BaseRecord {
   return { id: str(r["id"]), createdAt: opt(r["created_at"]), updatedAt: opt(r["updated_at"]) };
@@ -96,16 +115,27 @@ export const membersService = {
       mapMember,
     ),
   /** Public projection: active members only, no admin-only columns. */
-  listPublic: () =>
-    run(
-      supabase
-        .from("members")
-        .select("id,cpm_nickname,cpm_id,role,status,joined_at,created_at,updated_at")
-        .eq("status", "active")
-        .order("joined_at", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true }),
-      mapMember,
-    ),
+  listPublic: async (): Promise<ServiceResult<MemberRecord[]>> => {
+    try {
+      const rows = await legacyRows("members");
+      return ok(
+        rows
+          .filter((r) => str(r["status"]) !== "archived")
+          .map((r) => ({
+            id: str(r["id"]),
+            cpmNickname: str(r["nick"] || r["name"]),
+            cpmId: str(r["cpmid"]),
+            role: opt(r["role"] || r["title"]),
+            status: "active",
+            joinedAt: firebaseDate(r["createdAt"]),
+            createdAt: firebaseDate(r["createdAt"]),
+            updatedAt: firebaseDate(r["updatedAt"]),
+          })),
+      );
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
   create: (data: Record<string, unknown>) =>
     mutate(
       supabase
@@ -160,17 +190,26 @@ export const garageService = {
       supabase.from("garage_vehicles").select("*").order("created_at", { ascending: false }),
       mapVehicle,
     ),
-  listPublished: () =>
-    run(
-      supabase
-        .from("garage_vehicles")
-        .select(
-          "id,model,owner_name,owner_member_id,category,build,image_path,status,created_at,updated_at",
-        )
-        .eq("status", "published")
-        .order("created_at", { ascending: false }),
-      mapVehicle,
-    ),
+  listPublished: async (): Promise<ServiceResult<VehicleRecord[]>> => {
+    try {
+      const rows = await legacyRows("garage");
+      return ok(
+        rows.map((r) => ({
+          id: str(r["id"]),
+          model: str(r["name"]),
+          ownerName: opt(r["owner"]),
+          category: opt(r["category"]),
+          build: opt(r["build"] || r["description"] || r["anime"]),
+          imagePath: opt(r["image"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
+          status: "published",
+          createdAt: firebaseDate(r["createdAt"]),
+          updatedAt: firebaseDate(r["updatedAt"]),
+        })),
+      );
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
   archive: (id: string) =>
     mutate(
       supabase
