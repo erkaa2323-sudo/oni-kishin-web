@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CrewRouteImport } from './routes/crew'
+import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as GarageRouteImport } from './routes/garage'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as MeetRouteImport } from './routes/meet'
@@ -31,6 +32,11 @@ const AdminRoute = AdminRouteImport.update({
 const CrewRoute = CrewRouteImport.update({
   id: '/crew',
   path: '/crew',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GarageRoute = GarageRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/crew': typeof CrewRoute
+  '/gallery': typeof GalleryRoute
   '/garage': typeof GarageRoute
   '/join': typeof JoinRoute
   '/meet': typeof MeetRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/crew': typeof CrewRoute
+  '/gallery': typeof GalleryRoute
   '/garage': typeof GarageRoute
   '/join': typeof JoinRoute
   '/meet': typeof MeetRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/crew': typeof CrewRoute
+  '/gallery': typeof GalleryRoute
   '/garage': typeof GarageRoute
   '/join': typeof JoinRoute
   '/meet': typeof MeetRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/crew'
+    | '/gallery'
     | '/garage'
     | '/join'
     | '/meet'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/crew'
+    | '/gallery'
     | '/garage'
     | '/join'
     | '/meet'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/crew'
+    | '/gallery'
     | '/garage'
     | '/join'
     | '/meet'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   CrewRoute: typeof CrewRoute
+  GalleryRoute: typeof GalleryRoute
   GarageRoute: typeof GarageRoute
   JoinRoute: typeof JoinRoute
   MeetRoute: typeof MeetRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/crew'
       fullPath: '/crew'
       preLoaderRoute: typeof CrewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/garage': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   CrewRoute: CrewRoute,
+  GalleryRoute: GalleryRoute,
   GarageRoute: GarageRoute,
   JoinRoute: JoinRoute,
   MeetRoute: MeetRoute,
