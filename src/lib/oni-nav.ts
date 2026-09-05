@@ -8,7 +8,7 @@
 
 export type OniDestination = {
   /** Route path (must match a file in src/routes) */
-  to: "/" | "/crew" | "/garage" | "/music" | "/join" | "/meet" | "/oni-ai" | "/admin";
+  to: "/" | "/crew" | "/garage" | "/gallery" | "/music" | "/join" | "/meet" | "/oni-ai" | "/admin";
   /** Primary interface language: Mongolian */
   label: string;
   /** Decorative game-world code label */
@@ -61,6 +61,13 @@ export const ONI_DESTINATIONS: OniDestination[] = [
     code: "MEET",
     desc: "Цугларалт ба уулзалт",
     index: "05",
+  },
+  {
+    to: "/gallery",
+    label: "ГАЛЕРЕЙ",
+    code: "GALLERY",
+    desc: "Кланы зураг ба дурсамж",
+    index: "06",
   },
   {
     to: "/admin",
