@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Crown, Radio } from "lucide-react";
 
 import crewHall from "@/assets/crew/crew-hall.jpg";
-import {
-  CREW_ROLES,
-  CREW_STATUS_LABEL,
-  fetchCrew,
-  type CrewMember,
-  type CrewRoleId,
-} from "@/data/crew";
+import { CREW_ROLES, CREW_STATUS_LABEL, fetchCrew, type CrewMember, type CrewRoleId } from "@/data/crew";
 import { OniHudNav } from "./OniHudNav";
 import { OniFooter } from "./OniFooter";
 
@@ -22,257 +17,105 @@ export function OniCrewStage() {
 
   useEffect(() => {
     let alive = true;
-    void fetchCrew().then((r) => {
+    void fetchCrew().then((result) => {
       if (!alive) return;
-      if (r.status === "error") {
+      if (result.status === "error") {
         setLoadState("error");
-        setLoadError(r.reason);
+        setLoadError(result.reason);
         return;
       }
-      setRoster(r.rows);
-      setActiveId(r.rows[0]?.id ?? "");
+      setRoster(result.rows);
+      setActiveId(result.rows[0]?.id ?? "");
       setLoadState("ready");
     });
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  const visible = useMemo(
-    () => (filter === "all" ? roster : roster.filter((m) => m.roleId === filter)),
-    [roster, filter],
-  );
+  const visible = useMemo(() => filter === "all" ? roster : roster.filter((member) => member.roleId === filter), [roster, filter]);
+  const active = roster.find((member) => member.id === activeId) ?? visible[0] ?? roster[0];
+  const activeIndex = visible.findIndex((member) => member.id === active?.id);
 
-  const active = roster.find((m) => m.id === activeId) ?? visible[0] ?? roster[0];
+  const selectFilter = (nextFilter: Filter) => {
+    setFilter(nextFilter);
+    const next = nextFilter === "all" ? roster : roster.filter((member) => member.roleId === nextFilter);
+    if (next.length && !next.some((member) => member.id === activeId)) setActiveId(next[0]!.id);
+  };
 
-  const selectFilter = (f: Filter) => {
-    setFilter(f);
-    const next = f === "all" ? roster : roster.filter((m) => m.roleId === f);
-    if (next.length && !next.some((m) => m.id === activeId)) setActiveId(next[0]!.id);
+  const step = (direction: -1 | 1) => {
+    if (!visible.length) return;
+    const nextIndex = (Math.max(0, activeIndex) + direction + visible.length) % visible.length;
+    setActiveId(visible[nextIndex]!.id);
   };
 
   return (
-    <div className="relative min-h-screen bg-ink">
+    <div className="min-h-screen bg-ink">
       <OniHudNav />
+      <main>
+        <section className="crew-select" aria-labelledby="crew-title">
+          <img className="crew-select__hall" src={crewHall} alt="" aria-hidden="true" width={1920} height={1088} fetchPriority="high" />
+          {active?.portrait ? <img key={`echo-${active.id}`} className="crew-select__echo" src={active.portrait} alt="" aria-hidden="true" /> : null}
+          <div className="crew-select__atmosphere" aria-hidden="true" />
 
-      <main className="relative">
-        <section className="relative isolate overflow-hidden" aria-labelledby="crew-title">
-          {/* backdrop */}
-          <div className="absolute inset-0">
-            <img
-              src={crewHall}
-              alt=""
-              aria-hidden="true"
-              width={1920}
-              height={1088}
-              fetchPriority="high"
-              decoding="async"
-              className="h-full w-full scale-105 object-cover opacity-70"
-            />
-          </div>
-          <div
-            className="pointer-events-none absolute inset-x-[-10%] bottom-0 top-[10%] animate-haze blur-3xl"
-            style={{
-              background:
-                "radial-gradient(45% 55% at 40% 65%, oklch(0.55 0.215 25.5 / 0.18), transparent 70%)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "var(--gradient-vignette)" }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "var(--gradient-floor)" }}
-          />
-          <div className="pointer-events-none absolute inset-0 scanline-veil opacity-20 mix-blend-overlay" />
+          <header className="crew-select__heading">
+            <div>
+              <p>ONI ARCHIVE · БҮРЭЛДЭХҮҮН</p>
+              <h1 id="crew-title">ДҮРЭЭ СОНГО.</h1>
+            </div>
+            <span>{loadState === "ready" ? `${String(visible.length).padStart(2, "0")} / ${String(roster.length).padStart(2, "0")}` : "— / —"}</span>
+          </header>
 
-          <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-[110rem] flex-col px-5 pb-8 pt-24 sm:px-8 sm:pt-28">
-            <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
-              <div className="min-w-0">
-                <span className="hud-label hud-rule block pl-11 text-crimson/85">
-                  SECTOR 01 / CREW
-                </span>
-                <h1
-                  id="crew-title"
-                  className="mt-3 text-cinema text-4xl text-foreground sm:text-6xl"
-                >
-                  БҮРЭЛДЭХҮҮН
-                </h1>
+          <nav className="crew-select__roles" aria-label="Үүргээр шүүх">
+            {[{ id: "all" as const, label: "БҮГД" }, ...CREW_ROLES].map((role) => (
+              <button key={role.id} type="button" aria-pressed={filter === role.id} onClick={() => selectFilter(role.id as Filter)}>{role.label}</button>
+            ))}
+          </nav>
+
+          {loadState !== "ready" || !roster.length ? (
+            <div className="crew-select__state">
+              <strong>{loadState === "loading" ? "БҮРЭЛДЭХҮҮН АЧААЛЖ БАЙНА" : loadState === "error" ? "ХОЛБОЛТЫН АЛДАА" : "БҮРТГЭЛ ХООСОН"}</strong>
+              <p>{loadState === "loading" ? "ONI архивтай холбогдож байна…" : loadState === "error" ? loadError : "Идэвхтэй гишүүн бүртгэгдээгүй байна."}</p>
+            </div>
+          ) : active ? (
+            <div className="crew-select__stage">
+              <article key={`info-${active.id}`} className="crew-select__identity">
+                <div className="crew-select__status"><Radio />{CREW_STATUS_LABEL[active.status]}</div>
+                <p className="crew-select__role">{CREW_ROLES.find((role) => role.id === active.roleId)?.label ?? active.roleId}</p>
+                <h2>{active.callsign}</h2>
+                {active.kana ? <span className="crew-select__kana">{active.kana}</span> : null}
+                <h3>{active.title}</h3>
+                <p className="crew-select__bio">{active.bio}</p>
+                <dl>
+                  {active.traits.map((trait) => <div key={trait.label}><dt>{trait.label}</dt><dd>{trait.value}</dd></div>)}
+                </dl>
+              </article>
+
+              <div key={`portrait-${active.id}`} className="crew-select__portrait">
+                {active.portrait ? <img src={active.portrait} alt={`${active.callsign} — ${active.title}`} width={1024} height={1536} decoding="async" /> : <span>ЗУРАГ БАЙХГҮЙ</span>}
               </div>
-              <span className="hud-label hidden shrink-0 sm:block">
-                {loadState === "ready" ? `${visible.length} / ${roster.length} НЭГЖ` : "—"}
-              </span>
-            </header>
 
-            {/* filters */}
-            <div
-              className="-mx-5 mt-6 flex snap-x gap-2 overflow-x-auto px-5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
-              role="tablist"
-              aria-label="Үүргээр шүүх"
-            >
-              {[{ id: "all" as const, label: "БҮГД", code: "ALL" }, ...CREW_ROLES].map((r) => {
-                const on = filter === r.id;
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    onClick={() => selectFilter(r.id as Filter)}
-                    className={`shrink-0 snap-start border px-4 py-3 text-[0.62rem] tracking-[0.24em] transition-colors duration-300 clip-notch ${
-                      on
-                        ? "border-crimson/70 bg-crimson/20 text-foreground"
-                        : "border-border bg-ink/50 text-muted-foreground backdrop-blur-md hover:border-crimson/50 hover:text-foreground"
-                    }`}
-                  >
-                    {r.label}
+              <aside className="crew-select__chapter" aria-label="Сонгосон гишүүний дугаар">
+                <Crown /><span>SELECTED</span><strong>{String(activeIndex + 1).padStart(2, "0")}</strong><small>{active.roleId.toUpperCase()}</small>
+              </aside>
+            </div>
+          ) : null}
+
+          {loadState === "ready" && roster.length ? (
+            <div className="crew-select__roster">
+              <button type="button" onClick={() => step(-1)} aria-label="Өмнөх гишүүн"><ChevronLeft /></button>
+              <div className="crew-select__faces">
+                {visible.map((member, index) => (
+                  <button key={member.id} type="button" aria-pressed={member.id === active?.id} onClick={() => setActiveId(member.id)}>
+                    {member.portrait ? <img src={member.portrait} alt="" aria-hidden="true" loading="lazy" /> : <span>?</span>}
+                    <small>{String(index + 1).padStart(2, "0")}</small>
+                    <strong>{member.callsign}</strong>
                   </button>
-                );
-              })}
-            </div>
-
-            {loadState !== "ready" || roster.length === 0 ? (
-              <div className="mt-8 flex flex-1 items-center justify-center">
-                <div className="max-w-md border border-dashed border-border bg-ink/60 p-8 text-center backdrop-blur-md">
-                  <span className="hud-label block text-crimson/80">
-                    {loadState === "loading"
-                      ? "ROSTER SYNC"
-                      : loadState === "error"
-                        ? "ROSTER UNAVAILABLE"
-                        : "ROSTER EMPTY"}
-                  </span>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {loadState === "loading"
-                      ? "Бүрэлдэхүүний бүртгэл ачаалж байна…"
-                      : loadState === "error"
-                        ? loadError
-                        : "Бүртгэгдсэн идэвхтэй гишүүн одоогоор алга. Админ бүртгэл нэмсний дараа энд харагдана."}
-                  </p>
-                </div>
+                ))}
               </div>
-            ) : null}
-
-            {/* stage */}
-            <div
-              className={`relative mt-4 ${loadState === "ready" && roster.length ? "grid" : "hidden"} flex-1 grid-rows-[auto_auto] gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:grid-rows-1 lg:items-center lg:gap-10`}
-            >
-              {/* identity panel */}
-              {active ? (
-                <div key={active.id} className="order-2 min-w-0 animate-rise lg:order-1">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="h-1.5 w-1.5 shrink-0 bg-crimson animate-pulse-soft" />
-                    <span className="hud-label truncate">
-                      {CREW_STATUS_LABEL[active.status]} —{" "}
-                      {CREW_ROLES.find((r) => r.id === active.roleId)?.code}
-                    </span>
-                  </div>
-                  <h2 className="mt-3 flex min-w-0 items-baseline gap-3 text-cinema text-5xl text-foreground sm:text-6xl">
-                    <span className="truncate">{active.callsign}</span>
-                    {active.kana ? (
-                      <span className="shrink-0 text-lg text-crimson/70">{active.kana}</span>
-                    ) : null}
-                  </h2>
-                  <p className="mt-2 text-sm tracking-[0.14em] text-crimson/90">{active.title}</p>
-                  <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-                    {active.bio}
-                  </p>
-
-                  <dl className="mt-6 grid gap-px overflow-hidden border border-border bg-border/60 sm:grid-cols-3 lg:grid-cols-1">
-                    {active.traits.map((t) => (
-                      <div key={t.label} className="min-w-0 bg-ink/70 px-4 py-3 backdrop-blur-md">
-                        <dt className="hud-label truncate">{t.label}</dt>
-                        <dd className="mt-1 truncate text-sm text-foreground">{t.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              ) : null}
-
-              {/* portrait */}
-              <div className="relative order-1 flex min-h-[42svh] items-end justify-center lg:order-2 lg:min-h-[62svh]">
-                <div
-                  className="pointer-events-none absolute inset-x-[10%] bottom-[4%] top-[12%] blur-[70px]"
-                  style={{
-                    background:
-                      "radial-gradient(50% 50% at 50% 60%, oklch(0.55 0.215 25.5 / 0.32), transparent 72%)",
-                  }}
-                />
-                {active?.portrait ? (
-                  <img
-                    key={active.id}
-                    src={active.portrait}
-                    alt={`${active.callsign} — ${active.title}`}
-                    width={1024}
-                    height={1536}
-                    decoding="async"
-                    className="relative h-[42svh] w-auto animate-rise object-contain drop-shadow-[0_30px_70px_rgba(0,0,0,0.85)] sm:h-[52svh] lg:h-[68svh]"
-                  />
-                ) : (
-                  <div className="relative grid h-[42svh] w-40 place-items-center border border-dashed border-border text-center lg:h-[68svh]">
-                    <span className="hud-label px-3">ЗУРАГ БАЙХГҮЙ</span>
-                  </div>
-                )}
-              </div>
+              <button type="button" onClick={() => step(1)} aria-label="Дараагийн гишүүн"><ChevronRight /></button>
             </div>
-
-            {/* roster selector */}
-            <div
-              className={`relative z-10 mt-6 ${loadState === "ready" && roster.length ? "" : "hidden"}`}
-            >
-              <span className="hud-label block">БҮРТГЭЛ</span>
-              <ul
-                className="-mx-5 mt-3 flex snap-x gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:px-0"
-                aria-label="Гишүүд"
-              >
-                {visible.map((m) => {
-                  const on = m.id === active?.id;
-                  return (
-                    <li key={m.id} className="shrink-0 snap-start">
-                      <button
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => setActiveId(m.id)}
-                        className={`group flex w-36 items-center gap-3 border px-3 py-3 text-left transition-colors duration-300 clip-notch sm:w-44 ${
-                          on
-                            ? "border-crimson/70 bg-crimson/15"
-                            : "border-border bg-ink/60 backdrop-blur-md hover:border-crimson/50"
-                        }`}
-                      >
-                        <span className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden border border-border bg-midnight/60">
-                          {m.portrait ? (
-                            <img
-                              src={m.portrait}
-                              alt=""
-                              aria-hidden="true"
-                              width={1024}
-                              height={1536}
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover object-top"
-                            />
-                          ) : (
-                            <span className="hud-label text-[0.5rem]">N/A</span>
-                          )}
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-xs tracking-[0.16em] text-foreground">
-                            {m.callsign}
-                          </span>
-                          <span className="hud-label block truncate text-[0.55rem]">
-                            {CREW_ROLES.find((r) => r.id === m.roleId)?.code}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
+          ) : null}
         </section>
       </main>
-
       <OniFooter />
     </div>
   );
