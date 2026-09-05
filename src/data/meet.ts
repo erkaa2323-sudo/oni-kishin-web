@@ -7,7 +7,8 @@
  * database function `meet_register`, not only by this UI layer.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
 export const CPM_NICKNAME_MAX = 32;
@@ -121,33 +122,33 @@ export const REGISTRATION_MESSAGE: Record<RegistrationOutcome, string> = {
   error: "Бүртгэл хийх үед алдаа гарлаа. Дахин оролдоно уу.",
 };
 
-type ActiveRow = {
-  id: string;
-  title: string;
-  scheduled_at: string | null;
-  registration_closes_at: string | null;
-  capacity: number | null;
-  status: string;
-  registered_count: number | null;
-};
-
 /** Current publicly visible meet. Returns null when none is announced. */
 export async function fetchActiveMeet(): Promise<MeetLoad> {
   try {
-    const { data, error } = await supabase.rpc("meet_public_active");
-    if (error) return { status: "error", reason: error.message };
-    const row = (data as ActiveRow[] | null)?.[0];
-    if (!row) return { status: "ok", session: null };
+    const snapshot = await getDoc(doc(firebaseDb, "meets", "current"));
+    if (!snapshot.exists() || snapshot.data().enabled !== true)
+      return { status: "ok", session: null };
+    const row = snapshot.data();
+    const participants = await getDocs(
+      query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current")),
+    );
+    const value = (v: unknown): string | null => {
+      if (typeof v === "string") return v;
+      if (typeof v === "number") return new Date(v).toISOString();
+      if (v && typeof v === "object" && "toDate" in v)
+        return (v as { toDate: () => Date }).toDate().toISOString();
+      return null;
+    };
     return {
       status: "ok",
       session: {
-        id: row.id,
-        title: row.title,
-        scheduledAt: row.scheduled_at,
-        registrationClosesAt: row.registration_closes_at,
-        capacity: typeof row.capacity === "number" ? row.capacity : null,
-        registered: typeof row.registered_count === "number" ? row.registered_count : 0,
-        status: row.status === "live" ? "live" : "scheduled",
+        id: "current",
+        title: String(row.name || "ONI MEET"),
+        scheduledAt: value(row.startAt),
+        registrationClosesAt: null,
+        capacity: typeof row.maxPlayers === "number" ? row.maxPlayers : 20,
+        registered: participants.docs.filter((x) => x.id !== "__counter__").length,
+        status: "live",
       },
     };
   } catch {
@@ -157,35 +158,39 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
 
 /** Safe public participant list — nicknames only, no CPM ID, no credentials. */
 export async function fetchParticipants(meetId: string): Promise<MeetParticipant[]> {
-  const { data, error } = await supabase.rpc("meet_participants", { _meet_id: meetId });
-  if (error || !data) return [];
-  return (data as { cpm_nickname: string; registered_at: string }[]).map((r) => ({
-    cpmNickname: r.cpm_nickname,
-    registeredAt: r.registered_at,
-  }));
+  try {
+    const snapshot = await getDocs(
+      query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", meetId)),
+    );
+    return snapshot.docs
+      .filter((x) => x.id !== "__counter__")
+      .map((x) => {
+        const row = x.data();
+        const joined = row.joinedAt;
+        return {
+          cpmNickname: String(row.nick || row.name || "ONI MEMBER"),
+          registeredAt:
+            joined && typeof joined.toDate === "function"
+              ? joined.toDate().toISOString()
+              : new Date().toISOString(),
+        };
+      });
+  } catch {
+    return [];
+  }
 }
 
-/** Registration. All rules are re-checked inside the database function. */
+/**
+ * Legacy registration is intentionally fail-closed for now. Public meet data
+ * can be read safely, but writes stay disabled until they can be routed through
+ * an authenticated server boundary instead of exposing privileged credentials
+ * in the browser.
+ */
 export async function registerForMeet(
-  meetId: string,
-  input: VerificationInput,
+  _meetId: string,
+  _input: VerificationInput,
 ): Promise<RegistrationOutcome> {
-  const { data, error } = await supabase.rpc("meet_register", {
-    _meet_id: meetId,
-    _cpm_nickname: input.cpmNickname.trim(),
-    _cpm_id: input.cpmId.trim(),
-  });
-  if (error) return "error";
-  const outcome = String(data ?? "error");
-  const known: RegistrationOutcome[] = [
-    "registered",
-    "duplicate",
-    "meet_full",
-    "registration_closed",
-    "no_active_meet",
-    "invalid",
-  ];
-  return (known as string[]).includes(outcome) ? (outcome as RegistrationOutcome) : "error";
+  return "error";
 }
 
 /**
