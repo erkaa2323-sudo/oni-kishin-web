@@ -64,6 +64,7 @@ export type OniMessage = {
   id: string;
   role: "user" | "oni";
   text: string;
+  sources?: Array<{ url: string; title: string }>;
 };
 
 /**

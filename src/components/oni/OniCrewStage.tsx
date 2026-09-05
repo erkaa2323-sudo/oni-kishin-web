@@ -249,7 +249,7 @@ export function OniCrewStage() {
                               height={1536}
                               loading="lazy"
                               decoding="async"
-                              className="h-[220%] w-auto max-w-none object-cover object-top"
+                              className="h-full w-full object-cover object-top"
                             />
                           ) : (
                             <span className="hud-label text-[0.5rem]">N/A</span>

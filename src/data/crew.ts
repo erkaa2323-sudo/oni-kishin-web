@@ -6,15 +6,15 @@
  * only). Nothing here fabricates members or clan statistics — an empty table
  * renders as a real empty state.
  *
- * The portrait images below are DECORATIVE ARTWORK ONLY. They are cycled as
- * visual placeholders for the stage composition and are never treated as
+ * The portrait images below are DECORATIVE ARTWORK ONLY. Command portraits
+ * are assigned by public role/name and are never treated as
  * member data, identity or a database record.
  */
 
-import crew01 from "@/assets/crew/crew-01.png";
-import crew02 from "@/assets/crew/crew-02.png";
-import crew03 from "@/assets/crew/crew-03.png";
-import crew04 from "@/assets/crew/crew-04.png";
+import crew01 from "@/assets/crew/crew-01.webp";
+import crew02 from "@/assets/crew/crew-02.webp";
+import crew03 from "@/assets/crew/crew-03.webp";
+import crew04 from "@/assets/crew/crew-04.webp";
 
 /** Role/category buckets used by the roster filters. */
 export type CrewRoleId = "command" | "driver" | "mechanic" | "media";
@@ -67,8 +67,12 @@ export type CrewMember = {
   traits: { label: string; value: string }[];
 };
 
-/** Decorative artwork pool — never a data record. */
-const PORTRAIT_ART = [crew01, crew02, crew03, crew04];
+function portraitFor(callsign: string, role: string | undefined, index: number): string {
+  const identity = `${callsign} ${role ?? ""}`.toLowerCase();
+  if (identity.includes("kitsune") || /(^|\s)leader($|\s)/.test(identity)) return crew01;
+  if (identity.includes("hugo") || identity.includes("co-leader")) return crew02;
+  return index % 2 === 0 ? crew03 : crew04;
+}
 
 export function parseCrewRole(value: string | undefined | null): CrewRoleId {
   const v = (value ?? "").toLowerCase();
@@ -120,7 +124,7 @@ export async function fetchCrew(): Promise<CrewLoad> {
       roleId,
       title: m.role || CREW_ROLE_TITLE[roleId],
       status: "active",
-      portrait: PORTRAIT_ART[i % PORTRAIT_ART.length]!,
+      portrait: portraitFor(m.cpmNickname, m.role, i),
       bio: "",
       traits,
     };

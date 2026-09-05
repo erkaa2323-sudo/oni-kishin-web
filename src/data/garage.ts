@@ -60,10 +60,12 @@ export function parseBuildStage(value: string | undefined | null): BuildStage | 
   return undefined;
 }
 
-/** Only http(s) image URLs are rendered; anything else is ignored. */
+/** Allow remote images and legacy Firebase raster data URLs; SVG stays blocked. */
 export function safeImageUrl(value: string | undefined | null): string | undefined {
   const v = (value ?? "").trim();
-  return /^https?:\/\/\S+$/i.test(v) ? v : undefined;
+  if (/^https?:\/\/\S+$/i.test(v)) return v;
+  if (/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
+  return undefined;
 }
 
 export type GarageLoad = { status: "ok"; rows: Vehicle[] } | { status: "error"; reason: string };

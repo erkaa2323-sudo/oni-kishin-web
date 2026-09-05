@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import cityBg from "@/assets/oni-city-bg.jpg";
-import oniCharacter from "@/assets/oni-character.png";
+import oniCharacter from "@/assets/oni-character.webp";
 import {
   ONI_SUGGESTIONS,
   draftOniReply,
@@ -143,7 +143,11 @@ export function OniAiChamber() {
 
     void (async () => {
       const started = Date.now();
-      let reply: { text: string; state?: OniState };
+      let reply: {
+        text: string;
+        state?: OniState;
+        sources?: Array<{ url: string; title: string }>;
+      };
       try {
         reply = await answerOni(text, historyRef.current);
       } catch {
@@ -152,7 +156,10 @@ export function OniAiChamber() {
       // keep a short, visible thinking beat
       const wait = Math.max(0, 900 - (Date.now() - started));
       const t2 = window.setTimeout(() => {
-        setMessages((m) => [...m, { id: `o${base}`, role: "oni", text: reply.text }]);
+        setMessages((m) => [
+          ...m,
+          { id: `o${base}`, role: "oni", text: reply.text, sources: reply.sources },
+        ]);
         setThinking(false);
         setConvState(reply.state ?? target);
         const t3 = window.setTimeout(() => setConvState(null), 8000);
@@ -237,6 +244,22 @@ export function OniAiChamber() {
             {m.role === "user" ? "ТА" : "ONI BRAIN"}
           </span>
           {m.text}
+          {m.role === "oni" && m.sources?.length ? (
+            <ul className="mt-2 space-y-1 border-t border-crimson/20 pt-2">
+              {m.sources.map((source) => (
+                <li key={source.url}>
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-[0.65rem] text-crimson underline underline-offset-2"
+                  >
+                    {source.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ))}
       {thinking && (

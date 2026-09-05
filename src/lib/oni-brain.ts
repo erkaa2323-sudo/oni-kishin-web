@@ -18,7 +18,11 @@ import { deriveLifecycle, fetchActiveMeet, LIFECYCLE_LABEL, type MeetSession } f
 import { inferReplyState, type OniState } from "@/lib/oni-emotion";
 import { hasStem, normalizeInput, type NormalizedInput } from "@/lib/oni-normalize";
 
-export type BrainReply = { text: string; state?: OniState };
+export type BrainReply = {
+  text: string;
+  state?: OniState;
+  sources?: Array<{ url: string; title: string }>;
+};
 
 /** One bounded conversation turn handed in by the UI. Never persisted here. */
 export type BrainTurn = { role: "user" | "oni"; text: string };
@@ -254,18 +258,55 @@ function lastIntent(history: BrainTurn[]): Intent | null {
 async function generalFallback(raw: string, history: BrainTurn[]): Promise<BrainReply | null> {
   try {
     const { oniGeneralChat } = await import("@/lib/oni-chat.functions");
+    const { membersService, garageService, musicService } = await import("@/services/domains");
+    const [members, garage, music, meet] = await Promise.all([
+      membersService.listPublic(),
+      garageService.listPublished(),
+      musicService.listPublished(),
+      fetchActiveMeet(),
+    ]);
+    const publicContext = JSON.stringify({
+      clan: "ONI AND KISHIN / CPM",
+      members: members.ok
+        ? members.data.map((member) => ({
+            nickname: member.cpmNickname,
+            role: member.role ?? "member",
+          }))
+        : "unavailable",
+      garage: garage.ok
+        ? garage.data.map((vehicle) => ({
+            model: vehicle.model,
+            owner: vehicle.ownerName ?? null,
+            build: vehicle.build ?? null,
+          }))
+        : "unavailable",
+      music: music.ok
+        ? music.data.map((track) => ({ title: track.title, artist: track.artist ?? null }))
+        : "unavailable",
+      meet:
+        meet.status === "ok" && meet.session
+          ? {
+              title: meet.session.title,
+              scheduledAt: meet.session.scheduledAt,
+              registrationClosesAt: meet.session.registrationClosesAt,
+              capacity: meet.session.capacity,
+              registered: meet.session.registered,
+              lifecycle: deriveLifecycle(meet.session),
+            }
+          : null,
+    }).slice(0, 6000);
     const turns = [...history.slice(-6), { role: "user" as const, text: raw }]
       .filter((t) => t.text.trim().length > 0)
       .map((t) => ({
         role: (t.role === "user" ? "user" : "assistant") as "user" | "assistant",
         content: t.text.slice(0, 1200),
       }));
-    const res = await oniGeneralChat({ data: { turns } });
+    const res = await oniGeneralChat({ data: { turns, publicContext } });
     if (!res.ok) return null;
     // Defense in depth: never relay a model answer that drifted into credentials.
     if (isCredentialRequest(res.text)) return { text: CREDENTIAL_REFUSAL, state: "serious" };
     // Character reacts to BOTH sides of the exchange, not a frozen pose.
-    return { text: res.text, state: inferReplyState(raw, res.text) };
+    return { text: res.text, state: inferReplyState(raw, res.text), sources: res.sources };
   } catch {
     return null;
   }
