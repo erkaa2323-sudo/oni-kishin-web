@@ -124,7 +124,7 @@ export function OniAiChamber() {
    */
   const historyRef = useRef<BrainTurn[]>([]);
   useEffect(() => {
-    historyRef.current = messages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
+    historyRef.current = messages.slice(-10).map((m) => ({ role: m.role, text: m.text }));
   }, [messages]);
 
   const send = (raw: string) => {

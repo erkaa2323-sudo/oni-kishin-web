@@ -295,7 +295,7 @@ async function generalFallback(raw: string, history: BrainTurn[]): Promise<Brain
             }
           : null,
     }).slice(0, 6000);
-    const turns = [...history.slice(-6), { role: "user" as const, text: raw }]
+    const turns = [...history.slice(-10), { role: "user" as const, text: raw }]
       .filter((t) => t.text.trim().length > 0)
       .map((t) => ({
         role: (t.role === "user" ? "user" : "assistant") as "user" | "assistant",
@@ -325,7 +325,7 @@ export async function answerOni(input: string, history: BrainTurn[] = []): Promi
   if (isCredentialRequest(n.raw) || isCredentialRequest(n.haystack))
     return { text: CREDENTIAL_REFUSAL, state: "serious" };
 
-  const bounded = history.slice(-6);
+  const bounded = history.slice(-10);
 
   const direct = classify(n);
   // Factual intents stay deterministic and authoritative. Conversational
