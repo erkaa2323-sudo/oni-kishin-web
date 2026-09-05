@@ -1,3 +1,7 @@
+import car01 from "@/assets/garage/car-01.webp";
+import car02 from "@/assets/garage/car-02.webp";
+import car03 from "@/assets/garage/car-03.webp";
+
 /**
  * GARAGE vehicle data boundary.
  *
@@ -70,12 +74,20 @@ export function safeImageUrl(value: string | undefined | null): string | undefin
 
 export type GarageLoad = { status: "ok"; rows: Vehicle[] } | { status: "error"; reason: string };
 
+/**
+ * A dependable visual fallback for records whose image is missing or invalid.
+ * The database remains authoritative for every vehicle field; these files are
+ * presentation artwork only, matched deterministically so the image never
+ * changes between renders.
+ */
+const GARAGE_ART = [car01, car02, car03];
+
 export async function fetchVehicles(): Promise<GarageLoad> {
   const { garageService } = await import("@/services/domains");
   const res = await garageService.listPublished();
   if (!res.ok) return { status: "error", reason: res.error.message };
 
-  const rows: Vehicle[] = res.data.map((v) => {
+  const rows: Vehicle[] = res.data.map((v, index) => {
     const categoryId = parseCategory(v.category);
     const buildStage = parseBuildStage(v.build);
     const specs: { label: string; value: string }[] = [
@@ -91,7 +103,7 @@ export async function fetchVehicles(): Promise<GarageLoad> {
       categoryId,
       ...(buildStage ? { buildStage } : {}),
       summary: v.build ?? "",
-      ...(safeImageUrl(v.imagePath) ? { image: safeImageUrl(v.imagePath)! } : {}),
+      image: safeImageUrl(v.imagePath) ?? GARAGE_ART[index % GARAGE_ART.length]!,
       specs,
     };
   });

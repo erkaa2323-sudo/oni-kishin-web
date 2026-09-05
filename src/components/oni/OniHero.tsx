@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 
 import cityBg from "@/assets/oni-city-bg.jpg";
 import oniCar from "@/assets/oni-car.png";
-import oniCharacter from "@/assets/oni-character.png";
+import oniCharacter from "@/assets/oni-character.webp";
 import { CLAN_NAME } from "@/lib/oni-nav";
 import { useParallax } from "./useParallax";
 

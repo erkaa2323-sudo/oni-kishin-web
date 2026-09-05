@@ -40,7 +40,7 @@ export type GeneralReply =
   { ok: true; text: string; sources: Array<{ url: string; title: string }> } | { ok: false };
 
 export const oniGeneralChat = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => Payload.parse(data))
+  .validator((data: unknown) => Payload.parse(data))
   .handler(async ({ data }): Promise<GeneralReply> => {
     try {
       const result = await generateText({

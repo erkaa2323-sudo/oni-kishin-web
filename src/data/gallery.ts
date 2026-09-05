@@ -45,12 +45,12 @@ export async function fetchGallery(): Promise<GalleryLoad> {
         const row = entry.data();
         return {
           id: entry.id,
-          title: text(row.title) || "ONI MOMENT",
-          owner: text(row.owner) || "Oni And Kishin",
-          category: categoryValue(row.category),
-          build: text(row.build),
-          image: text(row.image),
-          createdAt: dateValue(row.createdAt),
+          title: text(row["title"]) || "ONI MOMENT",
+          owner: text(row["owner"]) || "Oni And Kishin",
+          category: categoryValue(row["category"]),
+          build: text(row["build"]),
+          image: text(row["image"]),
+          createdAt: dateValue(row["createdAt"]),
         };
       })
       .filter((row) => row.image.startsWith("https://"))

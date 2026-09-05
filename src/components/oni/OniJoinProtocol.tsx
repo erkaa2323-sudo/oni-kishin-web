@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { Loader2, ShieldAlert, ArrowRight } from "lucide-react";
 
 import cityBg from "@/assets/oni-city-bg.jpg";
-import character from "@/assets/oni-character.png";
+import character from "@/assets/oni-character.webp";
 import {
   CPM_ID_MAX,
   EXPERIENCE_OPTIONS,

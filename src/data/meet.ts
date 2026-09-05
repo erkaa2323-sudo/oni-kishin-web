@@ -126,7 +126,7 @@ export const REGISTRATION_MESSAGE: Record<RegistrationOutcome, string> = {
 export async function fetchActiveMeet(): Promise<MeetLoad> {
   try {
     const snapshot = await getDoc(doc(firebaseDb, "meets", "current"));
-    if (!snapshot.exists() || snapshot.data().enabled !== true)
+    if (!snapshot.exists() || snapshot.data()["enabled"] !== true)
       return { status: "ok", session: null };
     const row = snapshot.data();
     const participants = await getDocs(
@@ -143,10 +143,10 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
       status: "ok",
       session: {
         id: "current",
-        title: String(row.name || "ONI MEET"),
-        scheduledAt: value(row.startAt),
+        title: String(row["name"] || "ONI MEET"),
+        scheduledAt: value(row["startAt"]),
         registrationClosesAt: null,
-        capacity: typeof row.maxPlayers === "number" ? row.maxPlayers : 20,
+        capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
         registered: participants.docs.filter((x) => x.id !== "__counter__").length,
         status: "live",
       },
@@ -166,9 +166,9 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
       .filter((x) => x.id !== "__counter__")
       .map((x) => {
         const row = x.data();
-        const joined = row.joinedAt;
+        const joined = row["joinedAt"];
         return {
-          cpmNickname: String(row.nick || row.name || "ONI MEMBER"),
+          cpmNickname: String(row["nick"] || row["name"] || "ONI MEMBER"),
           registeredAt:
             joined && typeof joined.toDate === "function"
               ? joined.toDate().toISOString()

@@ -158,7 +158,12 @@ export function OniAiChamber() {
       const t2 = window.setTimeout(() => {
         setMessages((m) => [
           ...m,
-          { id: `o${base}`, role: "oni", text: reply.text, sources: reply.sources },
+          {
+            id: `o${base}`,
+            role: "oni",
+            text: reply.text,
+            ...(reply.sources ? { sources: reply.sources } : {}),
+          },
         ]);
         setThinking(false);
         setConvState(reply.state ?? target);
