@@ -1,12 +1,17 @@
 /**
- * ONI admin session: authentication (Lovable Cloud auth) + authorization
- * (user_roles). Authentication alone grants nothing.
+ * ONI admin session: Firebase authentication plus an explicit owner allowlist.
+ * Authentication alone grants nothing.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import { firebaseAuth } from "@/integrations/firebase/client";
 import {
   fetchAdminProfile,
   hasPermission as checkPermission,
@@ -32,23 +37,15 @@ export type OniAuthState = {
 const AuthContext = createContext<OniAuthState | null>(null);
 
 /**
- * Backend availability = the generated Supabase client can initialize.
- * The client itself falls back from VITE_* build-time vars to SSR env, so a
- * stricter build-time-only check would wrongly reject valid deployments.
- * Fail-closed: any initialization failure is treated as unavailable.
+ * Firebase configuration is bundled in the legacy ONI client module.
+ * Any runtime initialization failure still fails closed.
  */
-const backendConfigured = (() => {
-  try {
-    void supabase.auth;
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const backendConfigured = true;
 
 /** Truthful, non-leaking Mongolian messages for the auth failures we can hit. */
 function describeAuthError(message: string): string {
-  if (/invalid login credentials/i.test(message)) return "И-мэйл эсвэл нууц үг буруу байна.";
+  if (/invalid-credential|wrong-password|user-not-found|invalid login credentials/i.test(message))
+    return "И-мэйл эсвэл нууц үг буруу байна.";
   if (/email not confirmed/i.test(message))
     return "И-мэйл хаяг баталгаажаагүй байна. Бүртгэлийн и-мэйл дэх баталгаажуулах холбоосыг дарж, дараа нь дахин нэвтэрнэ үү.";
   if (/rate limit|too many/i.test(message))
@@ -76,7 +73,7 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    const resolve = async (user: { id: string; email?: string | null } | null) => {
+    const resolve = async (user: { uid: string; email?: string | null } | null) => {
       if (!active) return;
       if (!user) {
         setUid(null);
@@ -85,10 +82,10 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
         setPhase("signed_out");
         return;
       }
-      setUid(user.id);
+      setUid(user.uid);
       setEmail(user.email ?? null);
       setPhase("loading");
-      const res = await fetchAdminProfile(user.id, user.email ?? null);
+      const res = await fetchAdminProfile(user.uid, user.email ?? null);
       if (!active) return;
       if (res.ok && isAuthorizedAdmin(res.data)) {
         setProfile(res.data);
@@ -100,23 +97,12 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    let unsubscribe: (() => void) | undefined;
     try {
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        void resolve(session?.user ?? null);
-      });
-      unsubscribe = () => sub.subscription.unsubscribe();
-
-      void supabase.auth
-        .getSession()
-        .then(({ data }) => {
-          void resolve(data.session?.user ?? null);
-        })
-        .catch(() => {
-          if (!active) return;
-          setError("Backend session could not be initialized.");
-          setPhase("backend_unavailable");
-        });
+      const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => void resolve(user));
+      return () => {
+        active = false;
+        unsubscribe();
+      };
     } catch {
       setError("Backend client could not be initialized.");
       setPhase("backend_unavailable");
@@ -124,7 +110,6 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
-      unsubscribe?.();
     };
   }, []);
 
@@ -137,22 +122,15 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
     }
     setPhase("loading");
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({
-        email: mail.trim(),
-        password,
-      });
-      if (err) {
-        setPhase("signed_out");
-        setError(describeAuthError(err.message));
-      }
-    } catch {
-      setError("Backend client could not be initialized.");
-      setPhase("backend_unavailable");
+      await signInWithEmailAndPassword(firebaseAuth, mail.trim(), password);
+    } catch (err) {
+      setError(describeAuthError(err instanceof Error ? err.message : String(err)));
+      setPhase("signed_out");
     }
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await firebaseSignOut(firebaseAuth);
     setProfile(null);
     setUid(null);
     setEmail(null);

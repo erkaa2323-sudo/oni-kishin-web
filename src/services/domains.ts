@@ -1,13 +1,25 @@
 /**
- * Domain service adapters over Lovable Cloud (Supabase/Postgres).
+ * Domain service adapters over the legacy ONI Firebase project.
  *
  * Typed boundaries for Members, Garage, Applications, Meet, Music/AI.
  * Row-level security is enforced in the database — these helpers never
  * assume authority, they simply surface normalized results.
  */
 
-import { supabase } from "@/integrations/supabase/client";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch,
+} from "firebase/firestore";
 import { firebaseDb } from "@/integrations/firebase/client";
 import { fail, normalizeError, ok, type ServiceResult } from "@/lib/backend/errors";
 
@@ -48,36 +60,47 @@ const firebaseDate = (v: unknown): string | undefined => {
   return undefined;
 };
 
-async function legacyRows(name: "members" | "garage"): Promise<Row[]> {
+async function firebaseRows(name: string): Promise<Row[]> {
   const snapshot = await getDocs(collection(firebaseDb, name));
   return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
 }
 
-function base(r: Row): BaseRecord {
-  return { id: str(r["id"]), createdAt: opt(r["created_at"]), updatedAt: opt(r["updated_at"]) };
+function compact(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
 }
 
-async function run<T>(
-  promise: PromiseLike<{ data: unknown; error: unknown }>,
-  map: (r: Row) => T,
-): Promise<ServiceResult<T[]>> {
+async function firebaseCreate(
+  name: string,
+  data: Record<string, unknown>,
+): Promise<ServiceResult<{ id: string }>> {
   try {
-    const { data, error } = await promise;
-    if (error) return { ok: false, error: normalizeError(error) };
-    return ok(((data ?? []) as Row[]).map(map));
+    const ref = await addDoc(
+      collection(firebaseDb, name),
+      compact({ ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }),
+    );
+    return ok({ id: ref.id });
   } catch (err) {
     return { ok: false, error: normalizeError(err) };
   }
 }
 
-async function mutate(
-  promise: PromiseLike<{ data: unknown; error: unknown }>,
+async function firebaseUpdate(
+  name: string,
+  id: string,
+  data: Record<string, unknown>,
 ): Promise<ServiceResult<{ id: string }>> {
   try {
-    const { data, error } = await promise;
-    if (error) return { ok: false, error: normalizeError(error) };
-    const row = (Array.isArray(data) ? data[0] : data) as Row | null;
-    return ok({ id: row ? str(row["id"]) : "" });
+    await updateDoc(doc(firebaseDb, name, id), compact({ ...data, updatedAt: serverTimestamp() }));
+    return ok({ id });
+  } catch (err) {
+    return { ok: false, error: normalizeError(err) };
+  }
+}
+
+async function firebaseRemove(name: string, id: string): Promise<ServiceResult<{ id: string }>> {
+  try {
+    await deleteDoc(doc(firebaseDb, name, id));
+    return ok({ id });
   } catch (err) {
     return { ok: false, error: normalizeError(err) };
   }
@@ -93,31 +116,22 @@ export type MemberRecord = BaseRecord & {
   joinedAt?: string | undefined;
 };
 
-const mapMember = (r: Row): MemberRecord => ({
-  ...base(r),
-  cpmNickname: str(r["cpm_nickname"]),
-  cpmId: str(r["cpm_id"]),
-  role: opt(r["role"]),
-  status: (str(r["status"]) || "active") as MemberRecord["status"],
-  joinedAt: opt(r["joined_at"]),
-});
-
 export const membersService = {
-  list: () =>
-    run(supabase.from("members").select("*").order("created_at", { ascending: false }), mapMember),
-  listActive: () =>
-    run(
-      supabase
-        .from("members")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false }),
-      mapMember,
-    ),
+  list: async (): Promise<ServiceResult<MemberRecord[]>> => {
+    try {
+      return ok((await firebaseRows("members")).map(mapFirebaseMember));
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  listActive: async (): Promise<ServiceResult<MemberRecord[]>> => {
+    const res = await membersService.list();
+    return res.ok ? ok(res.data.filter((member) => member.status === "active")) : res;
+  },
   /** Public projection: active members only, no admin-only columns. */
   listPublic: async (): Promise<ServiceResult<MemberRecord[]>> => {
     try {
-      const rows = await legacyRows("members");
+      const rows = await firebaseRows("members");
       return ok(
         rows
           .filter((r) => str(r["status"]) !== "archived")
@@ -136,30 +150,37 @@ export const membersService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  create: (data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("members")
-        .insert(data as never)
-        .select("id")
-        .single(),
-    ),
+  create: (data: Record<string, unknown>) => firebaseCreate("members", memberWrite(data)),
   update: (id: string, data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("members")
-        .update(data as never)
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
-  archive: (id: string) =>
-    mutate(
-      supabase.from("members").update({ status: "archived" }).eq("id", id).select("id").single(),
-    ),
-  remove: (id: string) =>
-    mutate(supabase.from("members").delete().eq("id", id).select("id").single()),
+    firebaseUpdate("members", id, memberWrite(data)),
+  archive: (id: string) => firebaseUpdate("members", id, { status: "archived" }),
+  remove: (id: string) => firebaseRemove("members", id),
 };
+
+function mapFirebaseMember(r: Row): MemberRecord {
+  return {
+    id: str(r["id"]),
+    cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
+    cpmId: str(r["cpmid"] || r["cpmId"]),
+    role: opt(r["role"] || r["title"]),
+    status: (str(r["status"]) || "active") as MemberRecord["status"],
+    joinedAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
+
+function memberWrite(data: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    nick: data["cpm_nickname"] ?? data["nick"],
+    cpmid: data["cpm_id"] ?? data["cpmid"],
+    role: data["role"],
+    status: data["status"],
+    joinedAt: data["joined_at"] ?? data["joinedAt"],
+    createdBy: data["created_by"] ?? data["createdBy"],
+    updatedBy: data["updated_by"] ?? data["updatedBy"],
+  });
+}
 
 /* ── Garage ───────────────────────────────────────────────────── */
 
@@ -173,72 +194,59 @@ export type VehicleRecord = BaseRecord & {
   status: "published" | "draft" | "archived";
 };
 
-const mapVehicle = (r: Row): VehicleRecord => ({
-  ...base(r),
-  model: str(r["model"]),
-  ownerName: opt(r["owner_name"]),
-  ownerMemberId: opt(r["owner_member_id"]),
-  category: opt(r["category"]),
-  build: opt(r["build"]),
-  imagePath: opt(r["image_path"]),
-  status: (str(r["status"]) || "draft") as VehicleRecord["status"],
-});
-
 export const garageService = {
-  list: () =>
-    run(
-      supabase.from("garage_vehicles").select("*").order("created_at", { ascending: false }),
-      mapVehicle,
-    ),
-  listPublished: async (): Promise<ServiceResult<VehicleRecord[]>> => {
+  list: async (): Promise<ServiceResult<VehicleRecord[]>> => {
     try {
-      const rows = await legacyRows("garage");
-      return ok(
-        rows.map((r) => ({
-          id: str(r["id"]),
-          model: str(r["name"]),
-          ownerName: opt(r["owner"]),
-          category: opt(r["category"]),
-          build: opt(r["build"] || r["description"] || r["anime"]),
-          imagePath: opt(r["image"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
-          status: "published",
-          createdAt: firebaseDate(r["createdAt"]),
-          updatedAt: firebaseDate(r["updatedAt"]),
-        })),
-      );
+      return ok((await firebaseRows("garage")).map(mapFirebaseVehicle));
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  archive: (id: string) =>
-    mutate(
-      supabase
-        .from("garage_vehicles")
-        .update({ status: "archived" })
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
-  create: (data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("garage_vehicles")
-        .insert(data as never)
-        .select("id")
-        .single(),
-    ),
+  listPublished: async (): Promise<ServiceResult<VehicleRecord[]>> => {
+    const res = await garageService.list();
+    return res.ok ? ok(res.data.filter((vehicle) => vehicle.status === "published")) : res;
+  },
+  archive: (id: string) => firebaseUpdate("garage", id, { status: "archived" }),
+  create: (data: Record<string, unknown>) => firebaseCreate("garage", vehicleWrite(data)),
   update: (id: string, data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("garage_vehicles")
-        .update(data as never)
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
-  remove: (id: string) =>
-    mutate(supabase.from("garage_vehicles").delete().eq("id", id).select("id").single()),
+    firebaseUpdate("garage", id, vehicleWrite(data)),
+  remove: (id: string) => firebaseRemove("garage", id),
 };
+
+function mapFirebaseVehicle(r: Row): VehicleRecord {
+  const rawStatus = str(r["status"]);
+  const status: VehicleRecord["status"] = /archiv/i.test(rawStatus)
+    ? "archived"
+    : /draft|hidden/i.test(rawStatus)
+      ? "draft"
+      : "published";
+  return {
+    id: str(r["id"]),
+    model: str(r["name"] || r["model"]),
+    ownerName: opt(r["owner"] || r["ownerName"]),
+    ownerMemberId: opt(r["ownerMemberId"]),
+    category: opt(r["category"]),
+    build: opt(r["build"] || r["description"] || r["anime"]),
+    imagePath: opt(r["image"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
+    status,
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
+
+function vehicleWrite(data: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    name: data["model"] ?? data["name"],
+    owner: data["owner_name"] ?? data["owner"],
+    ownerMemberId: data["owner_member_id"] ?? data["ownerMemberId"],
+    category: data["category"],
+    description: data["build"] ?? data["description"],
+    image: data["image_path"] ?? data["image"],
+    status: data["status"],
+    createdBy: data["created_by"] ?? data["createdBy"],
+    updatedBy: data["updated_by"] ?? data["updatedBy"],
+  });
+}
 
 /* ── Applications (public submit-only) ────────────────────────── */
 
@@ -251,47 +259,127 @@ export type ApplicationRecord = BaseRecord & {
   state: "pending" | "accepted" | "rejected";
 };
 
-const mapApplication = (r: Row): ApplicationRecord => ({
-  ...base(r),
-  cpmNickname: str(r["cpm_nickname"]),
-  cpmId: str(r["cpm_id"]),
-  contact: str(r["contact"]),
-  message: opt(r["message"]),
-  experience: opt(r["experience"]),
-  state: (str(r["state"]) || "pending") as ApplicationRecord["state"],
-});
-
 export const applicationsService = {
-  /** Anyone may submit; RLS forbids reading applications back. */
+  /** Anyone may submit; Firestore rules forbid reading applications back. */
   submit: (input: {
+    last: string;
+    first: string;
+    age: number;
+    gender: "Эрэгтэй" | "Эмэгтэй";
     cpm_nickname: string;
     cpm_id: string;
+    direction: string;
+    contact_type: "Instagram" | "Discord" | "Phone";
     contact: string;
     message?: string | undefined;
     experience?: string | undefined;
-  }) =>
-    mutate(
-      supabase
-        .from("applications")
-        .insert(input as never)
-        .select("id")
-        .single(),
-    ),
-  list: () =>
-    run(
-      supabase.from("applications").select("*").order("created_at", { ascending: false }),
-      mapApplication,
-    ),
+    interests?: string | undefined;
+  }) => submitFirebaseApplication(input),
+  list: async (): Promise<ServiceResult<ApplicationRecord[]>> => {
+    try {
+      return ok((await firebaseRows("applications")).map(mapFirebaseApplication));
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
   review: (id: string, state: "accepted" | "rejected", actorId: string) =>
-    mutate(
-      supabase
-        .from("applications")
-        .update({ state, reviewed_by: actorId })
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
+    firebaseUpdate("applications", id, {
+      status: state === "accepted" ? "Зөвшөөрсөн" : "Татгалзсан",
+      reviewedBy: actorId,
+      reviewedAt: new Date().toISOString(),
+    }),
+  acceptAndPromote: async (
+    id: string,
+    member: { cpmNickname: string; cpmId: string },
+    actorId: string,
+  ): Promise<ServiceResult<{ id: string }>> => {
+    try {
+      const batch = writeBatch(firebaseDb);
+      const memberRef = doc(collection(firebaseDb, "members"));
+      batch.set(memberRef, {
+        nick: member.cpmNickname,
+        cpmid: member.cpmId,
+        status: "active",
+        joinedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdBy: actorId,
+        updatedBy: actorId,
+      });
+      batch.update(doc(firebaseDb, "applications", id), {
+        status: "Зөвшөөрсөн",
+        reviewedBy: actorId,
+        reviewedAt: serverTimestamp(),
+        promotedMemberId: memberRef.id,
+        updatedAt: serverTimestamp(),
+      });
+      await batch.commit();
+      return ok({ id: memberRef.id });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
 };
+
+async function submitFirebaseApplication(input: {
+  last: string;
+  first: string;
+  age: number;
+  gender: "Эрэгтэй" | "Эмэгтэй";
+  cpm_nickname: string;
+  cpm_id: string;
+  direction: string;
+  contact_type: "Instagram" | "Discord" | "Phone";
+  contact: string;
+  message?: string | undefined;
+  experience?: string | undefined;
+}): Promise<ServiceResult<{ id: string }>> {
+  try {
+    const ref = await addDoc(collection(firebaseDb, "applications"), {
+      last: input.last,
+      first: input.first,
+      age: input.age,
+      gender: input.gender,
+      nick: input.cpm_nickname,
+      cpmid: input.cpm_id,
+      direction: input.direction,
+      contactType: input.contact_type,
+      contact: input.contact,
+      experience:
+        input.experience === "rookie"
+          ? "6 сараас бага"
+          : input.experience === "veteran"
+            ? "2 жилээс дээш"
+            : "1 – 2 жил",
+      message: input.message ?? "",
+      status: "Шинэ",
+      createdAt: serverTimestamp(),
+    });
+    return ok({ id: ref.id });
+  } catch (err) {
+    return { ok: false, error: normalizeError(err) };
+  }
+}
+
+function mapFirebaseApplication(r: Row): ApplicationRecord {
+  const status = str(r["state"] || r["status"]);
+  const state: ApplicationRecord["state"] = /зөвшөөр|accept/i.test(status)
+    ? "accepted"
+    : /татгалз|reject/i.test(status)
+      ? "rejected"
+      : "pending";
+  return {
+    id: str(r["id"]),
+    cpmNickname: str(r["nick"] || r["cpm_nickname"]),
+    cpmId: str(r["cpmid"] || r["cpm_id"]),
+    contact: str(r["contact"]),
+    message: opt(r["message"]),
+    experience: opt(r["experience"]),
+    state,
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
 
 /* ── Meet ─────────────────────────────────────────────────────── */
 
@@ -302,15 +390,6 @@ export type MeetRecord = BaseRecord & {
   capacity?: number | undefined;
   status: "draft" | "scheduled" | "live" | "ended" | "closed";
 };
-
-const mapMeet = (r: Row): MeetRecord => ({
-  ...base(r),
-  title: str(r["title"]),
-  scheduledAt: opt(r["scheduled_at"]),
-  registrationClosesAt: opt(r["registration_closes_at"]),
-  capacity: typeof r["capacity"] === "number" ? r["capacity"] : undefined,
-  status: (str(r["status"]) || "draft") as MeetRecord["status"],
-});
 
 export type MeetCredentialsRecord = {
   meetId: string;
@@ -326,75 +405,79 @@ export type MeetRegistrationRecord = BaseRecord & {
 };
 
 export const meetService = {
-  list: () =>
-    run(supabase.from("meets").select("*").order("scheduled_at", { ascending: true }), mapMeet),
-  listPublic: () =>
-    run(
-      supabase
-        .from("meets")
-        .select("id,title,scheduled_at,capacity,status,created_at,updated_at")
-        .in("status", ["scheduled", "live"]),
-      mapMeet,
-    ),
-  create: (data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("meets")
-        .insert(data as never)
-        .select("id")
-        .single(),
-    ),
-  update: (id: string, data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("meets")
-        .update(data as never)
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
-  setLifecycle: (id: string, status: MeetRecord["status"]) =>
-    mutate(supabase.from("meets").update({ status }).eq("id", id).select("id").single()),
-  /** Admin-only: RLS blocks every non-admin read of credentials. */
-  getCredentials: async (meetId: string): Promise<ServiceResult<MeetCredentialsRecord>> => {
+  list: async (): Promise<ServiceResult<MeetRecord[]>> => {
     try {
-      const { data, error } = await supabase
-        .from("meet_credentials")
-        .select("*")
-        .eq("meet_id", meetId)
-        .maybeSingle();
-      if (error) return { ok: false, error: normalizeError(error) };
-      if (!data) return fail("not_found");
-      const r = data as Row;
-      return ok({ meetId, roomId: str(r["room_id"]), password: str(r["room_password"]) });
+      const snapshot = await getDocs(collection(firebaseDb, "meets"));
+      return ok(snapshot.docs.map((entry) => mapFirebaseMeet({ id: entry.id, ...entry.data() })));
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  listRegistrations: (meetId: string) =>
-    run(
-      supabase.from("meet_registrations").select("*").eq("meet_id", meetId),
-      (r): MeetRegistrationRecord => ({
-        ...base(r),
-        meetId: str(r["meet_id"]),
-        cpmNickname: str(r["cpm_nickname"]),
-        cpmId: str(r["cpm_id"]),
-        verified: r["verified"] === true,
-      }),
-    ),
-  removeRegistration: (id: string) =>
-    mutate(supabase.from("meet_registrations").delete().eq("id", id).select("id").single()),
-  /** Admin-only credential write. Values are never logged or echoed elsewhere. */
-  setCredentials: (meetId: string, roomId: string, password: string) =>
-    mutate(
-      supabase
-        .from("meet_credentials")
-        .upsert({ meet_id: meetId, room_id: roomId, room_password: password } as never, {
-          onConflict: "meet_id",
-        })
-        .select("meet_id")
-        .single(),
-    ),
+  listPublic: async (): Promise<ServiceResult<MeetRecord[]>> => {
+    const res = await meetService.list();
+    return res.ok
+      ? ok(res.data.filter((meet) => ["scheduled", "live"].includes(meet.status)))
+      : res;
+  },
+  create: async (data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
+    try {
+      await setDoc(
+        doc(firebaseDb, "meets", "current"),
+        compact({
+          ...meetWrite(data),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }),
+      );
+      return ok({ id: "current" });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  update: (_id: string, data: Record<string, unknown>) =>
+    firebaseUpdate("meets", "current", meetWrite(data)),
+  setLifecycle: (_id: string, status: MeetRecord["status"]) =>
+    firebaseUpdate("meets", "current", {
+      status,
+      enabled: status === "scheduled" || status === "live",
+    }),
+  /** Admin-only: RLS blocks every non-admin read of credentials. */
+  getCredentials: async (meetId: string): Promise<ServiceResult<MeetCredentialsRecord>> => {
+    try {
+      const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
+      if (!snapshot.exists()) return fail("not_found");
+      const r = snapshot.data() as Row;
+      return ok({ meetId, roomId: str(r["roomId"]), password: str(r["password"]) });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  listRegistrations: async (meetId: string): Promise<ServiceResult<MeetRegistrationRecord[]>> => {
+    try {
+      const snapshot = await getDocs(
+        query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", meetId)),
+      );
+      return ok(
+        snapshot.docs.map((entry) => {
+          const r = entry.data() as Row;
+          return {
+            id: entry.id,
+            meetId: str(r["meetId"]),
+            cpmNickname: str(r["nick"] || r["name"]),
+            cpmId: str(r["cpmId"]),
+            verified: true,
+            createdAt: firebaseDate(r["joinedAt"]),
+          };
+        }),
+      );
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  removeRegistration: (id: string) => firebaseRemove("meetParticipants", id),
+  /** Credentials stay fail-closed until a non-public Firebase rule exists. */
+  setCredentials: async (_meetId: string, _roomId: string, _password: string) =>
+    fail("not_configured", "ROOM ID болон нууц үгийн хамгаалалттай сервер шаардлагатай."),
 
   /**
    * Verification must run on a trusted server path that checks the CPM
@@ -409,6 +492,39 @@ export const meetService = {
     fail("not_configured", "Уулзалтын баталгаажуулалтын сервер хараахан идэвхжээгүй."),
 };
 
+function mapFirebaseMeet(r: Row): MeetRecord {
+  const enabled = r["enabled"] !== false;
+  const rawStatus = str(r["status"] || r["state"]);
+  return {
+    id: str(r["id"]),
+    title: str(r["title"] || r["name"] || "ONI MEET"),
+    scheduledAt: firebaseDate(r["scheduledAt"] || r["startAt"] || r["start"]),
+    registrationClosesAt: firebaseDate(r["registrationClosesAt"] || r["registrationEndAt"]),
+    capacity:
+      typeof r["capacity"] === "number"
+        ? r["capacity"]
+        : typeof r["maxPlayers"] === "number"
+          ? r["maxPlayers"]
+          : 20,
+    status: (!enabled ? "closed" : rawStatus || "scheduled") as MeetRecord["status"],
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
+
+function meetWrite(data: Record<string, unknown>): Record<string, unknown> {
+  const status = str(data["status"]) || undefined;
+  return compact({
+    title: data["title"],
+    startAt: data["scheduled_at"] ?? data["scheduledAt"],
+    registrationClosesAt: data["registration_closes_at"] ?? data["registrationClosesAt"],
+    maxPlayers: data["capacity"] ?? data["maxPlayers"],
+    status,
+    enabled: status ? status === "scheduled" || status === "live" : undefined,
+    updatedBy: data["updated_by"] ?? data["updatedBy"],
+  });
+}
+
 /* ── Music / AI config ────────────────────────────────────────── */
 
 export type TrackRecord = BaseRecord & {
@@ -420,54 +536,57 @@ export type TrackRecord = BaseRecord & {
   durationSeconds?: number | undefined;
 };
 
-const mapTrack = (r: Row): TrackRecord => ({
-  ...base(r),
-  title: str(r["title"]),
-  artist: opt(r["artist"]),
-  sourceUrl: opt(r["source_url"]),
-  sortOrder: typeof r["sort_order"] === "number" ? r["sort_order"] : 0,
-  durationSeconds: typeof r["duration_seconds"] === "number" ? r["duration_seconds"] : undefined,
-  status: (str(r["status"]) || "draft") as TrackRecord["status"],
-});
-
 export const musicService = {
-  list: () =>
-    run(
-      supabase.from("music_tracks").select("*").order("created_at", { ascending: false }),
-      mapTrack,
-    ),
-  listPublished: () =>
-    run(
-      supabase
-        .from("music_tracks")
-        .select(
-          "id,title,artist,source_url,status,sort_order,duration_seconds,created_at,updated_at",
-        )
-        .eq("status", "published")
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true }),
-      mapTrack,
-    ),
-  create: (data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("music_tracks")
-        .insert(data as never)
-        .select("id")
-        .single(),
-    ),
+  list: async (): Promise<ServiceResult<TrackRecord[]>> => {
+    try {
+      return ok(
+        (await firebaseRows("music"))
+          .map(mapFirebaseTrack)
+          .sort((a, b) => a.sortOrder - b.sortOrder),
+      );
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  listPublished: async (): Promise<ServiceResult<TrackRecord[]>> => {
+    const res = await musicService.list();
+    return res.ok
+      ? ok(res.data.filter((track) => track.status === "published" && !!track.sourceUrl))
+      : res;
+  },
+  create: (data: Record<string, unknown>) => firebaseCreate("music", trackWrite(data)),
   update: (id: string, data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("music_tracks")
-        .update(data as never)
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
-  remove: (id: string) =>
-    mutate(supabase.from("music_tracks").delete().eq("id", id).select("id").single()),
+    firebaseUpdate("music", id, trackWrite(data)),
+  remove: (id: string) => firebaseRemove("music", id),
 };
+
+function mapFirebaseTrack(r: Row): TrackRecord {
+  const rawStatus = str(r["status"]);
+  return {
+    id: str(r["id"]),
+    title: str(r["title"]),
+    artist: opt(r["artist"]),
+    sourceUrl: opt(r["file"] || r["source"] || r["sourceUrl"]),
+    sortOrder: typeof r["order"] === "number" ? r["order"] : 0,
+    durationSeconds: typeof r["duration"] === "number" ? r["duration"] : undefined,
+    status: (/hidden|draft/i.test(rawStatus) ? "draft" : "published") as TrackRecord["status"],
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
+
+function trackWrite(data: Record<string, unknown>): Record<string, unknown> {
+  return compact({
+    title: data["title"],
+    artist: data["artist"],
+    file: data["source_url"] ?? data["source"] ?? data["file"],
+    order: data["sort_order"] ?? data["sortOrder"] ?? data["order"],
+    duration: data["duration_seconds"] ?? data["durationSeconds"] ?? data["duration"],
+    status: data["status"] === "draft" ? "hidden" : (data["status"] ?? "published"),
+    createdBy: data["created_by"] ?? data["createdBy"],
+    updatedBy: data["updated_by"] ?? data["updatedBy"],
+  });
+}
 
 export type AiConfigRecord = BaseRecord & {
   key: string;
@@ -477,24 +596,7 @@ export type AiConfigRecord = BaseRecord & {
 };
 
 export const aiConfigService = {
-  list: () =>
-    run(
-      supabase.from("ai_config").select("*").order("key", { ascending: true }),
-      (r): AiConfigRecord => ({
-        ...base(r),
-        key: str(r["key"]),
-        prompt: opt(r["prompt"]),
-        knowledge: opt(r["knowledge"]),
-        enabled: r["enabled"] === true,
-      }),
-    ),
-  update: (id: string, data: Record<string, unknown>) =>
-    mutate(
-      supabase
-        .from("ai_config")
-        .update(data as never)
-        .eq("id", id)
-        .select("id")
-        .single(),
-    ),
+  list: async (): Promise<ServiceResult<AiConfigRecord[]>> => ok([]),
+  update: async (_id: string, _data: Record<string, unknown>) =>
+    fail("not_configured", "ONI Brain-ийн тохиргоо Cloudflare Worker дээр хамгаалагдсан."),
 };

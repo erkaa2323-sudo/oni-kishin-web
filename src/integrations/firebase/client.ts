@@ -1,4 +1,5 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 export const FIREBASE_CONFIG = Object.freeze({
@@ -12,3 +13,4 @@ export const FIREBASE_CONFIG = Object.freeze({
 
 const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
 export const firebaseDb = getFirestore(app);
+export const firebaseAuth = getAuth(app);

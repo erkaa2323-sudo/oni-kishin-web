@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { OniAdminGate } from "@/components/oni/OniAdminGate";
 
 const description =
-  "ONI CONTROL CENTER — гишүүд, гараж, анкет, уулзалт, систем ба ONI AI командын самбар. Нэвтрэлт хараахан холбогдоогүй.";
+  "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем ба ONI AI командын самбар.";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({

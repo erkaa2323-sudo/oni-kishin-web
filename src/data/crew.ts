@@ -1,9 +1,9 @@
 /**
  * CREW roster data boundary.
  *
- * Live source: the `members` table in Lovable Cloud, read through the public
- * projection allowed by row-level security (active members only, safe columns
- * only). Nothing here fabricates members or clan statistics — an empty table
+ * Live source: the legacy ONI Firestore `members` collection, read through its
+ * public projection (active members only, safe columns only). Nothing here
+ * fabricates members or clan statistics — an empty collection
  * renders as a real empty state.
  *
  * The portrait images below are DECORATIVE ARTWORK ONLY. Command portraits
@@ -103,7 +103,7 @@ function formatDate(iso?: string): string | null {
 
 export type CrewLoad = { status: "ok"; rows: CrewMember[] } | { status: "error"; reason: string };
 
-/** Live roster read. Only records RLS exposes publicly are returned. */
+/** Live roster read. Only records the public Firebase projection exposes are returned. */
 export async function fetchCrew(): Promise<CrewLoad> {
   const { membersService } = await import("@/services/domains");
   const res = await membersService.listPublic();

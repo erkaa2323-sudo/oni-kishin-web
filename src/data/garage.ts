@@ -5,8 +5,8 @@ import car03 from "@/assets/garage/car-03.webp";
 /**
  * GARAGE vehicle data boundary.
  *
- * Live source: the `garage_vehicles` table in Lovable Cloud, read through the
- * public projection allowed by row-level security (published vehicles only).
+ * Live source: the legacy ONI Firestore `garage` collection, read through the
+ * public projection (published vehicles only).
  * No image URLs are invented — a record without an image renders the explicit
  * "no image" fallback.
  */

@@ -612,10 +612,14 @@ function ApplicationsModule({
   const review = async (row: AdminApplicationRecord, accept: boolean) => {
     setBusyId(row.id);
     setNotice("");
-    const r = await dispatchAdminAction(
-      { kind: accept ? "application.accept" : "application.reject", targetId: row.id },
-      actor,
-    );
+    const request = accept
+      ? {
+          kind: "application.accept" as const,
+          targetId: row.id,
+          payload: { cpm_nickname: row.cpmNickname, cpm_id: row.cpmId },
+        }
+      : { kind: "application.reject" as const, targetId: row.id };
+    const r = await dispatchAdminAction(request, actor);
     setBusyId("");
     if (!r.ok) setNotice(r.error);
     else refresh();
@@ -628,7 +632,7 @@ function ApplicationsModule({
       <PanelHead
         code="APPLICATIONS"
         title="ЭЛСЭЛТИЙН ХҮСЭЛТ"
-        desc="Бодит анкетууд. Батлах болон гишүүн үүсгэх нь тусдаа, тодорхой хоёр үйлдэл."
+        desc="Бодит анкетууд. Батлахад Crew гишүүний бүртгэл атомар үүснэ."
       >
         <button type="button" className={btnClass} onClick={refresh}>
           <RefreshCw className="h-4 w-4" /> ШИНЭЧЛЭХ
@@ -683,25 +687,29 @@ function ApplicationsModule({
                   </p>
                 ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {row.state === "pending" && canReview ? (
+                  {row.state === "pending" ? (
                     <>
-                      <button
-                        type="button"
-                        className={btnClass}
-                        disabled={busyId === row.id}
-                        onClick={() => void review(row, true)}
-                      >
-                        {busyId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                        БАТЛАХ
-                      </button>
-                      <button
-                        type="button"
-                        className={`${btnClass} border-crimson/40 text-crimson`}
-                        disabled={busyId === row.id}
-                        onClick={() => void review(row, false)}
-                      >
-                        ТАТГАЛЗАХ
-                      </button>
+                      {canReview && canCreateMember ? (
+                        <button
+                          type="button"
+                          className={btnClass}
+                          disabled={busyId === row.id}
+                          onClick={() => void review(row, true)}
+                        >
+                          {busyId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                          БАТЛАХ
+                        </button>
+                      ) : null}
+                      {canReview ? (
+                        <button
+                          type="button"
+                          className={`${btnClass} border-crimson/40 text-crimson`}
+                          disabled={busyId === row.id}
+                          onClick={() => void review(row, false)}
+                        >
+                          ТАТГАЛЗАХ
+                        </button>
+                      ) : null}
                     </>
                   ) : null}
                   {row.state === "accepted" && canCreateMember ? (

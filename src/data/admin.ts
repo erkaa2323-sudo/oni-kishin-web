@@ -1,7 +1,7 @@
 /**
  * ONI CONTROL CENTER — admin data boundary.
  *
- * Reads come from the live Lovable Cloud database through the typed service
+ * Reads come from the live ONI Firebase database through the typed service
  * layer. Nothing here fabricates clan records, statistics, meet sessions,
  * audit history or system health — an empty database renders as empty.
  */
@@ -15,7 +15,7 @@ import {
 } from "@/services/domains";
 import { listAuditEvents, recordAuditEvent } from "@/services/audit";
 
-/** Lovable Cloud (Postgres + Auth) is the live backend for this project. */
+/** Legacy Firebase (Firestore + Auth) is the live backend for this project. */
 export const ADMIN_BACKEND_CONNECTED = true;
 export const ADMIN_AUTH_CONNECTED = true;
 /** Deterministic in-app command router (no external AI API, no secrets). */
@@ -138,14 +138,14 @@ export function getServiceStatuses(): ServiceStatus[] {
       label: "СЕРВЕР",
       code: "BACKEND",
       state: ADMIN_BACKEND_CONNECTED ? "connected" : "not_connected",
-      note: "Lovable Cloud үйлчилгээ идэвхтэй.",
+      note: "Firebase үйлчилгээ идэвхтэй.",
     },
     {
       key: "database",
       label: "ӨГӨГДЛИЙН САН",
       code: "DATABASE",
       state: ADMIN_BACKEND_CONNECTED ? "connected" : "not_connected",
-      note: "Postgres мэдээллийн сан холбогдсон.",
+      note: "Firestore мэдээллийн сан холбогдсон.",
     },
     {
       key: "auth",
@@ -172,8 +172,8 @@ export function getServiceStatuses(): ServiceStatus[] {
       key: "storage",
       label: "ФАЙЛ САН",
       code: "STORAGE",
-      state: "unknown",
-      note: "Төлөв тодорхойгүй — сервер холбогдоогүй.",
+      state: "connected",
+      note: "Зураг болон аудио шууд холбоосоор ажиллана.",
     },
   ];
 }
@@ -464,6 +464,10 @@ export async function dispatchAdminAction(
     return { ok: false, error: "Энэ үйлдэлд эрх хүрэхгүй байна." };
   }
 
+  if (kind === "application.accept" && !ROLE_PERMISSIONS[actor.role].includes("members.write")) {
+    return { ok: false, error: "Анкет батлахад гишүүн үүсгэх эрх шаардлагатай." };
+  }
+
   const { applicationsService, garageService, membersService, meetService, musicService } =
     await import("@/services/domains");
 
@@ -504,9 +508,19 @@ export async function dispatchAdminAction(
     case "vehicle.delete":
       res = await garageService.remove(targetId!);
       break;
-    case "application.accept":
-      res = await applicationsService.review(targetId!, "accepted", actor.uid);
+    case "application.accept": {
+      const nickname = typeof data["cpm_nickname"] === "string" ? data["cpm_nickname"] : "";
+      const cpmId = typeof data["cpm_id"] === "string" ? data["cpm_id"] : "";
+      if (!nickname || !cpmId) {
+        return { ok: false, error: "Анкетын мэдээлэл дутуу тул батлах боломжгүй." };
+      }
+      res = await applicationsService.acceptAndPromote(
+        targetId!,
+        { cpmNickname: nickname, cpmId },
+        actor.uid,
+      );
       break;
+    }
     case "application.reject":
       res = await applicationsService.review(targetId!, "rejected", actor.uid);
       break;

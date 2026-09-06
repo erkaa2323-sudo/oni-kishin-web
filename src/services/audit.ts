@@ -4,7 +4,16 @@
  * and readable only by staff. No fake history is ever generated.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+} from "firebase/firestore";
+import { firebaseDb } from "@/integrations/firebase/client";
 import { fail, normalizeError, ok, type ServiceResult } from "@/lib/backend/errors";
 import type { AdminRole } from "@/data/admin";
 
@@ -36,21 +45,17 @@ export type AuditInput = {
 export async function recordAuditEvent(input: AuditInput): Promise<ServiceResult<{ id: string }>> {
   if (!input.actorId) return fail("unauthenticated");
   try {
-    const { data, error } = await supabase
-      .from("audit_logs")
-      .insert({
-        actor_id: input.actorId,
-        actor_role: input.actorRole,
-        action: input.action,
-        target: input.target ?? null,
-        severity: input.severity,
-        result: input.result,
-        detail: input.detail ?? null,
-      } as never)
-      .select("id")
-      .single();
-    if (error) return { ok: false, error: normalizeError(error) };
-    return ok({ id: (data as { id: string }).id });
+    const ref = await addDoc(collection(firebaseDb, "auditLogs"), {
+      actorId: input.actorId,
+      actorRole: input.actorRole,
+      action: input.action,
+      target: input.target ?? null,
+      severity: input.severity,
+      result: input.result,
+      detail: input.detail ?? null,
+      createdAt: serverTimestamp(),
+    });
+    return ok({ id: ref.id });
   } catch (err) {
     return { ok: false, error: normalizeError(err) };
   }
@@ -58,19 +63,22 @@ export async function recordAuditEvent(input: AuditInput): Promise<ServiceResult
 
 export async function listAuditEvents(limitTo = 100): Promise<ServiceResult<AuditRecord[]>> {
   try {
-    const { data, error } = await supabase
-      .from("audit_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(limitTo);
-    if (error) return { ok: false, error: normalizeError(error) };
-    const rows = (data ?? []) as Record<string, unknown>[];
+    const snapshot = await getDocs(
+      query(collection(firebaseDb, "auditLogs"), orderBy("createdAt", "desc"), limit(limitTo)),
+    );
+    const rows = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })) as Record<
+      string,
+      unknown
+    >[];
     return ok(
       rows.map((r) => ({
         id: String(r["id"] ?? ""),
-        createdAt: typeof r["created_at"] === "string" ? r["created_at"] : undefined,
-        actorId: String(r["actor_id"] ?? ""),
-        actorRole: (r["actor_role"] as AuditRecord["actorRole"]) ?? "unknown",
+        createdAt:
+          r["createdAt"] && typeof r["createdAt"] === "object" && "toDate" in r["createdAt"]
+            ? (r["createdAt"] as { toDate: () => Date }).toDate().toISOString()
+            : undefined,
+        actorId: String(r["actorId"] ?? ""),
+        actorRole: (r["actorRole"] as AuditRecord["actorRole"]) ?? "unknown",
         action: String(r["action"] ?? ""),
         target: typeof r["target"] === "string" ? r["target"] : undefined,
         severity: (r["severity"] as AuditSeverity) ?? "info",

@@ -20,8 +20,14 @@ import { OniFooter } from "./OniFooter";
 import { OniHudNav } from "./OniHudNav";
 
 const EMPTY: JoinApplication = {
+  lastName: "",
+  firstName: "",
+  age: "",
+  gender: "Эрэгтэй",
   cpmNickname: "",
   cpmId: "",
+  direction: "Anime Car",
+  contactType: "Instagram",
   contact: "",
   experience: "regular",
   interests: [],
@@ -142,6 +148,81 @@ export function OniJoinProtocol() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   <label
+                    htmlFor={`${uid}-last`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
+                    ОВОГ *
+                  </label>
+                  <input
+                    id={`${uid}-last`}
+                    className={fieldClass}
+                    value={values.lastName}
+                    maxLength={80}
+                    onChange={(e) => set("lastName", e.target.value)}
+                  />
+                  {errors.lastName && (
+                    <p className="mt-2 text-xs text-crimson">{errors.lastName}</p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor={`${uid}-first`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
+                    НЭР *
+                  </label>
+                  <input
+                    id={`${uid}-first`}
+                    className={fieldClass}
+                    value={values.firstName}
+                    maxLength={80}
+                    onChange={(e) => set("firstName", e.target.value)}
+                  />
+                  {errors.firstName && (
+                    <p className="mt-2 text-xs text-crimson">{errors.firstName}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label htmlFor={`${uid}-age`} className="hud-label mb-2 block text-foreground/70">
+                    НАС *
+                  </label>
+                  <input
+                    id={`${uid}-age`}
+                    type="number"
+                    min={17}
+                    max={90}
+                    inputMode="numeric"
+                    className={fieldClass}
+                    value={values.age}
+                    onChange={(e) => set("age", e.target.value)}
+                  />
+                  {errors.age && <p className="mt-2 text-xs text-crimson">{errors.age}</p>}
+                </div>
+                <div>
+                  <label
+                    htmlFor={`${uid}-gender`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
+                    ХҮЙС *
+                  </label>
+                  <select
+                    id={`${uid}-gender`}
+                    className={fieldClass}
+                    value={values.gender}
+                    onChange={(e) => set("gender", e.target.value as JoinApplication["gender"])}
+                  >
+                    <option value="Эрэгтэй">Эрэгтэй</option>
+                    <option value="Эмэгтэй">Эмэгтэй</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label
                     htmlFor={`${uid}-nick`}
                     className="hud-label mb-2 block text-foreground/70"
                   >
@@ -189,12 +270,58 @@ export function OniJoinProtocol() {
                 </div>
               </div>
 
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor={`${uid}-direction`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
+                    ЧИГЛЭЛ *
+                  </label>
+                  <select
+                    id={`${uid}-direction`}
+                    className={fieldClass}
+                    value={values.direction}
+                    onChange={(e) =>
+                      set("direction", e.target.value as JoinApplication["direction"])
+                    }
+                  >
+                    <option value="Anime Car">Anime Car</option>
+                    <option value="Clean Car">Clean Car</option>
+                    <option value="Racer / Drifter">Racer / Drifter</option>
+                    <option value="Drag Racer">Drag Racer</option>
+                    <option value="Content Creator">Content Creator</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor={`${uid}-contact-type`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
+                    ХОЛБООНЫ СУВАГ *
+                  </label>
+                  <select
+                    id={`${uid}-contact-type`}
+                    className={fieldClass}
+                    value={values.contactType}
+                    onChange={(e) =>
+                      set("contactType", e.target.value as JoinApplication["contactType"])
+                    }
+                  >
+                    <option value="Instagram">Instagram</option>
+                    <option value="Discord">Discord</option>
+                    <option value="Phone">Утас</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label
                   htmlFor={`${uid}-contact`}
                   className="hud-label mb-2 block text-foreground/70"
                 >
-                  ХОЛБОО БАРИХ (Discord / утас / имэйл) *
+                  ХОЛБОО БАРИХ ХАЯГ / ДУГААР *
                 </label>
                 <input
                   id={`${uid}-contact`}

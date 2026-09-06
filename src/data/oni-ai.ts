@@ -1,8 +1,8 @@
 /**
  * ONI AI + MUSIC data boundary.
  *
- * Music metadata is read live from the published `music_tracks` rows in
- * Lovable Cloud. Nothing is fabricated: an empty table renders an empty
+ * Music metadata is read live from the legacy ONI Firestore `music`
+ * collection. Nothing is fabricated: an empty collection renders an empty
  * playlist. The ONI Brain reply below is an explicit offline shell.
  */
 
@@ -33,7 +33,7 @@ export const EMPTY_TRACK: OniTrack = {
 
 export type TrackLoad = { status: "ok"; rows: OniTrack[] } | { status: "error"; reason: string };
 
-/** Live playlist from the published `music_tracks` metadata. */
+/** Live playlist from published Firestore music metadata. */
 export async function fetchTracks(): Promise<TrackLoad> {
   const { musicService } = await import("@/services/domains");
   const res = await musicService.listPublished();

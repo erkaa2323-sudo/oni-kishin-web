@@ -278,7 +278,7 @@ function BackendUnavailable() {
           хамгаалагдсан өгөгдөл аюулгүйгээр хаалттай хэвээр байна.
         </p>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-          Lovable Cloud холболтыг сэргээсний дараа төслийг дахин publish хийнэ үү.
+          Firebase холболтыг шалгаад төслийг дахин нээнэ үү.
         </p>
       </section>
     </Shell>

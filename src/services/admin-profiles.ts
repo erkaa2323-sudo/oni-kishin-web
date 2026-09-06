@@ -1,13 +1,12 @@
 /**
  * Authorization (separate from authentication).
  *
- * A signed-in user is NOT an admin. Authority lives in the `user_roles`
- * table, which only an owner may write (enforced by RLS). Nothing here can
- * self-promote, and a failed lookup fails closed.
+ * A signed-in user is NOT automatically an admin. The legacy Firebase owner
+ * account is explicitly allowlisted; nothing here can self-promote, and a
+ * failed lookup fails closed.
  */
 
-import { supabase } from "@/integrations/supabase/client";
-import { fail, normalizeError, ok, type ServiceResult } from "@/lib/backend/errors";
+import { fail, ok, type ServiceResult } from "@/lib/backend/errors";
 import { ROLE_PERMISSIONS, type AdminPermission, type AdminRole } from "@/data/admin";
 
 export type AdminProfile = {
@@ -18,7 +17,7 @@ export type AdminProfile = {
 };
 
 const VALID_ROLES: AdminRole[] = ["owner", "admin", "moderator"];
-const RANK: Record<AdminRole, number> = { owner: 3, admin: 2, moderator: 1 };
+const OWNER_EMAILS = new Set(["erkaa130@gmail.com"]);
 
 export function isValidRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (VALID_ROLES as string[]).includes(value);
@@ -42,29 +41,7 @@ export async function fetchAdminProfile(
   uid: string,
   email?: string | null,
 ): Promise<ServiceResult<AdminProfile>> {
-  try {
-    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    if (error) return { ok: false, error: normalizeError(error) };
-
-    const roles = (data ?? [])
-      .map((r) => (r as { role: string }).role)
-      .filter(isValidRole) as AdminRole[];
-    if (!roles.length) return fail("unauthorized");
-
-    const role = roles.sort((a, b) => RANK[b] - RANK[a])[0]!;
-
-    let displayName: string | undefined;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", uid)
-      .maybeSingle();
-    if (profile && typeof (profile as { display_name?: string }).display_name === "string") {
-      displayName = (profile as { display_name?: string }).display_name;
-    }
-
-    return ok({ uid, email: email ?? undefined, displayName, role });
-  } catch (err) {
-    return { ok: false, error: normalizeError(err) };
-  }
+  const normalizedEmail = email?.trim().toLowerCase() ?? "";
+  if (!OWNER_EMAILS.has(normalizedEmail)) return fail("unauthorized");
+  return ok({ uid, email: normalizedEmail, displayName: "ONI OWNER", role: "owner" });
 }

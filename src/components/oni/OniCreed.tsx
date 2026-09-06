@@ -17,12 +17,17 @@ export function OniCreed() {
       <div className="oni-creed-scene__content">
         <p className="hud-label text-crimson">ONI / KISHIN MANIFESTO</p>
         <h2 id="oni-creed-title">БИД ЗҮГЭЭР НЭГ КЛАН БИШ.</h2>
-        <p className="oni-creed-scene__intro">Бид өөрсдийн хот, өөрсдийн дүр төрх, өөрсдийн домгийг бүтээж байна.</p>
+        <p className="oni-creed-scene__intro">
+          Бид өөрсдийн хот, өөрсдийн дүр төрх, өөрсдийн домгийг бүтээж байна.
+        </p>
         <div className="oni-creed-scene__principles">
           {CREED.map(([number, title, body]) => (
             <article key={number}>
               <span>{number}</span>
-              <div><h3>{title}</h3><p>{body}</p></div>
+              <div>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </div>
             </article>
           ))}
         </div>

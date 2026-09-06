@@ -1,9 +1,9 @@
 /**
  * JOIN — recruitment application configuration + data boundary.
  *
- * `submitApplication` writes to the Lovable Cloud `applications` table.
- * Public users may insert only; row-level security forbids reading
- * applications back from the client.
+ * `submitApplication` writes to the legacy ONI Firestore `applications`
+ * collection. Public users may create a validated application but cannot
+ * read applications back from the client.
  */
 
 export type ExperienceLevel = "rookie" | "regular" | "veteran";
@@ -25,8 +25,15 @@ export const INTEREST_OPTIONS: { id: JoinInterest; label: string }[] = [
 ];
 
 export type JoinApplication = {
+  lastName: string;
+  firstName: string;
+  age: string;
+  gender: "Эрэгтэй" | "Эмэгтэй";
   cpmNickname: string;
   cpmId: string;
+  direction:
+    "Clean Car" | "Anime Car" | "Racer / Drifter" | "Drag Racer" | "Content Creator" | "Other";
+  contactType: "Instagram" | "Discord" | "Phone";
   contact: string;
   experience: ExperienceLevel;
   interests: JoinInterest[];
@@ -44,6 +51,11 @@ export function validateApplication(v: JoinApplication): JoinFieldErrors {
   const nick = v.cpmNickname.trim();
   const id = v.cpmId.trim();
   const contact = v.contact.trim();
+
+  if (!v.lastName.trim()) e.lastName = "Овог заавал шаардлагатай.";
+  if (!v.firstName.trim()) e.firstName = "Нэр заавал шаардлагатай.";
+  const age = Number(v.age);
+  if (!Number.isInteger(age) || age < 17 || age > 90) e.age = "Нас 17–90 хооронд байна.";
 
   if (!nick) e.cpmNickname = "CPM хоч заавал шаардлагатай.";
   else if (nick.length > NICKNAME_MAX) e.cpmNickname = `Дээд тал нь ${NICKNAME_MAX} тэмдэгт.`;
@@ -72,10 +84,17 @@ export async function submitApplication(application: JoinApplication): Promise<S
   const { applicationsService } = await import("@/services/domains");
   const interests = application.interests.join(",");
   const res = await applicationsService.submit({
+    last: application.lastName.trim(),
+    first: application.firstName.trim(),
+    age: Number(application.age),
+    gender: application.gender,
     cpm_nickname: application.cpmNickname.trim(),
     cpm_id: application.cpmId.trim(),
+    direction: application.direction,
+    contact_type: application.contactType,
     contact: application.contact.trim(),
-    experience: [application.experience, interests].filter(Boolean).join(" | ").slice(0, 200),
+    experience: application.experience,
+    interests,
     ...(application.message.trim() ? { message: application.message.trim() } : {}),
   });
 
