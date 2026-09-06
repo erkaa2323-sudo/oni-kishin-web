@@ -1,0 +1,257 @@
+/*
+ * ONI character micro-rig.
+ * The current production asset is a single full-body raster, so this layer
+ * deliberately improves body language, weight shift, camera parallax, aura,
+ * focus and energy response without pretending to be a skeletal/Live2D rig.
+ */
+
+.oni-character-presence {
+  perspective: 1100px;
+  transform-style: preserve-3d;
+}
+
+.oni-character-presence::before,
+.oni-character-presence::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+.oni-character-presence::before {
+  bottom: 1.5%;
+  width: 48%;
+  height: 5%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, oklch(0.02 0.008 265 / 0.92), transparent 72%);
+  filter: blur(8px);
+  opacity: 0.72;
+  animation: oni-alive-shadow 7.2s ease-in-out infinite;
+}
+
+.oni-character-presence::after {
+  top: 8%;
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  border: 1px solid oklch(0.68 0.21 27 / 0.1);
+  box-shadow: inset 0 0 70px oklch(0.55 0.215 25.5 / 0.035);
+  opacity: 0.4;
+  animation: oni-alive-field 8s ease-in-out infinite;
+}
+
+.oni-character-presence__body {
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transform-origin: 50% 88%;
+}
+
+/* Override the coarse legacy motion classes with state-specific body language. */
+.oni-character-presence--idle .oni-character-presence__body {
+  animation: oni-alive-idle 7.4s cubic-bezier(.45,.05,.55,.95) infinite;
+}
+
+.oni-character-presence--listening .oni-character-presence__body {
+  transform-origin: 48% 90%;
+  animation: oni-alive-listen 2.5s ease-in-out infinite;
+}
+
+.oni-character-presence--thinking .oni-character-presence__body {
+  transform-origin: 52% 90%;
+  animation: oni-alive-think 3.1s ease-in-out infinite;
+}
+
+.oni-character-presence--speaking .oni-character-presence__body {
+  transform-origin: 50% 90%;
+  animation: oni-alive-speak 1.35s ease-in-out infinite;
+}
+
+.oni-character-presence--happy .oni-character-presence__body {
+  animation: oni-alive-happy 2.2s cubic-bezier(.22,1,.36,1) infinite;
+}
+
+.oni-character-presence--excited .oni-character-presence__body {
+  animation: oni-alive-excited 1.25s cubic-bezier(.22,1,.36,1) infinite;
+}
+
+.oni-character-presence--surprised .oni-character-presence__body {
+  animation: oni-alive-surprised 2.1s cubic-bezier(.16,1,.3,1) infinite;
+}
+
+.oni-character-presence--concerned .oni-character-presence__body {
+  transform-origin: 52% 92%;
+  animation: oni-alive-concerned 5.2s ease-in-out infinite;
+}
+
+.oni-character-presence--serious .oni-character-presence__body {
+  animation: oni-alive-serious 5.8s ease-in-out infinite;
+}
+
+.oni-character-presence--music .oni-character-presence__body {
+  animation: oni-alive-music 2.15s ease-in-out infinite;
+}
+
+/* State-driven ambient response. */
+.oni-character-presence--listening .oni-character-presence__aura {
+  animation-duration: 3.2s;
+  opacity: .72;
+}
+
+.oni-character-presence--thinking .oni-character-presence__aura {
+  animation-duration: 5.2s;
+  opacity: .58;
+}
+
+.oni-character-presence--speaking .oni-character-presence__aura,
+.oni-character-presence--excited .oni-character-presence__aura {
+  animation-duration: 1.7s;
+  filter: blur(20px) saturate(1.25);
+}
+
+.oni-character-presence--concerned .oni-character-presence__aura {
+  opacity: .32;
+  filter: blur(32px) saturate(.75);
+}
+
+.oni-character-presence--serious .oni-character-presence__aura {
+  opacity: .58;
+  filter: blur(24px) contrast(1.1);
+}
+
+.oni-character-presence--music .oni-character-presence__embers,
+.oni-character-presence--excited .oni-character-presence__embers {
+  animation-duration: 5.8s;
+  opacity: .62;
+}
+
+.oni-character-presence--speaking .oni-character-presence__embers {
+  animation-duration: 7s;
+  opacity: .48;
+}
+
+.oni-character-presence--concerned .oni-character-presence__embers {
+  opacity: .14;
+}
+
+.oni-character-presence--thinking .oni-character-presence__focus {
+  animation: oni-alive-focus-think 2.7s ease-in-out infinite;
+}
+
+.oni-character-presence--listening .oni-character-presence__focus {
+  animation: oni-alive-focus-listen 1.9s ease-in-out infinite;
+}
+
+.oni-character-presence--speaking .oni-character-presence__focus {
+  animation: oni-alive-focus-speak 1.15s ease-in-out infinite;
+}
+
+.oni-character-presence--surprised .oni-character-presence__focus,
+.oni-character-presence--excited .oni-character-presence__focus {
+  opacity: .95;
+  transform: scale(1.35);
+}
+
+@keyframes oni-alive-idle {
+  0%,100% { transform: translate3d(0,0,0) rotateX(0deg) rotateZ(-.18deg) scale(1.008); }
+  24% { transform: translate3d(.28%,-.35%,4px) rotateX(.35deg) rotateZ(.12deg) scale(1.012); }
+  52% { transform: translate3d(-.18%,-.75%,7px) rotateX(.55deg) rotateZ(.22deg) scale(1.015); }
+  78% { transform: translate3d(.12%,-.2%,3px) rotateX(.15deg) rotateZ(-.08deg) scale(1.01); }
+}
+
+@keyframes oni-alive-listen {
+  0%,100% { transform: translate3d(-.35%,0,5px) rotateY(1.1deg) rotateZ(-.45deg) scale(1.016); }
+  50% { transform: translate3d(.55%,-1.05%,13px) rotateY(-1.5deg) rotateZ(.55deg) scale(1.025); }
+}
+
+@keyframes oni-alive-think {
+  0%,100% { transform: translate3d(-.8%,.45%,2px) rotateY(1.8deg) rotateZ(-.7deg) scale(.998); }
+  42% { transform: translate3d(.2%,-.15%,8px) rotateY(-.2deg) rotateZ(-.15deg) scale(1.004); }
+  68% { transform: translate3d(.9%,.05%,5px) rotateY(-1.3deg) rotateZ(.65deg) scale(1.001); }
+}
+
+@keyframes oni-alive-speak {
+  0%,100% { transform: translate3d(0,0,7px) rotateY(-.35deg) rotateZ(-.16deg) scale(1.018); }
+  18% { transform: translate3d(-.38%,-.7%,13px) rotateY(.75deg) rotateZ(.22deg) scale(1.025); }
+  44% { transform: translate3d(.3%,-.2%,9px) rotateY(-.6deg) rotateZ(-.1deg) scale(1.021); }
+  72% { transform: translate3d(-.12%,-.82%,14px) rotateY(.45deg) rotateZ(.2deg) scale(1.027); }
+}
+
+@keyframes oni-alive-happy {
+  0%,100% { transform: translate3d(0,0,6px) rotateZ(-.2deg) scale(1.02); }
+  38% { transform: translate3d(.3%,-1.75%,14px) rotateZ(.55deg) scale(1.034); }
+  65% { transform: translate3d(-.25%,-.55%,9px) rotateZ(-.4deg) scale(1.026); }
+}
+
+@keyframes oni-alive-excited {
+  0%,100% { transform: translate3d(0,0,8px) rotateY(0deg) rotateZ(0deg) scale(1.028); }
+  22% { transform: translate3d(-.75%,-2.6%,18px) rotateY(1.1deg) rotateZ(-1.15deg) scale(1.05); }
+  48% { transform: translate3d(.2%,-.75%,11px) rotateY(-.6deg) rotateZ(.15deg) scale(1.038); }
+  74% { transform: translate3d(.72%,-2.25%,17px) rotateY(-1deg) rotateZ(1.05deg) scale(1.048); }
+}
+
+@keyframes oni-alive-surprised {
+  0%,100% { transform: translate3d(0,-.35%,7px) rotateX(0deg) scale(1.022); }
+  12% { transform: translate3d(0,-2.65%,20px) rotateX(-1.2deg) scale(1.062); }
+  30% { transform: translate3d(0,-.85%,10px) rotateX(.45deg) scale(1.033); }
+  62% { transform: translate3d(.25%,-.5%,8px) rotateZ(.3deg) scale(1.027); }
+}
+
+@keyframes oni-alive-concerned {
+  0%,100% { transform: translate3d(.2%,.8%,0) rotateY(-.8deg) rotateZ(.48deg) scale(.986); }
+  50% { transform: translate3d(-.3%,1.35%,2px) rotateY(.8deg) rotateZ(-.28deg) scale(.981); }
+}
+
+@keyframes oni-alive-serious {
+  0%,100% { transform: translate3d(0,0,4px) rotateY(0deg) rotateZ(0deg) scale(1.012); }
+  50% { transform: translate3d(0,-.38%,8px) rotateY(.28deg) rotateZ(-.12deg) scale(1.016); }
+}
+
+@keyframes oni-alive-music {
+  0%,100% { transform: translate3d(-.35%,0,6px) rotateY(.5deg) rotateZ(-.7deg) scale(1.02); }
+  25% { transform: translate3d(.18%,-1.2%,12px) rotateY(-.4deg) rotateZ(.1deg) scale(1.031); }
+  50% { transform: translate3d(.45%,-.2%,7px) rotateY(-.65deg) rotateZ(.72deg) scale(1.022); }
+  75% { transform: translate3d(-.12%,-1.15%,12px) rotateY(.25deg) rotateZ(.05deg) scale(1.03); }
+}
+
+@keyframes oni-alive-shadow {
+  0%,100% { transform: scaleX(.92); opacity: .64; }
+  50% { transform: scaleX(1.05); opacity: .8; }
+}
+
+@keyframes oni-alive-field {
+  0%,100% { transform: scale(.94) rotate(-1deg); opacity: .22; }
+  50% { transform: scale(1.04) rotate(1deg); opacity: .48; }
+}
+
+@keyframes oni-alive-focus-think {
+  0%,100% { opacity:.4; transform: translateX(-7%) scale(.82); }
+  50% { opacity:.68; transform: translateX(9%) scale(.98); }
+}
+
+@keyframes oni-alive-focus-listen {
+  0%,100% { opacity:.62; transform: translateX(-2%) scale(1.02); }
+  50% { opacity:.92; transform: translateX(3%) scale(1.2); }
+}
+
+@keyframes oni-alive-focus-speak {
+  0%,100% { opacity:.68; transform: scale(1.05); }
+  50% { opacity:1; transform: scale(1.28); }
+}
+
+@media (max-width: 1023px) {
+  .oni-character-presence::after { width: 82%; height: 74%; top: 4%; }
+  .oni-character-presence__body { transform-origin: 50% 92%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oni-character-presence::before,
+  .oni-character-presence::after,
+  .oni-character-presence__body,
+  .oni-character-presence__aura,
+  .oni-character-presence__embers,
+  .oni-character-presence__focus {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
