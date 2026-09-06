@@ -149,6 +149,9 @@ type Intent =
 
 /** Pure keyword classification over the normalized (translit-aware) haystack. */
 function classify(n: NormalizedInput): Intent | null {
+  // Identity must win over a greeting when both appear in one sentence.
+  if (hasStem(n, "чи хэн", "вхо аре йоу", "они ай", "они браин", "чамайг хэн", "зан чанар"))
+    return "identity";
   if (
     hasStem(
       n,
@@ -189,7 +192,6 @@ function classify(n: NormalizedInput): Intent | null {
   )
     return "stats";
   if (hasStem(n, "элс", "жоин", "анкет", "шаардлага", "яаж орох", "элсэх")) return "join";
-  if (hasStem(n, "чи хэн", "вхо аре йоу", "они ай", "они браин", "чамайг хэн")) return "identity";
   if (hasStem(n, "тусла", "юу чадах", "хэлп", "заавар")) return "help";
   return null;
 }
@@ -232,8 +234,8 @@ const REPLIES: Record<Intent, () => Promise<BrainReply>> = {
     state: "serious",
   }),
   identity: async () => ({
-    text: "Би ONI BRAIN — ONI & KISHIN кланы дижитал туслах. Зөвхөн нийтэд нээлттэй өгөгдөл дээр тулгуурлан хариулна.",
-    state: "happy",
+    text: "Би ONI BRAIN — ONI & KISHIN-ийн дижитал хамтрагч. Шууд ярьдаг, баримтад хатуу, кланыхандаа дулаан; мэдэхгүй зүйлээ зохиохгүй. Нийтийн клан мэдээлэл, гараж, хөгжим, уулзалт дээр тусална, харин ROOM ID ба нууц үгийг хэзээ ч задруулахгүй.",
+    state: "serious",
   }),
   help: async () => ({ text: HELP, state: "serious" }),
 };
