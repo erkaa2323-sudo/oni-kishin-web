@@ -212,8 +212,17 @@ service cloud.firestore {
         && exists(memberPath)
         && existsAfter(/databases/$(database)/documents/meetSlots/$(data.slotId))
         && getAfter(/databases/$(database)/documents/meetSlots/$(data.slotId)).data.participantId == participantId
-        && (member.nick == data.nick || member.nickname == data.nick || member.name == data.nick)
-        && (member.cpmid == data.cpmId || member.cpmId == data.cpmId);
+        && (
+          member.get("nick", "") == data.nick
+          || member.get("nickname", "") == data.nick
+          || member.get("name", "") == data.nick
+        )
+        && (
+          member.get("cpmid", "") == data.cpmId
+          || member.get("cpmId", "") == data.cpmId
+        )
+        && member.get("status", "active") != "inactive"
+        && member.get("status", "active") != "archived";
     }
 
     match /meetParticipants/{participantId} {
@@ -272,6 +281,27 @@ service cloud.firestore {
     match /meetResults/{resultId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // ADMIN AUDIT LOG — append only
+    // =========================================================
+    match /auditLogs/{eventId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && hasOnlyKeys(request.resource.data, [
+          "actorId", "actorRole", "action", "target", "severity", "result", "detail", "createdAt"
+        ])
+        && hasAllKeys(request.resource.data, [
+          "actorId", "actorRole", "action", "severity", "result", "createdAt"
+        ])
+        && request.resource.data.actorId == request.auth.uid
+        && request.resource.data.actorRole in ["owner", "admin", "moderator"]
+        && requiredText(request.resource.data.action, 120)
+        && request.resource.data.severity in ["info", "warning", "critical"]
+        && request.resource.data.result in ["success", "failure", "denied"]
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
     }
 
     // =========================================================
