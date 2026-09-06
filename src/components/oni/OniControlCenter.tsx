@@ -763,6 +763,7 @@ function MeetModule({
   const [draft, setDraft] = useState({
     title: "",
     scheduled_at: "",
+    ends_at: "",
     registration_closes_at: "",
     capacity: "",
   });
@@ -812,6 +813,7 @@ function MeetModule({
     setDraft({
       title: current.title,
       scheduled_at: toLocal(current.scheduledAt),
+      ends_at: toLocal(current.endsAt),
       registration_closes_at: toLocal(current.registrationClosesAt),
       capacity: current.capacity ? String(current.capacity) : "",
     });
@@ -822,13 +824,27 @@ function MeetModule({
       setNotice("Уулзалтын нэр заавал шаардлагатай.");
       return;
     }
+    const startsAt = draft.scheduled_at ? new Date(draft.scheduled_at).getTime() : 0;
+    const endsAt = draft.ends_at ? new Date(draft.ends_at).getTime() : 0;
+    const closesAt = draft.registration_closes_at
+      ? new Date(draft.registration_closes_at).getTime()
+      : startsAt;
+    if (!startsAt || !endsAt || endsAt <= startsAt) {
+      setNotice("Эхлэх болон дуусах цагийг зөв дарааллаар оруулна уу.");
+      return;
+    }
+    if (closesAt > startsAt) {
+      setNotice("Бүртгэл хаах цаг эхлэх цагаас хойш байж болохгүй.");
+      return;
+    }
     setBusy(true);
     setNotice("");
     const payload = {
       title: draft.title.trim(),
       scheduled_at: toIso(draft.scheduled_at),
+      ends_at: toIso(draft.ends_at),
       registration_closes_at: toIso(draft.registration_closes_at),
-      capacity: draft.capacity ? Number(draft.capacity) : null,
+      capacity: Math.min(20, Math.max(1, Number(draft.capacity || 20))),
       ...(mode === "create" ? { status: "scheduled" } : {}),
     };
     const r = await dispatchAdminAction(
@@ -925,10 +941,20 @@ function MeetModule({
           />
         </label>
         <label className="block">
+          <span className="hud-label block text-muted-foreground">АВТОМАТ ДУУСАХ ЦАГ</span>
+          <input
+            type="datetime-local"
+            className={`${fieldClass} mt-2`}
+            value={draft.ends_at}
+            onChange={(e) => setDraft({ ...draft, ends_at: e.target.value })}
+          />
+        </label>
+        <label className="block">
           <span className="hud-label block text-muted-foreground">CAPACITY / БАГТААМЖ</span>
           <input
             type="number"
             min={1}
+            max={20}
             className={`${fieldClass} mt-2`}
             value={draft.capacity}
             onChange={(e) => setDraft({ ...draft, capacity: e.target.value })}
