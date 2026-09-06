@@ -424,11 +424,12 @@ export const meetService = {
   create: async (data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
     try {
       const meetRef = doc(firebaseDb, "meets", "current");
-      const [previous, participants, slots, previousCredentials] = await Promise.all([
+      const [previous, participants, roster, slots, previousCredentials] = await Promise.all([
         getDoc(meetRef),
         getDocs(
           query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current")),
         ),
+        getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current"))),
         getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
         getDoc(doc(firebaseDb, "meetCredentials", "current")),
       ]);
@@ -443,6 +444,7 @@ export const meetService = {
         });
       }
       participants.docs.forEach((entry) => batch.delete(entry.ref));
+      roster.docs.forEach((entry) => batch.delete(entry.ref));
       slots.docs.forEach((entry) => batch.delete(entry.ref));
       if (previousCredentials.exists()) batch.delete(previousCredentials.ref);
       batch.set(
@@ -509,6 +511,7 @@ export const meetService = {
         if (!registration.exists()) return;
         const slotId = str(registration.data()["slotId"]);
         if (slotId) tx.delete(doc(firebaseDb, "meetSlots", slotId));
+        tx.delete(doc(firebaseDb, "meetRoster", id));
         tx.delete(registrationRef);
       });
       return ok(undefined);
