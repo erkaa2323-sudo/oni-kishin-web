@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
@@ -54,19 +55,37 @@ export function watchMemberAuth(
   listener: (snapshot: MemberAuthSnapshot) => void,
   onError: () => void,
 ): () => void {
-  return onAuthStateChanged(
+  let unsubscribeAccount: (() => void) | null = null;
+
+  const unsubscribeAuth = onAuthStateChanged(
     firebaseAuth,
     (user) => {
+      unsubscribeAccount?.();
+      unsubscribeAccount = null;
+
       if (!user) {
         listener({ user: null, account: null });
         return;
       }
-      void fetchMemberAccount(user.uid)
-        .then((account) => listener({ user, account }))
-        .catch(onError);
+
+      unsubscribeAccount = onSnapshot(
+        doc(firebaseDb, "memberAccounts", user.uid),
+        (snapshot) => {
+          listener({
+            user,
+            account: snapshot.exists() ? accountFrom(user.uid, snapshot.data()) : null,
+          });
+        },
+        onError,
+      );
     },
     onError,
   );
+
+  return () => {
+    unsubscribeAccount?.();
+    unsubscribeAuth();
+  };
 }
 
 async function findCrewMember(nickname: string, cpmId: string) {
@@ -150,15 +169,12 @@ export async function reviewMemberAccount(
 
   if (status === "approved") {
     const target = accountFrom(uid, accountSnapshot.data());
-    const approvedForMember = await getDocs(
-      query(
-        collection(firebaseDb, "memberAccounts"),
-        where("memberId", "==", target.memberId),
-        where("status", "==", "approved"),
-        limit(2),
-      ),
+    const accountsForMember = await getDocs(
+      query(collection(firebaseDb, "memberAccounts"), where("memberId", "==", target.memberId)),
     );
-    const duplicate = approvedForMember.docs.find((entry) => entry.id !== uid);
+    const duplicate = accountsForMember.docs.find(
+      (entry) => entry.id !== uid && entry.data()["status"] === "approved",
+    );
     if (duplicate) throw new Error("member_already_has_approved_account");
   }
 
