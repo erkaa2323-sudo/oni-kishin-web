@@ -261,7 +261,6 @@ export type ApplicationRecord = BaseRecord & {
 };
 
 export const applicationsService = {
-  /** Anyone may submit; Firestore rules forbid reading applications back. */
   submit: (input: {
     last: string;
     first: string;
@@ -426,9 +425,7 @@ export const meetService = {
       const meetRef = doc(firebaseDb, "meets", "current");
       const [previous, participants, roster, slots, previousCredentials] = await Promise.all([
         getDoc(meetRef),
-        getDocs(
-          query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current")),
-        ),
+        getDocs(query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current"))),
         getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current"))),
         getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
         getDoc(doc(firebaseDb, "meetCredentials", "current")),
@@ -436,10 +433,12 @@ export const meetService = {
       const batch = writeBatch(firebaseDb);
       if (previous.exists()) {
         const archiveRef = doc(collection(firebaseDb, "meetResults"));
+        const liveCount = participants.docs.filter((entry) => entry.id !== "__counter__").length;
+        const preservedCount = Number(previous.data()["participantCount"] ?? 0);
         batch.set(archiveRef, {
           ...previous.data(),
           sourceMeetId: "current",
-          participantCount: participants.docs.filter((entry) => entry.id !== "__counter__").length,
+          participantCount: liveCount > 0 ? liveCount : preservedCount,
           archivedAt: serverTimestamp(),
         });
       }
@@ -465,12 +464,40 @@ export const meetService = {
   },
   update: (_id: string, data: Record<string, unknown>) =>
     firebaseUpdate("meets", "current", meetWrite(data)),
-  setLifecycle: (_id: string, status: MeetRecord["status"]) =>
-    firebaseUpdate("meets", "current", {
-      status,
-      enabled: status === "scheduled" || status === "live",
-    }),
-  /** Admin-only: RLS blocks every non-admin read of credentials. */
+  setLifecycle: async (_id: string, status: MeetRecord["status"]) => {
+    if (status !== "ended" && status !== "closed") {
+      return firebaseUpdate("meets", "current", {
+        status,
+        enabled: status === "scheduled" || status === "live",
+      });
+    }
+
+    try {
+      const meetRef = doc(firebaseDb, "meets", "current");
+      const [participants, roster, slots, credentials] = await Promise.all([
+        getDocs(query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current"))),
+        getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current"))),
+        getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
+        getDoc(doc(firebaseDb, "meetCredentials", "current")),
+      ]);
+      const participantCount = participants.docs.filter((entry) => entry.id !== "__counter__").length;
+      const batch = writeBatch(firebaseDb);
+      batch.update(meetRef, {
+        status,
+        enabled: false,
+        participantCount,
+        updatedAt: serverTimestamp(),
+      });
+      participants.docs.forEach((entry) => batch.delete(entry.ref));
+      roster.docs.forEach((entry) => batch.delete(entry.ref));
+      slots.docs.forEach((entry) => batch.delete(entry.ref));
+      if (credentials.exists()) batch.delete(credentials.ref);
+      await batch.commit();
+      return ok({ id: "current" });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
   getCredentials: async (meetId: string): Promise<ServiceResult<MeetCredentialsRecord>> => {
     try {
       const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
@@ -519,7 +546,6 @@ export const meetService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  /** Admin-authenticated write. Firestore rules keep this document non-public. */
   setCredentials: async (
     meetId: string,
     roomId: string,
@@ -536,12 +562,6 @@ export const meetService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
-
-  /**
-   * Verification must run on a trusted server path that checks the CPM
-   * identity against real members before releasing credentials. No such
-   * path exists yet, so this fails closed — never fake success.
-   */
   verifyAndJoin: async (_input: {
     meetId: string;
     cpmNickname: string;
