@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ONI_STATE_VISUALS, type OniState } from "@/lib/oni-emotion";
@@ -17,6 +17,11 @@ const STATES: OniState[] = [
   "music",
 ];
 
+type RigTarget = {
+  element: HTMLElement;
+  state: OniState;
+};
+
 function stateFromElement(element: HTMLElement): OniState {
   for (const state of STATES) {
     if (element.classList.contains(`oni-character-presence--${state}`)) return state;
@@ -24,68 +29,76 @@ function stateFromElement(element: HTMLElement): OniState {
   return "idle";
 }
 
+function sameTargets(current: RigTarget[], next: RigTarget[]) {
+  return (
+    current.length === next.length &&
+    current.every(
+      (item, index) =>
+        item.element === next[index]?.element && item.state === next[index]?.state,
+    )
+  );
+}
+
 /**
- * Safe migration bridge: mounts the new web-native rig into the existing
- * character slots without rewriting OniAiChamber. Once layered art is final,
- * the chamber can adopt OniWebRig directly and this bridge can be removed.
+ * Migration bridge for the existing OniAiChamber character slots.
+ * It watches only each slot's state class, avoiding body-wide mutation loops
+ * and preserving one stable OniWebRig instance per slot.
  */
 export function OniRigBridge() {
-  const [targets, setTargets] = useState<HTMLElement[]>([]);
-  const [version, setVersion] = useState(0);
+  const [targets, setTargets] = useState<RigTarget[]>([]);
 
   useEffect(() => {
-    const refresh = () => {
-      const next = Array.from(
-        document.querySelectorAll<HTMLElement>(".oni-character-presence"),
-      );
-      setTargets((current) => {
-        if (current.length === next.length && current.every((item, i) => item === next[i])) {
-          return current;
-        }
-        return next;
-      });
-      setVersion((value) => value + 1);
+    const elements = Array.from(
+      document.querySelectorAll<HTMLElement>(".oni-character-presence"),
+    );
+
+    const read = () => {
+      const next = elements.map((element) => ({
+        element,
+        state: stateFromElement(element),
+      }));
+      setTargets((current) => (sameTargets(current, next) ? current : next));
     };
 
-    refresh();
-    const observer = new MutationObserver(refresh);
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
+    const observers = elements.map((element) => {
+      const oldBody = element.querySelector<HTMLElement>(
+        ".oni-character-presence__body",
+      );
+      if (oldBody) oldBody.style.opacity = "0";
 
-  useEffect(() => {
-    for (const target of targets) {
-      const image = target.querySelector<HTMLElement>(".oni-character-presence__body");
-      if (image) image.style.opacity = "0";
-    }
+      const observer = new MutationObserver(read);
+      observer.observe(element, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+
+      return { observer, oldBody };
+    });
+
+    read();
+
     return () => {
-      for (const target of targets) {
-        const image = target.querySelector<HTMLElement>(".oni-character-presence__body");
-        if (image) image.style.opacity = "";
+      for (const { observer, oldBody } of observers) {
+        observer.disconnect();
+        if (oldBody) oldBody.style.opacity = "";
       }
     };
-  }, [targets]);
+  }, []);
 
-  return useMemo(
-    () =>
-      targets.map((target, index) => {
-        const state = stateFromElement(target);
+  return (
+    <>
+      {targets.map(({ element, state }, index) => {
         const visual = ONI_STATE_VISUALS[state];
         return createPortal(
           <OniWebRig
-            key={`${index}-${version}`}
             state={state}
             glow={visual.glow}
             speaking={state === "speaking"}
           />,
-          target,
+          element,
+          `oni-rig-${index}`,
         );
-      }),
-    [targets, version],
+      })}
+    </>
   );
 }
