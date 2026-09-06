@@ -227,7 +227,9 @@ export async function registerForMeet(
     const storedNick = String(row["nick"] || row["nickname"] || row["name"] || "")
       .trim()
       .toLocaleLowerCase("mn-MN");
-    return storedNick === normalizedNick && row["status"] !== "inactive" && row["status"] !== "archived";
+    return (
+      storedNick === normalizedNick && row["status"] !== "inactive" && row["status"] !== "archived"
+    );
   });
   if (!member) return "invalid";
   const memberData = member.data();
