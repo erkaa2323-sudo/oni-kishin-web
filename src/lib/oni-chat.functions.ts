@@ -39,14 +39,86 @@ const SYSTEM = [
 
 const PRIMARY_MODEL = "openai/gpt-5.6-sol";
 const FAST_FALLBACK_MODEL = "openai/gpt-5.6-sol-fast";
+const ONI_WORKER_ENDPOINT = "https://oni-kishin-web.erkaa2323.workers.dev/api/oni-ai";
+const ONI_WORKER_ORIGIN = "https://erkaa2323-sudo.github.io";
 
 export type GeneralReply =
   { ok: true; text: string; sources: Array<{ url: string; title: string }> } | { ok: false };
+
+async function requestOniWorker(data: z.infer<typeof Payload>): Promise<GeneralReply> {
+  const latest = data.turns.at(-1)?.content.trim();
+  if (!latest) return { ok: false };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45_000);
+  try {
+    const response = await fetch(ONI_WORKER_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // The existing Worker allow-list recognizes ONI's original production site.
+        // This request is server-to-server; browsers never receive or control this header.
+        Origin: ONI_WORKER_ORIGIN,
+      },
+      body: JSON.stringify({
+        message: latest,
+        history: data.turns.slice(0, -1).map((turn) => ({
+          role: turn.role === "assistant" ? "ai" : "user",
+          text: turn.content,
+        })),
+        knowledge: data.publicContext ?? "",
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return { ok: false };
+
+    const packet = (await response.json()) as {
+      ok?: boolean;
+      reply?: unknown;
+      text?: unknown;
+      sources?: unknown;
+    };
+    const text = typeof packet.reply === "string"
+      ? packet.reply.trim()
+      : typeof packet.text === "string"
+        ? packet.text.trim()
+        : "";
+    if (!packet.ok || !text) return { ok: false };
+
+    const sources = Array.isArray(packet.sources)
+      ? packet.sources
+          .flatMap((source) => {
+            if (!source || typeof source !== "object") return [];
+            const item = source as { url?: unknown; title?: unknown };
+            if (typeof item.url !== "string" || !/^https?:\/\//i.test(item.url)) return [];
+            return [{
+              url: item.url,
+              title: typeof item.title === "string" && item.title.trim()
+                ? item.title.trim()
+                : new URL(item.url).hostname,
+            }];
+          })
+          .filter((source, index, all) => all.findIndex((item) => item.url === source.url) === index)
+          .slice(0, 5)
+      : [];
+    return { ok: true, text: text.slice(0, 3200), sources };
+  } catch {
+    return { ok: false };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export const oniGeneralChat = createServerFn({ method: "POST" })
   .validator((data: unknown) => Payload.parse(data))
   .handler(async ({ data }): Promise<GeneralReply> => {
     try {
+      // Restore the proven ONI Worker first: it already owns ONI's personality,
+      // OpenAI key, clan tools and Responses API web search.
+      const workerReply = await requestOniWorker(data);
+      if (workerReply.ok) return workerReply;
+
+      // Vercel Gateway remains a resilient fallback if the Worker is unavailable.
       const latest = data.turns.at(-1)?.content ?? "";
       const mustSearch = /(хай|шалга|сүүлийн|сүүлд|одоог|өнөөдөр|мэдээ|үнэ|ханш|цаг агаар|latest|today|current|search|news|price)/i.test(latest);
       const request = (model: string) => generateText({
