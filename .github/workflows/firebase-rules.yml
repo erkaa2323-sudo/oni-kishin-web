@@ -1,0 +1,33 @@
+name: Deploy Firebase Rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firebase.json
+      - .github/workflows/firebase-rules.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-rules-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy Firestore rules
+        run: npx --yes firebase-tools@15.29.0 deploy --only firestore:rules --project oni-kishin-f59b4 --non-interactive
