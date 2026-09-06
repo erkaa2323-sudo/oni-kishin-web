@@ -198,7 +198,8 @@ service cloud.firestore {
         && hasOnlyKeys(data, [
           "meetId", "meetStartAt", "memberId", "nick", "name", "cpmId", "joinedAt", "source", "slotId"
         ])
-        && hasAllKeys(data, ["meetId", "memberId", "nick", "name", "cpmId", "source", "slotId"])\n        && requiredText(data.slotId, 20)
+        && hasAllKeys(data, ["meetId", "memberId", "nick", "name", "cpmId", "source", "slotId"])
+        && requiredText(data.slotId, 20)
         && requiredText(data.memberId, 80)
         && requiredText(data.nick, 60)
         && requiredText(data.name, 60)
