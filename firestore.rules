@@ -233,6 +233,47 @@ service cloud.firestore {
     }
 
     // =========================================================
+    // ONI MEET CAPACITY SLOTS
+    // =========================================================
+    match /meetSlots/{slotId} {
+      allow read: if true;
+      allow create: if
+        slotId.matches("^current_[0-9]{2}$")
+        && hasOnlyKeys(request.resource.data, [
+          "meetId", "participantId", "memberId", "createdAt"
+        ])
+        && hasAllKeys(request.resource.data, [
+          "meetId", "participantId", "memberId", "createdAt"
+        ])
+        && request.resource.data.meetId == "current"
+        && requiredText(request.resource.data.participantId, 120)
+        && requiredText(request.resource.data.memberId, 80)
+        && request.resource.data.createdAt is timestamp
+        && existsAfter(
+          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
+        )
+        && getAfter(
+          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
+        ).data.slotId == slotId
+        && getAfter(
+          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
+        ).data.memberId == request.resource.data.memberId;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Room ID and password must never be readable publicly.
+    match /meetCredentials/{meetId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
+    // Completed meet history is public, but only admins can archive it.
+    match /meetResults/{resultId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
     // EVERYTHING ELSE = DENY
     // =========================================================
     match /{document=**} {
