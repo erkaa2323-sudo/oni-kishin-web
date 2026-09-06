@@ -260,10 +260,10 @@ async function generalFallback(raw: string, history: BrainTurn[]): Promise<Brain
     const { oniGeneralChat } = await import("@/lib/oni-chat.functions");
     const { membersService, garageService, musicService } = await import("@/services/domains");
     const [membersLoad, garageLoad, musicLoad, meetLoad] = await Promise.allSettled([
-      membersService.listPublic(),
-      garageService.listPublished(),
-      musicService.listPublished(),
-      fetchActiveMeet(),
+      Promise.resolve().then(() => membersService.listPublic()),
+      Promise.resolve().then(() => garageService.listPublished()),
+      Promise.resolve().then(() => musicService.listPublished()),
+      Promise.resolve().then(() => fetchActiveMeet()),
     ]);
     const members = membersLoad.status === "fulfilled" ? membersLoad.value : null;
     const garage = garageLoad.status === "fulfilled" ? garageLoad.value : null;
