@@ -42,9 +42,20 @@ export function getOniRigAsset(layerId: OniRigLayerId): string | undefined {
 export function getOniRigAssetCoverage() {
   const entries = Object.entries(FILE_BY_LAYER) as Array<[OniRigLayerId, string]>;
   const available = entries.filter(([, file]) => urlByBaseName.has(file)).map(([id]) => id);
+  const missing = entries.filter(([, file]) => !urlByBaseName.has(file)).map(([id]) => id);
+  const duplicateBaseNames = Array.from(
+    Object.entries(modules).reduce((counts, [path]) => {
+      const name = normalizePath(path);
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+      return counts;
+    }, new Map<string, number>()),
+  ).filter(([, count]) => count > 1).map(([name]) => name);
+
   return {
     total: entries.length,
     available,
-    complete: available.length === entries.length,
+    missing,
+    duplicateBaseNames,
+    complete: available.length === entries.length && duplicateBaseNames.length === 0,
   };
 }
