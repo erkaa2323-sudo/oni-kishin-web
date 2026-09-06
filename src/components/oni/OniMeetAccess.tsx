@@ -144,7 +144,9 @@ export function OniMeetAccess() {
                 <span className="hud-label text-foreground/70">MEET STATUS</span>
                 <span
                   className={`text-[0.65rem] tracking-[0.24em] ${
-                    life === "open" || life === "active" ? "text-crimson" : "text-muted-foreground"
+                    canRegister(life) || life === "active"
+                      ? "text-crimson"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {loadState === "loading"
@@ -200,6 +202,12 @@ export function OniMeetAccess() {
                     <dd className="mt-1 text-sm text-foreground">
                       {session.registered}
                       {session.capacity !== null ? `/${session.capacity}` : ""}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="hud-label">ДУУСАХ ЦАГ</dt>
+                    <dd className="mt-1 text-sm text-foreground">
+                      {session.endsAt ? new Date(session.endsAt).toLocaleString("mn-MN") : "—"}
                     </dd>
                   </div>
                 </dl>
