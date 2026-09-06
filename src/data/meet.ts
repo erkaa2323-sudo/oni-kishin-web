@@ -12,13 +12,13 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
   query,
   runTransaction,
   serverTimestamp,
   where,
 } from "firebase/firestore";
-import { firebaseDb } from "@/integrations/firebase/client";
+import { fetchMemberAccount } from "@/data/member-auth";
+import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
 export const CPM_NICKNAME_MAX = 32;
@@ -63,6 +63,8 @@ export type MeetParticipant = {
   cpmNickname: string;
   registeredAt: string;
 };
+
+export type MeetCredentials = { roomId: string; password: string };
 
 export type MeetLoad =
   { status: "ok"; session: MeetSession | null } | { status: "error"; reason: string };
@@ -152,7 +154,7 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
       return { status: "ok", session: null };
     const row = snapshot.data();
     const participants = await getDocs(
-      query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current")),
+      query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current")),
     );
     const value = (v: unknown): string | null => {
       if (typeof v === "string") return v;
@@ -186,7 +188,7 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
 export async function fetchParticipants(meetId: string): Promise<MeetParticipant[]> {
   try {
     const snapshot = await getDocs(
-      query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", meetId)),
+      query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId)),
     );
     return snapshot.docs
       .filter((x) => x.id !== "__counter__")
@@ -215,32 +217,29 @@ export async function registerForMeet(
 
   const nick = input.cpmNickname.trim();
   const cpmId = input.cpmId.trim();
-  const memberQueries = await Promise.all([
-    getDocs(query(collection(firebaseDb, "members"), where("cpmid", "==", cpmId), limit(2))),
-    getDocs(query(collection(firebaseDb, "members"), where("cpmId", "==", cpmId), limit(2))),
-  ]).catch(() => null);
-  if (!memberQueries) return "error";
-  const candidates = memberQueries.flatMap((snapshot) => snapshot.docs);
-  const normalizedNick = nick.toLocaleLowerCase("mn-MN");
-  const member = candidates.find((entry) => {
-    const row = entry.data();
-    const storedNick = String(row["nick"] || row["nickname"] || row["name"] || "")
-      .trim()
-      .toLocaleLowerCase("mn-MN");
-    return (
-      storedNick === normalizedNick && row["status"] !== "inactive" && row["status"] !== "archived"
-    );
-  });
-  if (!member) return "invalid";
+  const user = firebaseAuth.currentUser;
+  if (!user) return "invalid";
+  const account = await fetchMemberAccount(user.uid).catch(() => null);
+  if (
+    !account ||
+    account.status !== "approved" ||
+    account.nickname.toLocaleLowerCase("mn-MN") !== nick.toLocaleLowerCase("mn-MN") ||
+    account.cpmId !== cpmId
+  )
+    return "invalid";
+  const member = await getDoc(doc(firebaseDb, "members", account.memberId)).catch(() => null);
+  if (!member?.exists()) return "invalid";
   const memberData = member.data();
+  if (memberData["status"] === "inactive" || memberData["status"] === "archived") return "invalid";
   const canonicalNick = String(
     memberData["nick"] || memberData["nickname"] || memberData["name"] || nick,
   ).trim();
   const canonicalCpmId = String(memberData["cpmid"] || memberData["cpmId"] || cpmId).trim();
 
-  const participantId = encodeURIComponent(cpmId.toLocaleLowerCase("en-US")).slice(0, 120);
+  const participantId = user.uid;
   const meetRef = doc(firebaseDb, "meets", "current");
   const participantRef = doc(firebaseDb, "meetParticipants", participantId);
+  const rosterRef = doc(firebaseDb, "meetRoster", participantId);
   try {
     return await runTransaction(firebaseDb, async (tx) => {
       const slotRefs = Array.from({ length: 20 }, (_, index) =>
@@ -296,6 +295,11 @@ export async function registerForMeet(
         memberId: member.id,
         createdAt: serverTimestamp(),
       });
+      tx.set(rosterRef, {
+        meetId: "current",
+        nickname: canonicalNick,
+        joinedAt: serverTimestamp(),
+      });
       return "registered" as const;
     });
   } catch {
@@ -309,5 +313,22 @@ export async function registerForMeet(
  * ROOM ID / PASSWORD would be unsafe. The gate stays closed until an
  * authenticated member identity exists.
  */
+export async function fetchMeetCredentialsForMember(
+  meetId: string,
+): Promise<MeetCredentials | null> {
+  const user = firebaseAuth.currentUser;
+  if (!user || meetId !== "current") return null;
+  try {
+    const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
+    if (!snapshot.exists()) return null;
+    const row = snapshot.data();
+    const roomId = String(row["roomId"] ?? "").trim();
+    const password = String(row["password"] ?? "").trim();
+    return roomId && password ? { roomId, password } : null;
+  } catch {
+    return null;
+  }
+}
+
 export const CREDENTIAL_GATE_NOTICE =
-  "Өрөөний ID болон нууц үгийг зөвхөн баталгаажсан гишүүний нэвтрэлт бий болсны дараа нээнэ. Бүртгэл нь хувийн мэдээллийг баталгаажуулдаггүй тул одоогоор хаалттай байна.";
+  "Өрөөний ID болон нууц үг зөвхөн Admin-аар баталгаажсан, тухайн Meet-д бүртгүүлсэн Crew аккаунтад нээгдэнэ.";
