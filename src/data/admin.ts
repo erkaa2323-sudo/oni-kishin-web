@@ -14,6 +14,7 @@ import {
   musicService,
 } from "@/services/domains";
 import { listAuditEvents, recordAuditEvent } from "@/services/audit";
+import { reviewMemberAccount } from "@/data/member-auth";
 
 /** Legacy Firebase (Firestore + Auth) is the live backend for this project. */
 export const ADMIN_BACKEND_CONNECTED = true;
@@ -66,6 +67,7 @@ export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
 export type AdminModuleId =
   | "overview"
   | "members"
+  | "accounts"
   | "garage"
   | "applications"
   | "meet"
@@ -91,6 +93,13 @@ export const ADMIN_MODULES: AdminModule[] = [
     desc: "Үйл ажиллагааны төлөв",
   },
   { id: "members", label: "ГИШҮҮД", code: "MEMBERS", index: "01", desc: "Гишүүдийн бүртгэл" },
+  {
+    id: "accounts",
+    label: "CREW ACCOUNT",
+    code: "MEMBER AUTH",
+    index: "01A",
+    desc: "Гишүүний нэвтрэх хүсэлт",
+  },
   { id: "garage", label: "ГАРАЖ", code: "GARAGE", index: "02", desc: "Автомашины бүртгэл" },
   {
     id: "applications",
@@ -357,6 +366,8 @@ export type AdminActionKind =
   | "member.update"
   | "member.archive"
   | "member.delete"
+  | "member_account.approve"
+  | "member_account.reject"
   | "vehicle.create"
   | "vehicle.update"
   | "vehicle.archive"
@@ -387,6 +398,8 @@ export const ACTION_RISK: Partial<Record<AdminActionKind, RiskLevel>> = {
   "meet.rotate_credentials": "high",
   "meet.registration_remove": "medium",
   "member.archive": "medium",
+  "member_account.approve": "medium",
+  "member_account.reject": "medium",
   "application.promote": "medium",
   "vehicle.archive": "medium",
   "application.reject": "medium",
@@ -410,6 +423,8 @@ const ACTION_PERMISSION: Record<AdminActionKind, AdminPermission> = {
   "member.update": "members.write",
   "member.archive": "members.write",
   "member.delete": "members.write",
+  "member_account.approve": "members.write",
+  "member_account.reject": "members.write",
   "vehicle.create": "garage.write",
   "vehicle.update": "garage.write",
   "vehicle.archive": "garage.write",
@@ -497,6 +512,14 @@ export async function dispatchAdminAction(
       break;
     case "member.delete":
       res = await membersService.remove(targetId!);
+      break;
+    case "member_account.approve":
+      await reviewMemberAccount(targetId!, "approved");
+      res = { ok: true, data: { id: targetId! } };
+      break;
+    case "member_account.reject":
+      await reviewMemberAccount(targetId!, "rejected");
+      res = { ok: true, data: { id: targetId! } };
       break;
     case "vehicle.create":
       res = await garageService.create({ ...data, created_by: actor.uid, updated_by: actor.uid });
