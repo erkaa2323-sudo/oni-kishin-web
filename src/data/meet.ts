@@ -7,7 +7,17 @@
  * database function `meet_register`, not only by this UI layer.
  */
 
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
 import { firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
@@ -35,12 +45,14 @@ export function cpmLaunchUrl(userAgent?: string): string {
   return isIOS ? CPM_LAUNCH_URL_IOS : CPM_LAUNCH_URL_ANDROID;
 }
 
-export type MeetLifecycle = "none" | "scheduled" | "open" | "closed" | "full" | "active" | "ended";
+export type MeetLifecycle =
+  "none" | "scheduled" | "starting_soon" | "open" | "closed" | "full" | "active" | "ended";
 
 export type MeetSession = {
   id: string;
   title: string;
   scheduledAt: string | null;
+  endsAt: string | null;
   registrationClosesAt: string | null;
   capacity: number | null;
   registered: number;
@@ -87,7 +99,10 @@ export function validateVerification(v: VerificationInput): MeetFieldErrors {
 /** Derived, refresh-consistent lifecycle from status + timestamps + capacity. */
 export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLifecycle {
   if (!s) return "none";
-  if (s.status === "live") return "active";
+  const starts = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null;
+  const ends = s.endsAt ? new Date(s.endsAt).getTime() : null;
+  if (ends !== null && ends <= now) return "ended";
+  if (s.status === "live" || (starts !== null && starts <= now)) return "active";
   const closes = s.registrationClosesAt
     ? new Date(s.registrationClosesAt).getTime()
     : s.scheduledAt
@@ -95,16 +110,18 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
       : null;
   if (closes !== null && closes <= now) return "closed";
   if (s.capacity !== null && s.registered >= s.capacity) return "full";
-  return "open";
+  if (starts !== null && starts - now <= 20 * 60 * 1000) return "starting_soon";
+  return starts !== null ? "scheduled" : "open";
 }
 
 export function canRegister(life: MeetLifecycle): boolean {
-  return life === "open";
+  return life === "open" || life === "scheduled" || life === "starting_soon";
 }
 
 export const LIFECYCLE_LABEL: Record<MeetLifecycle, string> = {
   none: "ИДЭВХТЭЙ УУЛЗАЛТ АЛГА",
   scheduled: "ТӨЛӨВЛӨГДСӨН",
+  starting_soon: "УДАХГҮЙ ЭХЭЛНЭ",
   open: "БҮРТГЭЛ НЭЭЛТТЭЙ",
   closed: "БҮРТГЭЛ ХААГДСАН",
   full: "БАГТААМЖ ДҮҮРСЭН",
@@ -145,10 +162,14 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         id: "current",
         title: String(row["name"] || "ONI MEET"),
         scheduledAt: value(row["startAt"]),
-        registrationClosesAt: null,
+        endsAt: value(row["endsAt"]),
+        registrationClosesAt: value(row["registrationClosesAt"]),
         capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
-        registered: participants.docs.filter((x) => x.id !== "__counter__").length,
-        status: "live",
+        registered:
+          typeof row["registeredCount"] === "number"
+            ? row["registeredCount"]
+            : participants.docs.filter((x) => x.id !== "__counter__").length,
+        status: row["status"] === "live" ? "live" : "scheduled",
       },
     };
   } catch {
@@ -180,17 +201,94 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
   }
 }
 
-/**
- * Legacy registration is intentionally fail-closed for now. Public meet data
- * can be read safely, but writes stay disabled until they can be routed through
- * an authenticated server boundary instead of exposing privileged credentials
- * in the browser.
- */
 export async function registerForMeet(
-  _meetId: string,
-  _input: VerificationInput,
+  meetId: string,
+  input: VerificationInput,
 ): Promise<RegistrationOutcome> {
-  return "error";
+  const errors = validateVerification(input);
+  if (Object.keys(errors).length || meetId !== "current") return "invalid";
+
+  const nick = input.cpmNickname.trim();
+  const cpmId = input.cpmId.trim();
+  const memberQueries = await Promise.all([
+    getDocs(query(collection(firebaseDb, "members"), where("cpmid", "==", cpmId), limit(2))),
+    getDocs(query(collection(firebaseDb, "members"), where("cpmId", "==", cpmId), limit(2))),
+  ]).catch(() => null);
+  if (!memberQueries) return "error";
+  const candidates = memberQueries.flatMap((snapshot) => snapshot.docs);
+  const normalizedNick = nick.toLocaleLowerCase("mn-MN");
+  const member = candidates.find((entry) => {
+    const row = entry.data();
+    const storedNick = String(row["nick"] || row["nickname"] || row["name"] || "")
+      .trim()
+      .toLocaleLowerCase("mn-MN");
+    return storedNick === normalizedNick && row["status"] !== "inactive";
+  });
+  if (!member) return "invalid";
+
+  const participantId = encodeURIComponent(cpmId.toLocaleLowerCase("en-US")).slice(0, 120);
+  const meetRef = doc(firebaseDb, "meets", "current");
+  const participantRef = doc(firebaseDb, "meetParticipants", participantId);
+  try {
+    return await runTransaction(firebaseDb, async (tx) => {
+      const slotRefs = Array.from({ length: 20 }, (_, index) =>
+        doc(firebaseDb, "meetSlots", `current_${String(index + 1).padStart(2, "0")}`),
+      );
+      const [meetSnapshot, participantSnapshot, ...slotSnapshots] = await Promise.all([
+        tx.get(meetRef),
+        tx.get(participantRef),
+        ...slotRefs.map((slotRef) => tx.get(slotRef)),
+      ]);
+      if (!meetSnapshot.exists() || meetSnapshot.data()["enabled"] !== true)
+        return "no_active_meet" as const;
+      if (participantSnapshot.exists()) return "duplicate" as const;
+
+      const meet = meetSnapshot.data();
+      const valueMs = (value: unknown): number | null => {
+        if (typeof value === "string" || typeof value === "number") {
+          const time = new Date(value).getTime();
+          return Number.isNaN(time) ? null : time;
+        }
+        if (value && typeof value === "object" && "toDate" in value)
+          return (value as { toDate: () => Date }).toDate().getTime();
+        return null;
+      };
+      const now = Date.now();
+      const closesAt = valueMs(meet["registrationClosesAt"] ?? meet["startAt"]);
+      if (
+        meet["status"] === "closed" ||
+        meet["status"] === "ended" ||
+        (closesAt && closesAt <= now)
+      )
+        return "registration_closed" as const;
+
+      const capacity = Math.min(20, Math.max(1, Number(meet["maxPlayers"] ?? 20)));
+      const slotIndex = slotSnapshots.slice(0, capacity).findIndex((slot) => !slot.exists());
+      if (slotIndex < 0) return "meet_full" as const;
+      const slotRef = slotRefs[slotIndex]!;
+
+      tx.set(participantRef, {
+        meetId: "current",
+        meetStartAt: meet["startAt"] ?? null,
+        memberId: member.id,
+        nick,
+        name: nick,
+        cpmId,
+        joinedAt: serverTimestamp(),
+        source: "website",
+        slotId: slotRef.id,
+      });
+      tx.set(slotRef, {
+        meetId: "current",
+        participantId,
+        memberId: member.id,
+        createdAt: serverTimestamp(),
+      });
+      return "registered" as const;
+    });
+  } catch {
+    return "error";
+  }
 }
 
 /**
