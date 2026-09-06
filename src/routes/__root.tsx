@@ -29,15 +29,16 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
+  const diagnostic = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportLovableError(error, { boundary: "tanstack_root_error_component", diagnostic });
     if (!isRecoverableClientLoadError(error)) return;
     const last = Number(sessionStorage.getItem(RECOVERY_KEY) ?? 0);
     if (Date.now() - last < 60_000) return;
     sessionStorage.setItem(RECOVERY_KEY, String(Date.now()));
     void hardRecover();
-  }, [error]);
-  return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold tracking-tight text-foreground">Хуудас ачаалагдсангүй</h1><p className="mt-2 text-sm text-muted-foreground">Түр алдаа гарлаа. Шинэ хувилбарыг дахин ачаална уу.</p><div className="mt-6 flex flex-wrap justify-center gap-2"><button onClick={() => void hardRecover()} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Шинээр ачаалах</button><button onClick={reset} className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground">Дахин оролдох</button></div></div></div>;
+  }, [error, diagnostic]);
+  return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold tracking-tight text-foreground">Хуудас ачаалагдсангүй</h1><p className="mt-2 text-sm text-muted-foreground">Түр алдаа гарлаа. Доорх алдааны кодыг ашиглан яг шалтгааныг засна.</p><pre className="mt-4 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-black/30 p-3 text-left text-xs text-red-300" data-testid="oni-client-error">{diagnostic}</pre><div className="mt-6 flex flex-wrap justify-center gap-2"><button onClick={() => void hardRecover()} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Шинээр ачаалах</button><button onClick={reset} className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground">Дахин оролдох</button></div></div></div>;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
