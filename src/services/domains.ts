@@ -17,6 +17,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
   writeBatch,
@@ -57,6 +58,23 @@ const firebaseDate = (v: unknown): string | undefined => {
     } catch {
       return undefined;
     }
+  }
+  return undefined;
+};
+
+const firebaseTimestamp = (v: unknown): Timestamp | undefined => {
+  if (v === undefined || v === null || v === "") return undefined;
+  if (v instanceof Timestamp) return v;
+  if (v && typeof v === "object" && "toDate" in v) {
+    try {
+      return Timestamp.fromDate((v as { toDate: () => Date }).toDate());
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof v === "string" || typeof v === "number") {
+    const date = new Date(v);
+    if (!Number.isNaN(date.getTime())) return Timestamp.fromDate(date);
   }
   return undefined;
 };
@@ -595,9 +613,11 @@ function meetWrite(data: Record<string, unknown>): Record<string, unknown> {
   const status = str(data["status"]) || undefined;
   return compact({
     title: data["title"],
-    startAt: data["scheduled_at"] ?? data["scheduledAt"],
-    endsAt: data["ends_at"] ?? data["endsAt"],
-    registrationClosesAt: data["registration_closes_at"] ?? data["registrationClosesAt"],
+    startAt: firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]),
+    endsAt: firebaseTimestamp(data["ends_at"] ?? data["endsAt"]),
+    registrationClosesAt: firebaseTimestamp(
+      data["registration_closes_at"] ?? data["registrationClosesAt"],
+    ),
     maxPlayers: data["capacity"] ?? data["maxPlayers"],
     status,
     enabled: status ? status === "scheduled" || status === "live" : undefined,
