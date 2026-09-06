@@ -259,32 +259,36 @@ async function generalFallback(raw: string, history: BrainTurn[]): Promise<Brain
   try {
     const { oniGeneralChat } = await import("@/lib/oni-chat.functions");
     const { membersService, garageService, musicService } = await import("@/services/domains");
-    const [members, garage, music, meet] = await Promise.all([
+    const [membersLoad, garageLoad, musicLoad, meetLoad] = await Promise.allSettled([
       membersService.listPublic(),
       garageService.listPublished(),
       musicService.listPublished(),
       fetchActiveMeet(),
     ]);
+    const members = membersLoad.status === "fulfilled" ? membersLoad.value : null;
+    const garage = garageLoad.status === "fulfilled" ? garageLoad.value : null;
+    const music = musicLoad.status === "fulfilled" ? musicLoad.value : null;
+    const meet = meetLoad.status === "fulfilled" ? meetLoad.value : null;
     const publicContext = JSON.stringify({
       clan: "ONI AND KISHIN / CPM",
-      members: members.ok
+      members: members?.ok
         ? members.data.map((member) => ({
             nickname: member.cpmNickname,
             role: member.role ?? "member",
           }))
         : "unavailable",
-      garage: garage.ok
+      garage: garage?.ok
         ? garage.data.map((vehicle) => ({
             model: vehicle.model,
             owner: vehicle.ownerName ?? null,
             build: vehicle.build ?? null,
           }))
         : "unavailable",
-      music: music.ok
+      music: music?.ok
         ? music.data.map((track) => ({ title: track.title, artist: track.artist ?? null }))
         : "unavailable",
       meet:
-        meet.status === "ok" && meet.session
+        meet?.status === "ok" && meet.session
           ? {
               title: meet.session.title,
               scheduledAt: meet.session.scheduledAt,
