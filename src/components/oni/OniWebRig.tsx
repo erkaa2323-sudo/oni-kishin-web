@@ -2,17 +2,13 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import oniCharacter from "@/assets/oni-character.webp";
 import type { OniState } from "@/lib/oni-emotion";
 import { getOniRigAsset, getOniRigAssetCoverage } from "./oni-rig-assets";
+import { ONI_RIG_EXPRESSIONS } from "./oni-rig-expression";
 import { ONI_RIG_LAYERS, ONI_RIG_STATE_INTENSITY } from "./oni-rig-manifest";
 import "./OniWebRig.css";
 
 type Props = { state: OniState; glow: number; speaking?: boolean };
 
-type RigStyle = CSSProperties & {
-  "--oni-look-x": string;
-  "--oni-look-y": string;
-  "--oni-glow": string;
-  "--oni-motion": string;
-};
+type RigStyle = CSSProperties & Record<`--oni-${string}`, string>;
 
 export function OniWebRig({ state, glow, speaking = false }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -37,15 +33,22 @@ export function OniWebRig({ state, glow, speaking = false }: Props) {
     () => ONI_RIG_LAYERS.map((layer) => ({ ...layer, src: getOniRigAsset(layer.id) })).filter((layer) => Boolean(layer.src)),
     [],
   );
-  // Never show a half-built character. The full layered renderer activates only
-  // after every required transparent sprite is present in src/assets/oni-rig.
   const hasLayeredArt = coverage.complete;
+  const expression = ONI_RIG_EXPRESSIONS[state];
 
   const style: RigStyle = {
     "--oni-look-x": `${look.x}`,
     "--oni-look-y": `${look.y}`,
     "--oni-glow": `${glow}`,
     "--oni-motion": `${ONI_RIG_STATE_INTENSITY[state]}`,
+    "--oni-eye-open": `${expression.eyeOpen}`,
+    "--oni-eye-smile": `${expression.eyeSmile}`,
+    "--oni-pupil-scale": `${expression.pupilScale}`,
+    "--oni-mouth-open": `${expression.mouthOpen}`,
+    "--oni-mouth-smile": `${expression.mouthSmile}`,
+    "--oni-blush": `${expression.blush}`,
+    "--oni-head-tilt": `${expression.headTilt}deg`,
+    "--oni-body-energy": `${expression.bodyEnergy}`,
   };
 
   return (
@@ -55,6 +58,7 @@ export function OniWebRig({ state, glow, speaking = false }: Props) {
       style={style}
       aria-hidden="true"
       data-rig-assets={`${coverage.available.length}/${coverage.total}`}
+      data-expression={state}
     >
       <div className="oni-web-rig__shadow" />
       <div className="oni-web-rig__aura" />
