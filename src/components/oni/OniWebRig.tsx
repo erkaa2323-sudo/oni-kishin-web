@@ -7,7 +7,6 @@ import { ONI_RIG_LAYERS, ONI_RIG_STATE_INTENSITY } from "./oni-rig-manifest";
 import "./OniWebRig.css";
 
 type Props = { state: OniState; glow: number; speaking?: boolean };
-
 type RigStyle = CSSProperties & Record<`--oni-${string}`, string>;
 
 export function OniWebRig({ state, glow, speaking = false }: Props) {
@@ -35,6 +34,8 @@ export function OniWebRig({ state, glow, speaking = false }: Props) {
   );
   const hasLayeredArt = coverage.complete;
   const expression = ONI_RIG_EXPRESSIONS[state];
+  const missing = coverage.missing.join(",");
+  const duplicates = coverage.duplicates.join(",");
 
   const style: RigStyle = {
     "--oni-look-x": `${look.x}`,
@@ -57,23 +58,19 @@ export function OniWebRig({ state, glow, speaking = false }: Props) {
       className={`oni-web-rig oni-web-rig--${state}${speaking ? " is-speaking" : ""}${hasLayeredArt ? " has-layered-art" : ""}`}
       style={style}
       aria-hidden="true"
+      data-rig-mode={hasLayeredArt ? "layered" : "fallback"}
       data-rig-assets={`${coverage.available.length}/${coverage.total}`}
+      data-rig-missing={missing}
+      data-rig-duplicates={duplicates}
       data-expression={state}
+      data-speaking={speaking ? "true" : "false"}
     >
       <div className="oni-web-rig__shadow" />
       <div className="oni-web-rig__aura" />
       <div className="oni-web-rig__body">
         {!hasLayeredArt && <img src={oniCharacter} alt="" decoding="async" className="oni-web-rig__fallback" />}
         {hasLayeredArt && availableLayers.map((layer) => (
-          <img
-            key={layer.id}
-            src={layer.src}
-            alt=""
-            decoding="async"
-            draggable={false}
-            className={`oni-web-rig__layer oni-web-rig__layer--${layer.id} oni-web-rig__physics--${layer.physics ?? "body"}`}
-            style={{ zIndex: layer.z, transformOrigin: `${layer.anchorX}% ${layer.anchorY}%` }}
-          />
+          <img key={layer.id} src={layer.src} alt="" decoding="async" draggable={false} className={`oni-web-rig__layer oni-web-rig__layer--${layer.id} oni-web-rig__physics--${layer.physics ?? "body"}`} style={{ zIndex: layer.z, transformOrigin: `${layer.anchorX}% ${layer.anchorY}%` }} />
         ))}
         {!hasLayeredArt && (
           <div className="oni-web-rig__face-life">
