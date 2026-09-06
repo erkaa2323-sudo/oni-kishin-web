@@ -99,9 +99,13 @@ export function OniAiChamber() {
   const state = resolveState(convState, playing);
   const visual = ONI_STATE_VISUALS[state];
   const timers = useRef<number[]>([]);
+  const clearVisualTimers = () => {
+    timers.current.forEach((timer) => window.clearTimeout(timer));
+    timers.current = [];
+  };
   useEffect(
     () => () => {
-      timers.current.forEach((t) => window.clearTimeout(t));
+      clearVisualTimers();
     },
     [],
   );
@@ -130,6 +134,7 @@ export function OniAiChamber() {
   const send = (raw: string) => {
     const text = raw.trim();
     if (!text || thinking) return;
+    clearVisualTimers();
     const base = Date.now();
     setMessages((m) => [...m, { id: `u${base}`, role: "user", text }]);
     setInput("");
@@ -156,6 +161,7 @@ export function OniAiChamber() {
       // keep a short, visible thinking beat
       const wait = Math.max(0, 900 - (Date.now() - started));
       const t2 = window.setTimeout(() => {
+        setConvState("speaking");
         setMessages((m) => [
           ...m,
           {
@@ -166,8 +172,12 @@ export function OniAiChamber() {
           },
         ]);
         setThinking(false);
-        setConvState(reply.state ?? target);
-        const t3 = window.setTimeout(() => setConvState(null), 8000);
+        const speakingTime = Math.min(4200, Math.max(1100, reply.text.length * 24));
+        const t3 = window.setTimeout(() => {
+          setConvState(reply.state ?? target);
+          const settle = window.setTimeout(() => setConvState(null), 6500);
+          timers.current.push(settle);
+        }, speakingTime);
         timers.current.push(t3);
       }, wait);
       timers.current.push(t2);
@@ -452,16 +462,20 @@ export function OniAiChamber() {
   );
 
   const character = (
-    <img
-      src={oniCharacter}
-      alt="ONI Brain дүрслэл"
-      decoding="async"
-      className={`pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-full w-auto origin-bottom object-contain opacity-95 will-change-transform ${visual.motion}`}
-      style={{
-        filter: `drop-shadow(0 0 ${12 + visual.glow * 34}px oklch(0.55 0.215 25.5 / ${0.2 + visual.glow * 0.5}))`,
-        transition: "filter 700ms var(--ease-cinema)",
-      }}
-    />
+    <div className={`oni-character-presence oni-character-presence--${state}`} aria-hidden="true">
+      <div className="oni-character-presence__aura" />
+      <div className="oni-character-presence__embers" />
+      <img
+        src={oniCharacter}
+        alt=""
+        decoding="async"
+        className={`oni-character-presence__body ${visual.motion}`}
+        style={{
+          filter: `drop-shadow(0 0 ${12 + visual.glow * 34}px oklch(0.55 0.215 25.5 / ${0.2 + visual.glow * 0.5}))`,
+        }}
+      />
+      <div className="oni-character-presence__focus" />
+    </div>
   );
 
   return (
