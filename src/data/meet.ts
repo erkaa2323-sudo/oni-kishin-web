@@ -22,6 +22,7 @@ import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
 export const CPM_NICKNAME_MAX = 32;
+export const MEET_REGISTRATION_GRACE_MS = 20 * 60 * 1000;
 
 /**
  * Configurable launch target for Car Parking Multiplayer. No unofficial or
@@ -98,31 +99,32 @@ export function validateVerification(v: VerificationInput): MeetFieldErrors {
   return e;
 }
 
+function effectiveRegistrationCloseMs(s: MeetSession): number | null {
+  if (s.registrationClosesAt) return new Date(s.registrationClosesAt).getTime();
+  if (!s.scheduledAt) return null;
+  return new Date(s.scheduledAt).getTime() + MEET_REGISTRATION_GRACE_MS;
+}
+
 /** Derived, refresh-consistent lifecycle from status + timestamps + capacity. */
 export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLifecycle {
   if (!s) return "none";
   const starts = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null;
   const ends = s.endsAt ? new Date(s.endsAt).getTime() : null;
   if (ends !== null && ends <= now) return "ended";
-  const closes = s.registrationClosesAt
-    ? new Date(s.registrationClosesAt).getTime()
-    : s.scheduledAt
-      ? new Date(s.scheduledAt).getTime()
-      : null;
+  const closes = effectiveRegistrationCloseMs(s);
   if (closes !== null && closes <= now) return "closed";
   if (s.capacity !== null && s.registered >= s.capacity) return "full";
   // A mistakenly/early marked LIVE record must never make a future meet look active.
   if (starts !== null && starts > now) {
-    if (starts - now <= 20 * 60 * 1000) return "starting_soon";
+    if (starts - now <= MEET_REGISTRATION_GRACE_MS) return "starting_soon";
     return "scheduled";
   }
   if (s.status === "live" || (starts !== null && starts <= now)) return "active";
-  if (starts !== null && starts - now <= 20 * 60 * 1000) return "starting_soon";
   return starts !== null ? "scheduled" : "open";
 }
 
 export function canRegister(life: MeetLifecycle): boolean {
-  return life === "open" || life === "scheduled" || life === "starting_soon";
+  return life === "open" || life === "scheduled" || life === "starting_soon" || life === "active";
 }
 
 export const LIFECYCLE_LABEL: Record<MeetLifecycle, string> = {
@@ -163,14 +165,21 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         return (v as { toDate: () => Date }).toDate().toISOString();
       return null;
     };
+    const scheduledAt = value(row["startAt"]);
+    const explicitClose = value(row["registrationClosesAt"]);
+    const registrationClosesAt =
+      explicitClose ??
+      (scheduledAt
+        ? new Date(new Date(scheduledAt).getTime() + MEET_REGISTRATION_GRACE_MS).toISOString()
+        : null);
     return {
       status: "ok",
       session: {
         id: "current",
-        title: String(row["name"] || "ONI MEET"),
-        scheduledAt: value(row["startAt"]),
+        title: String(row["title"] || row["name"] || "ONI MEET"),
+        scheduledAt,
         endsAt: value(row["endsAt"]),
-        registrationClosesAt: value(row["registrationClosesAt"]),
+        registrationClosesAt,
         capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
         registered:
           typeof row["registeredCount"] === "number"
@@ -196,7 +205,7 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
         const row = x.data();
         const joined = row["joinedAt"];
         return {
-          cpmNickname: String(row["nick"] || row["name"] || "ONI MEMBER"),
+          cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
           registeredAt:
             joined && typeof joined.toDate === "function"
               ? joined.toDate().toISOString()
@@ -265,11 +274,14 @@ export async function registerForMeet(
         return null;
       };
       const now = Date.now();
-      const closesAt = valueMs(meet["registrationClosesAt"] ?? meet["startAt"]);
+      const startAt = valueMs(meet["startAt"]);
+      if (startAt === null) return "invalid" as const;
+      const explicitClose = valueMs(meet["registrationClosesAt"]);
+      const closesAt = explicitClose ?? startAt + MEET_REGISTRATION_GRACE_MS;
       if (
         meet["status"] === "closed" ||
         meet["status"] === "ended" ||
-        (closesAt && closesAt <= now)
+        closesAt <= now
       )
         return "registration_closed" as const;
 
@@ -280,7 +292,7 @@ export async function registerForMeet(
 
       tx.set(participantRef, {
         meetId: "current",
-        meetStartAt: meet["startAt"] ?? null,
+        meetStartAt: meet["startAt"],
         memberId: member.id,
         nick: canonicalNick,
         name: canonicalNick,
@@ -307,12 +319,6 @@ export async function registerForMeet(
   }
 }
 
-/**
- * Credential reveal is intentionally NOT implemented for participants.
- * Registering with a CPM nickname/ID does not prove identity, so releasing
- * ROOM ID / PASSWORD would be unsafe. The gate stays closed until an
- * authenticated member identity exists.
- */
 export async function fetchMeetCredentialsForMember(
   meetId: string,
 ): Promise<MeetCredentials | null> {
