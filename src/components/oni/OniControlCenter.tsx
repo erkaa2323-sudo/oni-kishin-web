@@ -48,6 +48,7 @@ import {
 import { hasPermission } from "@/services/admin-profiles";
 import type { AdminPermission } from "@/data/admin";
 import { useOniAuth } from "@/hooks/useOniAuth";
+import { listMemberAccounts, type MemberAccount } from "@/data/member-auth";
 import { OniHudNav } from "./OniHudNav";
 
 const fieldClass =
@@ -572,6 +573,103 @@ function OverviewModule() {
           Админ үйлдлийн түүхийг ҮЙЛДЛИЙН БҮРТГЭЛ хэсгээс бүрэн эхээр нь харна уу.
         </p>
       </div>
+    </div>
+  );
+}
+
+function MemberAccountsModule({ actor }: { actor: AdminActor | null }) {
+  const [rows, setRows] = useState<MemberAccount[] | null>(null);
+  const [notice, setNotice] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const canWrite = hasPermission(actor ? { ...actor } : null, "members.write");
+
+  const load = async () => {
+    setNotice("");
+    try {
+      setRows(await listMemberAccounts());
+    } catch {
+      setRows([]);
+      setNotice("Crew account хүсэлтүүдийг ачаалж чадсангүй.");
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const review = async (row: MemberAccount, status: "approved" | "rejected") => {
+    setBusyId(row.uid);
+    setNotice("");
+    try {
+      const result = await dispatchAdminAction(
+        {
+          kind: status === "approved" ? "member_account.approve" : "member_account.reject",
+          targetId: row.uid,
+        },
+        actor,
+      );
+      setNotice(result.ok ? "Crew account-ийн төлөв шинэчлэгдлээ." : result.error);
+      if (result.ok) await load();
+    } catch {
+      setNotice("Crew account-ийн төлөв шинэчилж чадсангүй.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <PanelHead
+        code="MEMBER AUTH"
+        title="CREW ACCOUNT ХҮСЭЛТ"
+        desc="Crew жагсаалттай тулгасан аккаунтыг зөвшөөрөх эсвэл татгалзах."
+      >
+        <button type="button" onClick={() => void load()} className={btnClass}>
+          <RefreshCw className="h-4 w-4" /> ШИНЭЧЛЭХ
+        </button>
+      </PanelHead>
+      {notice ? <p className="text-xs text-muted-foreground">{notice}</p> : null}
+      {rows === null ? (
+        <p className="text-xs text-muted-foreground">Ачаалж байна…</p>
+      ) : rows.length === 0 ? (
+        <p className="border border-border p-5 text-xs text-muted-foreground">Хүсэлт алга байна.</p>
+      ) : (
+        <ul className="grid gap-3">
+          {rows.map((row) => (
+            <li key={row.uid} className="border border-border bg-ink/45 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm text-foreground">{row.nickname}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    CPM ID {row.cpmId} · {row.email}
+                  </p>
+                  <p className="mt-2 text-[0.65rem] tracking-[0.16em] text-crimson/80">
+                    {row.status.toUpperCase()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={!canWrite || busyId === row.uid}
+                    onClick={() => void review(row, "approved")}
+                    className="min-h-11 border border-emerald-500/50 px-3 text-xs text-emerald-300 disabled:opacity-50"
+                  >
+                    ЗӨВШӨӨРӨХ
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!canWrite || busyId === row.uid}
+                    onClick={() => void review(row, "rejected")}
+                    className="min-h-11 border border-crimson/50 px-3 text-xs text-crimson disabled:opacity-50"
+                  >
+                    ТАТГАЛЗАХ
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -1582,6 +1680,7 @@ export function OniControlCenter() {
                 onDestructive={setConfirmation}
               />
             ) : null}
+            {active === "accounts" ? <MemberAccountsModule actor={actor} /> : null}
             {active === "garage" ? (
               <CrudWorkspace
                 code="GARAGE"
