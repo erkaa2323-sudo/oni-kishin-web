@@ -124,12 +124,7 @@ export async function registerMemberAccount(
   cpmId: string,
 ): Promise<MemberAccount> {
   const credential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
-  try {
-    return await requestMemberAccount(credential.user, nickname, cpmId);
-  } catch (error) {
-    await signOut(firebaseAuth);
-    throw error;
-  }
+  return requestMemberAccount(credential.user, nickname, cpmId);
 }
 
 export async function signInMember(email: string, password: string): Promise<void> {
