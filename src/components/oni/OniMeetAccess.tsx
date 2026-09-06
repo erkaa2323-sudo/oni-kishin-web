@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import garageBay from "@/assets/garage/garage-bay.jpg";
+import type { MemberAccount } from "@/data/member-auth";
 import {
   CPM_ID_MAX,
   CPM_LAUNCH_FALLBACK_LABEL,
@@ -21,16 +22,19 @@ import {
   canRegister,
   deriveLifecycle,
   fetchActiveMeet,
+  fetchMeetCredentialsForMember,
   fetchParticipants,
   registerForMeet,
   validateVerification,
   type MeetFieldErrors,
+  type MeetCredentials,
   type MeetParticipant,
   type MeetSession,
   type VerificationInput,
 } from "@/data/meet";
 import { OniFooter } from "./OniFooter";
 import { OniHudNav } from "./OniHudNav";
+import { OniMemberGate } from "./OniMemberGate";
 
 const fieldClass =
   "w-full min-h-[44px] border border-border bg-ink/70 px-4 py-3 text-sm tracking-wide text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-crimson/70 focus:outline-none";
@@ -64,6 +68,8 @@ export function OniMeetAccess() {
   const [errors, setErrors] = useState<MeetFieldErrors>({});
   const [state, setState] = useState<"idle" | "sending" | "denied" | "registered">("idle");
   const [notice, setNotice] = useState("");
+  const [memberAccount, setMemberAccount] = useState<MemberAccount | null>(null);
+  const [credentials, setCredentials] = useState<MeetCredentials | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetchActiveMeet();
@@ -83,7 +89,16 @@ export function OniMeetAccess() {
 
   const now = useTick(!!session);
   const life = useMemo(() => deriveLifecycle(session, now), [session, now]);
-  const open = canRegister(life) && state !== "registered";
+  const approved = memberAccount?.status === "approved";
+  const open = canRegister(life) && state !== "registered" && approved;
+
+  const onMemberAccount = useCallback((account: MemberAccount | null) => {
+    setMemberAccount(account);
+    if (account?.status === "approved") {
+      setValues({ cpmNickname: account.nickname, cpmId: account.cpmId });
+      setErrors({});
+    }
+  }, []);
 
   const set = <K extends keyof VerificationInput>(k: K, v: string) => {
     setValues((p) => ({ ...p, [k]: v }));
@@ -102,6 +117,7 @@ export function OniMeetAccess() {
     setNotice(REGISTRATION_MESSAGE[outcome]);
     if (outcome === "registered") {
       setState("registered");
+      setCredentials(await fetchMeetCredentialsForMember(session.id));
       await load();
     } else {
       setState("denied");
@@ -218,6 +234,7 @@ export function OniMeetAccess() {
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-crimson" aria-hidden="true" />
               {CREDENTIAL_GATE_NOTICE}
             </p>
+            <OniMemberGate onAccount={onMemberAccount} />
           </section>
 
           <section
@@ -227,6 +244,28 @@ export function OniMeetAccess() {
             <h2 id="meet-form-title" className="hud-label text-foreground/80">
               MEET REGISTRATION / БҮРТГЭЛ
             </h2>
+            {!approved ? (
+              <p className="mt-3 text-xs leading-relaxed text-amber-300">
+                Meet-д бүртгүүлэхийн өмнө Crew аккаунтаар нэвтэрч, Admin-аар баталгаажуулна уу.
+              </p>
+            ) : null}
+            {state === "registered" ? (
+              credentials ? (
+                <div className="mt-4 border border-emerald-500/45 bg-emerald-500/8 p-4">
+                  <p className="hud-label text-emerald-300">MEET ACCESS НЭЭГДЛЭЭ</p>
+                  <p className="mt-3 font-mono text-sm text-foreground">
+                    ROOM ID: {credentials.roomId}
+                  </p>
+                  <p className="mt-2 font-mono text-sm text-foreground">
+                    PASSWORD: {credentials.password}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-4 text-xs text-amber-300">
+                  Бүртгэл амжилттай. Admin өрөөний мэдээлэл оруулмагц энд нээгдэнэ.
+                </p>
+              )
+            ) : null}
 
             <form className="mt-6 space-y-5" onSubmit={onSubmit} noValidate>
               <div>
