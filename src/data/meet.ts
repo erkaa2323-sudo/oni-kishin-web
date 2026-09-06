@@ -102,7 +102,6 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
   const starts = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null;
   const ends = s.endsAt ? new Date(s.endsAt).getTime() : null;
   if (ends !== null && ends <= now) return "ended";
-  if (s.status === "live" || (starts !== null && starts <= now)) return "active";
   const closes = s.registrationClosesAt
     ? new Date(s.registrationClosesAt).getTime()
     : s.scheduledAt
@@ -110,6 +109,12 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
       : null;
   if (closes !== null && closes <= now) return "closed";
   if (s.capacity !== null && s.registered >= s.capacity) return "full";
+  // A mistakenly/early marked LIVE record must never make a future meet look active.
+  if (starts !== null && starts > now) {
+    if (starts - now <= 20 * 60 * 1000) return "starting_soon";
+    return "scheduled";
+  }
+  if (s.status === "live" || (starts !== null && starts <= now)) return "active";
   if (starts !== null && starts - now <= 20 * 60 * 1000) return "starting_soon";
   return starts !== null ? "scheduled" : "open";
 }
@@ -222,9 +227,14 @@ export async function registerForMeet(
     const storedNick = String(row["nick"] || row["nickname"] || row["name"] || "")
       .trim()
       .toLocaleLowerCase("mn-MN");
-    return storedNick === normalizedNick && row["status"] !== "inactive";
+    return storedNick === normalizedNick && row["status"] !== "inactive" && row["status"] !== "archived";
   });
   if (!member) return "invalid";
+  const memberData = member.data();
+  const canonicalNick = String(
+    memberData["nick"] || memberData["nickname"] || memberData["name"] || nick,
+  ).trim();
+  const canonicalCpmId = String(memberData["cpmid"] || memberData["cpmId"] || cpmId).trim();
 
   const participantId = encodeURIComponent(cpmId.toLocaleLowerCase("en-US")).slice(0, 120);
   const meetRef = doc(firebaseDb, "meets", "current");
@@ -271,9 +281,9 @@ export async function registerForMeet(
         meetId: "current",
         meetStartAt: meet["startAt"] ?? null,
         memberId: member.id,
-        nick,
-        name: nick,
-        cpmId,
+        nick: canonicalNick,
+        name: canonicalNick,
+        cpmId: canonicalCpmId,
         joinedAt: serverTimestamp(),
         source: "website",
         slotId: slotRef.id,
