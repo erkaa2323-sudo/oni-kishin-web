@@ -14,6 +14,7 @@ import {
   getDoc,
   getDocs,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -386,6 +387,7 @@ function mapFirebaseApplication(r: Row): ApplicationRecord {
 export type MeetRecord = BaseRecord & {
   title: string;
   scheduledAt?: string | undefined;
+  endsAt?: string | undefined;
   registrationClosesAt?: string | undefined;
   capacity?: number | undefined;
   status: "draft" | "scheduled" | "live" | "ended" | "closed";
@@ -421,14 +423,39 @@ export const meetService = {
   },
   create: async (data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
     try {
-      await setDoc(
-        doc(firebaseDb, "meets", "current"),
+      const meetRef = doc(firebaseDb, "meets", "current");
+      const [previous, participants, slots, previousCredentials] = await Promise.all([
+        getDoc(meetRef),
+        getDocs(
+          query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current")),
+        ),
+        getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
+        getDoc(doc(firebaseDb, "meetCredentials", "current")),
+      ]);
+      const batch = writeBatch(firebaseDb);
+      if (previous.exists()) {
+        const archiveRef = doc(collection(firebaseDb, "meetResults"));
+        batch.set(archiveRef, {
+          ...previous.data(),
+          sourceMeetId: "current",
+          participantCount: participants.docs.filter((entry) => entry.id !== "__counter__").length,
+          archivedAt: serverTimestamp(),
+        });
+      }
+      participants.docs.forEach((entry) => batch.delete(entry.ref));
+      slots.docs.forEach((entry) => batch.delete(entry.ref));
+      if (previousCredentials.exists()) batch.delete(previousCredentials.ref);
+      batch.set(
+        meetRef,
         compact({
           ...meetWrite(data),
+          maxPlayers: Math.min(20, Math.max(1, Number(data["capacity"] ?? 20))),
+          enabled: true,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         }),
       );
+      await batch.commit();
       return ok({ id: "current" });
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
@@ -474,10 +501,38 @@ export const meetService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  removeRegistration: (id: string) => firebaseRemove("meetParticipants", id),
-  /** Credentials stay fail-closed until a non-public Firebase rule exists. */
-  setCredentials: async (_meetId: string, _roomId: string, _password: string) =>
-    fail("not_configured", "ROOM ID болон нууц үгийн хамгаалалттай сервер шаардлагатай."),
+  removeRegistration: async (id: string): Promise<ServiceResult<void>> => {
+    try {
+      await runTransaction(firebaseDb, async (tx) => {
+        const registrationRef = doc(firebaseDb, "meetParticipants", id);
+        const registration = await tx.get(registrationRef);
+        if (!registration.exists()) return;
+        const slotId = str(registration.data()["slotId"]);
+        if (slotId) tx.delete(doc(firebaseDb, "meetSlots", slotId));
+        tx.delete(registrationRef);
+      });
+      return ok(undefined);
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  /** Admin-authenticated write. Firestore rules keep this document non-public. */
+  setCredentials: async (
+    meetId: string,
+    roomId: string,
+    password: string,
+  ): Promise<ServiceResult<void>> => {
+    try {
+      await setDoc(doc(firebaseDb, "meetCredentials", meetId), {
+        roomId: roomId.trim(),
+        password,
+        updatedAt: serverTimestamp(),
+      });
+      return ok(undefined);
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
 
   /**
    * Verification must run on a trusted server path that checks the CPM
@@ -499,6 +554,7 @@ function mapFirebaseMeet(r: Row): MeetRecord {
     id: str(r["id"]),
     title: str(r["title"] || r["name"] || "ONI MEET"),
     scheduledAt: firebaseDate(r["scheduledAt"] || r["startAt"] || r["start"]),
+    endsAt: firebaseDate(r["endsAt"] || r["endAt"]),
     registrationClosesAt: firebaseDate(r["registrationClosesAt"] || r["registrationEndAt"]),
     capacity:
       typeof r["capacity"] === "number"
@@ -517,6 +573,7 @@ function meetWrite(data: Record<string, unknown>): Record<string, unknown> {
   return compact({
     title: data["title"],
     startAt: data["scheduled_at"] ?? data["scheduledAt"],
+    endsAt: data["ends_at"] ?? data["endsAt"],
     registrationClosesAt: data["registration_closes_at"] ?? data["registrationClosesAt"],
     maxPlayers: data["capacity"] ?? data["maxPlayers"],
     status,

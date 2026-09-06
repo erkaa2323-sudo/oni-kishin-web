@@ -214,6 +214,7 @@ export type AdminMeetRecord = {
   id: string;
   title: string;
   scheduledAt: string;
+  endsAt: string;
   registrationClosesAt: string;
   capacity: number;
   status: "draft" | "scheduled" | "live" | "ended" | "closed";
@@ -300,6 +301,7 @@ export async function getMeets(): Promise<DataResult<AdminMeetRecord>> {
     id: m.id,
     title: m.title,
     scheduledAt: m.scheduledAt ?? "",
+    endsAt: m.endsAt ?? "",
     registrationClosesAt: m.registrationClosesAt ?? "",
     // Credentials are never fetched with the meet list; they live in a
     // separate admin-only table and are revealed only on explicit request.
@@ -481,7 +483,7 @@ export async function dispatchAdminAction(
   }
 
   const data = (payload ?? {}) as Record<string, unknown>;
-  let res: { ok: true; data: { id: string } } | { ok: false; error: { message: string } };
+  let res: { ok: true; data: unknown } | { ok: false; error: { message: string } };
 
   switch (kind) {
     case "member.create":
@@ -544,6 +546,7 @@ export async function dispatchAdminAction(
       res = await meetService.create({
         title: data["title"] ?? "",
         scheduled_at: data["scheduled_at"] ?? null,
+        ends_at: data["ends_at"] ?? null,
         registration_closes_at: data["registration_closes_at"] ?? null,
         capacity: data["capacity"] ?? null,
         status: data["status"] ?? "draft",
@@ -555,6 +558,7 @@ export async function dispatchAdminAction(
       res = await meetService.update(targetId!, {
         title: data["title"] ?? "",
         scheduled_at: data["scheduled_at"] ?? null,
+        ends_at: data["ends_at"] ?? null,
         registration_closes_at: data["registration_closes_at"] ?? null,
         capacity: data["capacity"] ?? null,
         updated_by: actor.uid,
@@ -612,7 +616,11 @@ export async function dispatchAdminAction(
     actorId: actor.uid,
     actorRole: actor.role,
     action: kind,
-    target: targetId ?? res.data.id,
+    target:
+      targetId ??
+      (res.data && typeof res.data === "object" && "id" in res.data
+        ? String((res.data as { id: unknown }).id)
+        : undefined),
     severity: severityFor(kind),
     result: "success",
   });
