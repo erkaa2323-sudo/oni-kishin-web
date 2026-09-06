@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { OniAiChamber } from "@/components/oni/OniAiChamber";
+import { OniRigBridge } from "@/components/oni/OniRigBridge";
 import "@/components/oni/OniCharacterAlive.css";
 
 const description = "ONI Brain туслах ба кланы хөгжмийн систем нэгдсэн команд танхим.";
+
+function OniAiRoute() {
+  return (
+    <>
+      <OniAiChamber />
+      <OniRigBridge />
+    </>
+  );
+}
 
 export const Route = createFileRoute("/oni-ai")({
   head: () => ({
@@ -14,5 +24,5 @@ export const Route = createFileRoute("/oni-ai")({
       { property: "og:description", content: description },
     ],
   }),
-  component: OniAiChamber,
+  component: OniAiRoute,
 });
