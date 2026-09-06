@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { OniAiChamber } from "@/components/oni/OniAiChamber";
+import "@/components/oni/OniCharacterAlive.css";
 
 const description = "ONI Brain туслах ба кланы хөгжмийн систем нэгдсэн команд танхим.";
 
