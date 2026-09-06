@@ -35,7 +35,8 @@ export function OniWebRig({ state, glow, speaking = false }: Props) {
   const hasLayeredArt = coverage.complete;
   const expression = ONI_RIG_EXPRESSIONS[state];
   const missing = coverage.missing.join(",");
-  const duplicates = coverage.duplicates.join(",");
+  const duplicateBaseNames = coverage.duplicateBaseNames ?? [];
+  const duplicates = duplicateBaseNames.join(",");
 
   const style: RigStyle = {
     "--oni-look-x": `${look.x}`,
