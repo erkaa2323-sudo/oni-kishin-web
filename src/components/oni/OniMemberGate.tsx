@@ -4,11 +4,13 @@ import { CheckCircle2, Loader2, LockKeyhole, LogOut, UserPlus } from "lucide-rea
 import {
   fetchMemberAccount,
   registerMemberAccount,
+  requestMemberAccount,
   signInMember,
   signOutMember,
   watchMemberAuth,
   type MemberAccount,
 } from "@/data/member-auth";
+import { firebaseAuth } from "@/integrations/firebase/client";
 
 const fieldClass =
   "w-full min-h-[44px] border border-border bg-ink/70 px-4 py-3 text-base text-foreground outline-none focus:border-crimson/70 sm:text-sm";
@@ -74,9 +76,7 @@ export function OniMemberGate({ onAccount }: Props) {
   };
 
   const refresh = async () => {
-    const user = await import("@/integrations/firebase/client").then(
-      (m) => m.firebaseAuth.currentUser,
-    );
+    const user = firebaseAuth.currentUser;
     if (!user) return;
     setBusy(true);
     try {
@@ -131,6 +131,58 @@ export function OniMemberGate({ onAccount }: Props) {
             </button>
           </div>
         )}
+      </section>
+    );
+  }
+
+  if (phase === "signed_in") {
+    const linkCrew = async (event: React.FormEvent) => {
+      event.preventDefault();
+      const user = firebaseAuth.currentUser;
+      if (!user) return;
+      setBusy(true);
+      setNotice("");
+      try {
+        const next = await requestMemberAccount(user, nickname, cpmId);
+        setAccount(next);
+        onAccount(next);
+      } catch (error) {
+        setNotice(authMessage(error));
+      } finally {
+        setBusy(false);
+      }
+    };
+    return (
+      <section className="mt-6 border border-border bg-midnight/55 p-4">
+        <p className="text-xs text-amber-300">
+          Аккаунт үүссэн. Одоо Crew мэдээллээ зөв оруулж холбоно уу.
+        </p>
+        <form className="mt-4 grid gap-3" onSubmit={(event) => void linkCrew(event)}>
+          <input
+            required
+            aria-label="CPM nickname"
+            placeholder="CPM NICKNAME"
+            className={fieldClass}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+          />
+          <input
+            required
+            aria-label="CPM ID"
+            placeholder="CPM ID"
+            className={fieldClass}
+            value={cpmId}
+            onChange={(event) => setCpmId(event.target.value)}
+          />
+          {notice ? <p className="text-xs text-crimson">{notice}</p> : null}
+          <button
+            type="submit"
+            disabled={busy}
+            className="min-h-12 border border-crimson/60 bg-crimson/15 text-xs disabled:opacity-50"
+          >
+            CREW-ТЭЙ ХОЛБОХ
+          </button>
+        </form>
       </section>
     );
   }
