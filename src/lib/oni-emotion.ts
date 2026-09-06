@@ -15,6 +15,7 @@ export type OniState =
   | "idle"
   | "listening"
   | "thinking"
+  | "speaking"
   | "happy"
   | "excited"
   | "concerned"
@@ -63,6 +64,13 @@ export const ONI_STATE_VISUALS: Record<OniState, OniStateVisual> = {
     motion: "oni-anim-thinking",
     glow: 0.55,
     priority: 3,
+  },
+  speaking: {
+    label: "ХАРИУЛЖ БАЙНА",
+    code: "VOICE",
+    motion: "oni-anim-speaking",
+    glow: 0.68,
+    priority: 4,
   },
   happy: {
     label: "БАЯРТАЙ БАЙНА",
