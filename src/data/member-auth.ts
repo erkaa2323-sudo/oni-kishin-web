@@ -144,7 +144,25 @@ export async function reviewMemberAccount(
   uid: string,
   status: "approved" | "rejected",
 ): Promise<void> {
-  await updateDoc(doc(firebaseDb, "memberAccounts", uid), {
+  const accountRef = doc(firebaseDb, "memberAccounts", uid);
+  const accountSnapshot = await getDoc(accountRef);
+  if (!accountSnapshot.exists()) throw new Error("member_account_not_found");
+
+  if (status === "approved") {
+    const target = accountFrom(uid, accountSnapshot.data());
+    const approvedForMember = await getDocs(
+      query(
+        collection(firebaseDb, "memberAccounts"),
+        where("memberId", "==", target.memberId),
+        where("status", "==", "approved"),
+        limit(2),
+      ),
+    );
+    const duplicate = approvedForMember.docs.find((entry) => entry.id !== uid);
+    if (duplicate) throw new Error("member_already_has_approved_account");
+  }
+
+  await updateDoc(accountRef, {
     status,
     updatedAt: serverTimestamp(),
   });
