@@ -1,0 +1,156 @@
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+
+import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
+
+export type MemberAccountStatus = "pending" | "approved" | "rejected";
+
+export type MemberAccount = {
+  uid: string;
+  email: string;
+  memberId: string;
+  nickname: string;
+  cpmId: string;
+  status: MemberAccountStatus;
+};
+
+export type MemberAuthSnapshot = {
+  user: User | null;
+  account: MemberAccount | null;
+};
+
+const accountFrom = (uid: string, row: Record<string, unknown>): MemberAccount => ({
+  uid,
+  email: String(row["email"] ?? ""),
+  memberId: String(row["memberId"] ?? ""),
+  nickname: String(row["nickname"] ?? ""),
+  cpmId: String(row["cpmId"] ?? ""),
+  status: row["status"] === "approved" || row["status"] === "rejected" ? row["status"] : "pending",
+});
+
+export async function fetchMemberAccount(uid: string): Promise<MemberAccount | null> {
+  const snapshot = await getDoc(doc(firebaseDb, "memberAccounts", uid));
+  return snapshot.exists() ? accountFrom(uid, snapshot.data()) : null;
+}
+
+export function watchMemberAuth(
+  listener: (snapshot: MemberAuthSnapshot) => void,
+  onError: () => void,
+): () => void {
+  return onAuthStateChanged(
+    firebaseAuth,
+    (user) => {
+      if (!user) {
+        listener({ user: null, account: null });
+        return;
+      }
+      void fetchMemberAccount(user.uid)
+        .then((account) => listener({ user, account }))
+        .catch(onError);
+    },
+    onError,
+  );
+}
+
+async function findCrewMember(nickname: string, cpmId: string) {
+  const snapshots = await Promise.all([
+    getDocs(query(collection(firebaseDb, "members"), where("cpmid", "==", cpmId), limit(2))),
+    getDocs(query(collection(firebaseDb, "members"), where("cpmId", "==", cpmId), limit(2))),
+  ]);
+  const normalized = nickname.trim().toLocaleLowerCase("mn-MN");
+  return snapshots
+    .flatMap((snapshot) => snapshot.docs)
+    .find((entry) => {
+      const row = entry.data();
+      const stored = String(row["nick"] || row["nickname"] || row["name"] || "")
+        .trim()
+        .toLocaleLowerCase("mn-MN");
+      return stored === normalized && row["status"] !== "inactive" && row["status"] !== "archived";
+    });
+}
+
+export async function requestMemberAccount(
+  user: User,
+  nickname: string,
+  cpmId: string,
+): Promise<MemberAccount> {
+  const member = await findCrewMember(nickname.trim(), cpmId.trim());
+  if (!member) throw new Error("crew_not_found");
+  const row = member.data();
+  const canonicalNickname = String(row["nick"] || row["nickname"] || row["name"] || "").trim();
+  const canonicalCpmId = String(row["cpmid"] || row["cpmId"] || "").trim();
+  const email = user.email?.trim().toLowerCase() ?? "";
+  if (!email) throw new Error("email_required");
+  await setDoc(doc(firebaseDb, "memberAccounts", user.uid), {
+    email,
+    memberId: member.id,
+    nickname: canonicalNickname,
+    cpmId: canonicalCpmId,
+    status: "pending",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return {
+    uid: user.uid,
+    email,
+    memberId: member.id,
+    nickname: canonicalNickname,
+    cpmId: canonicalCpmId,
+    status: "pending",
+  };
+}
+
+export async function registerMemberAccount(
+  email: string,
+  password: string,
+  nickname: string,
+  cpmId: string,
+): Promise<MemberAccount> {
+  const credential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
+  try {
+    return await requestMemberAccount(credential.user, nickname, cpmId);
+  } catch (error) {
+    await signOut(firebaseAuth);
+    throw error;
+  }
+}
+
+export async function signInMember(email: string, password: string): Promise<void> {
+  await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+}
+
+export async function signOutMember(): Promise<void> {
+  await signOut(firebaseAuth);
+}
+
+export async function listMemberAccounts(): Promise<MemberAccount[]> {
+  const snapshot = await getDocs(collection(firebaseDb, "memberAccounts"));
+  return snapshot.docs.map((entry) => accountFrom(entry.id, entry.data()));
+}
+
+export async function reviewMemberAccount(
+  uid: string,
+  status: "approved" | "rejected",
+): Promise<void> {
+  await updateDoc(doc(firebaseDb, "memberAccounts", uid), {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+}
