@@ -45,7 +45,7 @@ export const ONI_DESTINATIONS: OniDestination[] = [
     to: "/oni-ai",
     label: "ОНИ АЙ",
     code: "ONI AI / MUSIC",
-    desc: "ONI Brain туслах ба хөгжмийн танхим",
+    desc: "Oni Shizuki туслах ба хөгжмийн танхим",
     index: "03",
   },
   {
