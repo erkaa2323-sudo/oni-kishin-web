@@ -19,6 +19,7 @@ export async function grantEventReward(input: { uid: string; nickname: string; e
   const reward = rewardFor(input.placement);
   const profileRef = doc(firebaseDb, "progressionProfiles", input.uid);
   const ledgerRef = doc(firebaseDb, "progressionLedger", `event_${eventId}_${input.uid}`);
+  const socialRef = doc(firebaseDb, "socialEvents", `event_${eventId}_${input.uid}`);
   return runTransaction(firebaseDb, async (tx) => {
     const [profileSnap, ledgerSnap] = await Promise.all([tx.get(profileRef), tx.get(ledgerRef)]);
     if (ledgerSnap.exists()) throw new Error("already_rewarded");
@@ -36,6 +37,8 @@ export async function grantEventReward(input: { uid: string; nickname: string; e
     } else {
       tx.set(profileRef, { uid: input.uid, nickname: input.nickname || "ONI MEMBER", xp: reward.xp, coin: reward.coin, lifetimeXp: reward.xp, seasonXp: reward.xp, prestige: 0, meetCount: 0, creatorCount: 0, eventCount: 1, unlocked: [], equipped: {}, createdAt: Timestamp.now(), updatedAt: Timestamp.now() });
     }
+    const label = input.placement === "first" ? "1-р байр" : input.placement === "second" ? "2-р байр" : input.placement === "third" ? "3-р байр" : "Event оролцоо";
+    tx.set(socialRef, { uid: input.uid, nickname: input.nickname || "ONI MEMBER", type: "event_win", title: `${input.nickname || "ONI MEMBER"} · ${label}`, detail: `${eventId} · +${reward.xp} XP · +${reward.coin} ONI`, targetUrl: "/crew", reactions: 0, createdAt: Timestamp.now() });
     return { xp: reward.xp, coin: reward.coin };
   });
 }
