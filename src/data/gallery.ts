@@ -36,7 +36,10 @@ const categoryValue = (value: unknown): GalleryCategory => {
   return category === "anime" || category === "clean" || category === "drift" ? category : "other";
 };
 
-/** Public legacy gallery projection. Admin identity fields are never returned. */
+const safeGalleryImage = (value: string) =>
+  value.startsWith("https://") || value.startsWith("data:image/jpeg;base64,");
+
+/** Public gallery projection. Admin identity fields are never returned. */
 export async function fetchGallery(): Promise<GalleryLoad> {
   try {
     const snapshot = await getDocs(collection(firebaseDb, "gallery"));
@@ -53,7 +56,7 @@ export async function fetchGallery(): Promise<GalleryLoad> {
           createdAt: dateValue(row["createdAt"]),
         };
       })
-      .filter((row) => row.image.startsWith("https://"))
+      .filter((row) => safeGalleryImage(row.image))
       .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     return { status: "ok", rows };
   } catch {
