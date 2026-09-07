@@ -44,18 +44,20 @@
     let app=null,model=null,observer=null;
 
     function setDiag(text){diag.textContent=text}
+    function renderNow(){
+      if(!app)return;
+      app.renderer.render({container:app.stage});
+    }
     function fit(){
       if(!app||!model)return;
       const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
       app.renderer.resize(w,h);
       model.anchor?.set?.(.5,.5);
-      // Laplace's own example starts Live2D around 0.25 scale. Use an explicit
-      // Safari-safe scale instead of bounds-derived values that can collapse to ~0.
       const scale=window.innerWidth<640?Math.max(.115,Math.min(.22,h/4200)):Math.max(.16,Math.min(.30,h/3300));
       model.scale.set(scale);
       model.position.set(w*.5,h*.54);
       model.visible=true;model.renderable=true;model.alpha=1;
-      app.renderer.render(app.stage);
+      renderNow();
       setDiag(`ONLINE · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · CORE=${String(window.Live2DCubismCore?.Version?.csmGetVersion?.() ?? "?")}`);
     }
 
