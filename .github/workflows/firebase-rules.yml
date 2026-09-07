@@ -6,6 +6,7 @@ on:
     paths:
       - firestore.rules
       - firestore.creator.rules.fragment
+      - firestore.nexus.rules.fragment
       - firebase.json
       - .github/workflows/firebase-rules.yml
   workflow_dispatch:
@@ -51,19 +52,83 @@ jobs:
           echo "::add-mask::${ACCESS_TOKEN}"
           echo "ACCESS_TOKEN=${ACCESS_TOKEN}" >> "$GITHUB_ENV"
 
+      - name: Ensure ONI NEXUS VAPID keypair
+        run: |
+          python -m pip install --quiet cryptography
+          python - <<'PY'
+          import base64
+          import datetime as dt
+          import os
+          import requests
+          from cryptography.hazmat.primitives.asymmetric import ec
+
+          project = os.environ["FIREBASE_PROJECT"]
+          token = os.environ["ACCESS_TOKEN"]
+          root = f"https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents"
+          headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+          def b64url(raw: bytes) -> str:
+              return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+          config_url = f"{root}/pushConfig/vapid"
+          current = requests.get(config_url, headers=headers, timeout=20)
+          if current.status_code == 200:
+              fields = current.json().get("fields", {})
+              public_key = fields.get("publicKey", {}).get("stringValue", "")
+              private_key = fields.get("privateKey", {}).get("stringValue", "")
+              if not public_key or not private_key:
+                  raise SystemExit("Existing VAPID document is incomplete; refusing to rotate subscriptions")
+              print("Existing VAPID keypair preserved.")
+          elif current.status_code == 404:
+              private = ec.generate_private_key(ec.SECP256R1())
+              numbers = private.private_numbers()
+              public = numbers.public_numbers
+              d = numbers.private_value.to_bytes(32, "big")
+              x = public.x.to_bytes(32, "big")
+              y = public.y.to_bytes(32, "big")
+              public_key = b64url(b"\x04" + x + y)
+              private_key = b64url(d)
+              now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+              payload = {"fields": {
+                  "enabled": {"booleanValue": True},
+                  "publicKey": {"stringValue": public_key},
+                  "privateKey": {"stringValue": private_key},
+                  "subject": {"stringValue": "mailto:erkaa2323@gmail.com"},
+                  "createdAt": {"timestampValue": now},
+                  "updatedAt": {"timestampValue": now},
+              }}
+              created = requests.patch(config_url, headers=headers, json=payload, timeout=20)
+              created.raise_for_status()
+              print("Created ONI NEXUS VAPID keypair.")
+          else:
+              raise SystemExit(f"Unable to read VAPID config: HTTP {current.status_code} {current.text[:300]}")
+
+          now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+          public_payload = {"fields": {
+              "enabled": {"booleanValue": True},
+              "publicKey": {"stringValue": public_key},
+              "updatedAt": {"timestampValue": now},
+          }}
+          public_doc = requests.patch(f"{root}/site/nexusPush", headers=headers, json=public_payload, timeout=20)
+          public_doc.raise_for_status()
+          print("Published VAPID public key to site/nexusPush.")
+          PY
+
       - name: Compose and create Firebase Rules ruleset
         run: |
           python - <<'PY'
           from pathlib import Path
           base = Path("firestore.rules").read_text(encoding="utf-8")
-          fragment = Path("firestore.creator.rules.fragment").read_text(encoding="utf-8")
+          creator = Path("firestore.creator.rules.fragment").read_text(encoding="utf-8")
+          nexus = Path("firestore.nexus.rules.fragment").read_text(encoding="utf-8")
           marker = "    match /{document=**} { allow read, write: if false; }"
           if marker not in base:
               raise SystemExit("Firestore deny-all marker not found; refusing unsafe composition")
-          if "match /creatorPublishRequests/" in base:
-              combined = base
-          else:
-              combined = base.replace(marker, fragment.rstrip() + "\n\n" + marker, 1)
+          combined = base
+          if "match /creatorPublishRequests/" not in combined:
+              combined = combined.replace(marker, creator.rstrip() + "\n\n" + marker, 1)
+          if "match /pushSubscriptions/" not in combined:
+              combined = combined.replace(marker, nexus.rstrip() + "\n\n" + marker, 1)
           Path("/tmp/firestore.combined.rules").write_text(combined, encoding="utf-8")
           PY
 
