@@ -215,16 +215,17 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
           const height = Math.max(1, currentHost.clientHeight);
           app.renderer.resize(width, height);
 
-          // Keep the swordsman and dragon fully inside the frame while using as
-          // much of the small mobile viewport as possible. The bottom HUD was
-          // deliberately compacted so the model can occupy almost the full card.
-          const safeWidth = width * (width < 520 ? 0.965 : 0.94);
-          const safeHeight = height * (width < 520 ? 0.975 : 0.95);
+          // Intentionally use more of the viewport than the previous conservative
+          // fit. The lower HUD now overlays the render instead of reserving a large
+          // empty block, so the swordsman + dragon read as the hero of the panel.
+          const mobile = width < 520;
+          const safeWidth = width * (mobile ? 1.055 : 0.99);
+          const safeHeight = height * (mobile ? 1.045 : 0.995);
           const scale = Math.min(safeWidth / base.width, safeHeight / base.height);
 
           currentModel.scale.set(scale);
-          currentModel.x = width * 0.5;
-          currentModel.y = height * (width < 520 ? 0.515 : 0.51);
+          currentModel.x = width * (mobile ? 0.525 : 0.515);
+          currentModel.y = height * (mobile ? 0.475 : 0.49);
         };
 
         fit();
@@ -262,33 +263,35 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
   }, [hostState, runtime]);
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden border border-white/12 bg-black/38 shadow-2xl shadow-crimson/10 clip-notch">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_58%,rgba(180,20,38,0.20),rgba(52,4,12,0.08)_34%,transparent_64%)]" />
-      <div className="pointer-events-none absolute inset-x-[8%] bottom-[4.05rem] h-px bg-gradient-to-r from-transparent via-crimson/35 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-[18%] bottom-[3.92rem] h-5 bg-crimson/10 blur-xl" />
+    <div className="relative h-full min-h-0 overflow-hidden border border-crimson/20 bg-black/48 shadow-[0_20px_70px_rgba(0,0,0,0.55)] clip-notch">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(90,0,12,0.18),transparent_34%,rgba(0,0,0,0.12)_58%,rgba(90,0,12,0.12))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_52%_64%,rgba(210,26,48,0.24),rgba(70,5,14,0.08)_35%,transparent_68%)]" />
+      <div className="pointer-events-none absolute inset-x-[10%] bottom-[3.35rem] h-px bg-gradient-to-r from-transparent via-crimson/55 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-[20%] bottom-[3.05rem] h-7 bg-crimson/15 blur-2xl" />
+      <div className="pointer-events-none absolute -right-12 top-[20%] h-40 w-40 rotate-12 border border-crimson/10 bg-crimson/5 blur-sm" />
 
-      <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 sm:left-4">
-        <span className="text-[0.5rem] font-semibold tracking-[0.18em] text-white/55 sm:text-[0.54rem]">
-          GANTZERT + FELIXANDER
+      <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 sm:left-4">
+        <span className="border-l-2 border-crimson/70 pl-2 text-[0.5rem] font-semibold tracking-[0.2em] text-white/70 sm:text-[0.55rem]">
+          MEET GUARD // GANTZERT
         </span>
-        <span className="border border-white/10 bg-black/35 px-1.5 py-0.5 text-[0.42rem] tracking-[0.15em] text-white/35">
-          SWORD / DRAGON
+        <span className="hidden border border-white/10 bg-black/40 px-1.5 py-0.5 text-[0.4rem] tracking-[0.16em] text-white/35 sm:inline">
+          FELIXANDER ACTIVE
         </span>
       </div>
 
-      <div className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 sm:right-4">
+      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 sm:right-4">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             runtime === "ready"
-              ? "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.7)]"
+              ? "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]"
               : runtime === "failed"
                 ? "bg-crimson"
                 : "bg-white/30"
           }`}
         />
         <span
-          className={`text-[0.48rem] font-semibold tracking-[0.16em] ${
-            runtime === "ready" ? "text-emerald-300/80" : runtime === "failed" ? "text-crimson" : "text-white/35"
+          className={`text-[0.48rem] font-semibold tracking-[0.17em] ${
+            runtime === "ready" ? "text-emerald-300/90" : runtime === "failed" ? "text-crimson" : "text-white/35"
           }`}
         >
           {runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC"}
@@ -297,40 +300,49 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
 
       <div
         ref={hostRef}
-        className="pointer-events-none absolute inset-x-0 bottom-[3.95rem] top-7"
+        className="pointer-events-none absolute inset-x-0 bottom-1 top-6"
         aria-label="Gantzert and Felixander Live2D Meet host"
       />
 
       {runtime === "loading" ? (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center text-[0.48rem] tracking-[0.2em] text-white/30">
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
           SUMMONING HOST…
         </div>
       ) : null}
       {runtime === "failed" ? (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center text-[0.48rem] tracking-[0.2em] text-white/30">
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
           HOST VISUAL OFFLINE
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 border border-white/10 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:px-4">
-        <div className="flex items-start justify-between gap-3">
-          <p className="min-w-0 text-[0.62rem] leading-relaxed text-white/88 sm:text-[0.68rem]">
-            {hostCopy(hostState, nickname)}
-          </p>
-          <span className="shrink-0 font-mono text-[0.5rem] tracking-[0.12em] text-white/42 sm:text-[0.54rem]">
-            {participants}/{capacity ?? "∞"}
-          </span>
-        </div>
-        <div className="mt-1.5 flex items-center justify-between gap-3 text-[0.44rem] tracking-[0.16em] text-white/30 sm:text-[0.48rem]">
-          <span>ALWAYS-ON MEET GUARD</span>
-          <span>RIDERS</span>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/82 to-transparent px-3 pb-3 pt-12 sm:px-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2 text-[0.42rem] tracking-[0.2em] text-crimson/75 sm:text-[0.46rem]">
+              <span>ONI // SECTOR 05</span>
+              <span className="h-px w-8 bg-crimson/35" />
+              <span>SWORD + DRAGON</span>
+            </div>
+            <p className="max-w-[84%] text-[0.61rem] leading-relaxed text-white/88 sm:text-[0.68rem]">
+              {hostCopy(hostState, nickname)}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.08em] text-white/80 sm:text-[0.78rem]">
+              {participants}/{capacity ?? "∞"}
+            </div>
+            <div className="mt-0.5 text-[0.4rem] tracking-[0.18em] text-white/30">RIDERS</div>
+          </div>
         </div>
       </div>
 
-      <span className="pointer-events-none absolute left-0 top-0 h-5 w-px bg-crimson/50" />
-      <span className="pointer-events-none absolute left-0 top-0 h-px w-5 bg-crimson/50" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-5 w-px bg-crimson/35" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-px w-5 bg-crimson/35" />
+      <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rotate-90 text-[0.36rem] tracking-[0.28em] text-white/15">
+        ONI // ALWAYS-ON HOST
+      </div>
+      <span className="pointer-events-none absolute left-0 top-0 h-7 w-px bg-crimson/70" />
+      <span className="pointer-events-none absolute left-0 top-0 h-px w-7 bg-crimson/70" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-7 w-px bg-crimson/45" />
+      <span className="pointer-events-none absolute bottom-0 right-0 h-px w-7 bg-crimson/45" />
     </div>
   );
 }
