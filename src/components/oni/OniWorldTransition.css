@@ -1,0 +1,144 @@
+html, body, #root { max-width: 100%; overflow-x: clip; }
+body { overscroll-behavior-x: none; }
+
+@media (max-width: 820px) {
+  input, textarea, select, button { font-size: 16px; }
+  input, textarea, select { max-width: 100%; }
+  img, video, canvas, svg { max-width: 100%; }
+}
+
+.oni-world-shell {
+  position: relative;
+  min-height: 100svh;
+  isolation: isolate;
+  overflow-x: clip;
+  background: var(--ink);
+}
+
+.oni-world-scene {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  animation: oni-world-enter 520ms var(--ease-cinema) both;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+}
+
+.oni-world-shell[data-direction="forward"] .oni-world-scene {
+  --oni-world-from-x: 2.5vw;
+  --oni-world-from-scale: .992;
+}
+
+.oni-world-shell[data-direction="backward"] .oni-world-scene {
+  --oni-world-from-x: -2.5vw;
+  --oni-world-from-scale: .992;
+}
+
+.oni-world-shell[data-direction="neutral"] .oni-world-scene {
+  --oni-world-from-x: 0px;
+  --oni-world-from-scale: .996;
+}
+
+.oni-world-wipe {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 28%, oklch(.03 .01 265 / .45) 74%, oklch(.02 .008 265 / .92) 100%),
+    linear-gradient(105deg, transparent 32%, oklch(.62 .22 25 / .18) 50%, transparent 68%);
+  transform: scaleX(.96);
+}
+
+.oni-world-shell[data-transitioning="true"] .oni-world-wipe {
+  animation: oni-world-wipe 500ms var(--ease-cinema) both;
+}
+
+.oni-world-ambient {
+  position: fixed;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.oni-world-ambient__glow,
+.oni-world-ambient__depth,
+.oni-world-ambient__grain {
+  position: absolute;
+  inset: 0;
+}
+
+.oni-world-ambient__glow {
+  inset: auto -15vw -28vh;
+  height: 58vh;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(.55 .215 25.5 / .12), transparent 68%);
+  filter: blur(28px);
+  transform: translateZ(0);
+}
+
+.oni-world-ambient__depth {
+  background: radial-gradient(110% 72% at 50% 44%, transparent 42%, oklch(.025 .009 265 / .54) 100%);
+}
+
+.oni-world-ambient__grain {
+  opacity: .065;
+  background-image: repeating-linear-gradient(0deg, oklch(1 0 0 / .05) 0 1px, transparent 1px 4px);
+  mix-blend-mode: soft-light;
+}
+
+html[data-oni-world="/crew"] .oni-world-ambient__glow { transform: translate3d(-8vw, 0, 0); }
+html[data-oni-world="/garage"] .oni-world-ambient__glow { transform: translate3d(5vw, -2vh, 0) scale(1.06); }
+html[data-oni-world="/meet"] .oni-world-ambient__glow { transform: translate3d(11vw, -3vh, 0) scale(.95); }
+html[data-oni-world="/oni-ai"] .oni-world-ambient__glow { transform: translate3d(0, -7vh, 0) scale(1.12); }
+
+@keyframes oni-world-enter {
+  from {
+    opacity: .56;
+    transform: translate3d(var(--oni-world-from-x, 0), 0, 0) scale(var(--oni-world-from-scale, .996));
+    filter: blur(2px) brightness(.86);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: none;
+  }
+}
+
+@keyframes oni-world-wipe {
+  0% { opacity: 0; transform: scaleX(.96); }
+  24% { opacity: .78; }
+  56% { opacity: .34; transform: scaleX(1.02); }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+
+@media (max-width: 820px) {
+  .oni-world-scene { animation-duration: 360ms; }
+  .oni-world-shell[data-transitioning="true"] .oni-world-wipe { animation-duration: 340ms; }
+  .oni-world-ambient__grain { opacity: .035; }
+  .oni-world-ambient__glow { filter: blur(18px); opacity: .75; }
+}
+
+html[data-oni-fx="lite"] .oni-world-ambient__grain { display: none; }
+html[data-oni-fx="lite"] .oni-world-ambient__glow { filter: blur(12px); opacity: .45; }
+html[data-oni-fx="lite"] .oni-world-scene {
+  animation-duration: 240ms;
+  filter: none !important;
+}
+html[data-oni-fx="lite"] .oni-world-wipe {
+  background: linear-gradient(105deg, transparent 34%, oklch(.5 .18 25 / .12) 50%, transparent 66%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oni-world-scene,
+  .oni-world-wipe,
+  .oni-world-ambient__glow {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  .oni-world-ambient__grain { display: none; }
+}
