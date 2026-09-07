@@ -119,7 +119,7 @@ export function OniAiChamber() {
     {
       id: "m0",
       role: "oni",
-      text: "ONI BRAIN онлайн. Танхимд тавтай морил. Асуултаа бичих эсвэл хөгжмөө тавь.",
+      text: "Хөөе~ ♡ Би Они Шизүки байна. Чамайг хүлээж байлаа шүү! Надтай ярилцах уу? ✨",
     },
   ]);
   const [input, setInput] = useState("");
@@ -127,7 +127,7 @@ export function OniAiChamber() {
   const logRef = useRef<HTMLDivElement | null>(null);
 
   /**
-   * Bounded, in-memory only conversation window handed to ONI BRAIN.
+   * Bounded, in-memory only conversation window handed to ONI SHIZUKI.
    * Never written to storage, cookies or the database.
    */
   const historyRef = useRef<BrainTurn[]>([]);
@@ -258,7 +258,7 @@ export function OniAiChamber() {
           }
         >
           <span className="hud-label mb-1 block text-[0.5rem] text-muted-foreground">
-            {m.role === "user" ? "ТА" : "ONI BRAIN"}
+            {m.role === "user" ? "ТА" : "ONI SHIZUKI"}
           </span>
           {m.text}
           {m.role === "oni" && m.sources?.length ? (
@@ -281,7 +281,7 @@ export function OniAiChamber() {
       ))}
       {thinking && (
         <div className="max-w-[60%] border border-crimson/30 bg-crimson/8 px-3.5 py-2.5 clip-notch">
-          <span className="hud-label block text-[0.5rem] text-crimson/85">ONI BRAIN</span>
+          <span className="hud-label block text-[0.5rem] text-crimson/85">ONI SHIZUKI</span>
           <span className="mt-1 flex gap-1.5" aria-label="Бодож байна">
             <span className="h-1.5 w-1.5 bg-crimson animate-pulse-soft" />
             <span className="h-1.5 w-1.5 bg-crimson animate-pulse-soft" style={{ animationDelay: "0.25s" }} />
@@ -300,9 +300,9 @@ export function OniAiChamber() {
         send(input);
       }}
     >
-      <label className="sr-only">ONI Brain-д асуулт бичих</label>
+      <label className="sr-only">Oni Shizuki-д асуулт бичих</label>
       <input
-        aria-label="ONI Brain-д асуулт бичих"
+        aria-label="Oni Shizuki-д асуулт бичих"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Асуултаа бичнэ үү…"
@@ -421,7 +421,7 @@ export function OniAiChamber() {
             <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
               <span className="min-w-0">
                 <h1 id="oniai-title-m" className="text-cinema text-xl text-foreground">ОНИ АЙ</h1>
-                <span className="hud-label block text-[0.5rem]">ONI BRAIN · MUSIC</span>
+                <span className="hud-label block text-[0.5rem]">ONI SHIZUKI · MUSIC</span>
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 p-2.5">{stateBadge}</div>
@@ -471,7 +471,7 @@ export function OniAiChamber() {
                 <span className="hud-label hud-rule block pl-11 text-crimson/85">SECTOR 03 / ONI AI · MUSIC</span>
                 <h1 id="oniai-title" className="mt-3 text-cinema text-6xl text-foreground">КОМАНД ТАНХИМ</h1>
               </div>
-              <span className="hud-label shrink-0">BRAIN · PUBLIC DATA</span>
+              <span className="hud-label shrink-0">SHIZUKI · PUBLIC DATA</span>
             </header>
             <div className="mt-8 grid flex-1 gap-px bg-border lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
               <div className="relative flex min-h-[26rem] flex-col justify-end overflow-hidden bg-midnight/50 p-6">
@@ -479,7 +479,7 @@ export function OniAiChamber() {
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 top-6">{character}</div>
                 <div className="pointer-events-none absolute inset-0" style={{ background: "var(--gradient-vignette)" }} />
                 <div className="relative">
-                  <span className="hud-label text-crimson/85">UNIT / ONI BRAIN</span>
+                  <span className="hud-label text-crimson/85">UNIT / ONI SHIZUKI</span>
                   <p className="mt-2 text-cinema text-3xl text-foreground">ОНИ АЙ</p>
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Кланы хиймэл оюун туслах. Хөгжмийн систем энэ танхимд нэгдсэн байдлаар ажиллана.</p>
                   <div className="mt-3">{stateBadge}</div>
