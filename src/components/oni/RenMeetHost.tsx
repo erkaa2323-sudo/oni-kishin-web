@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { MeetLifecycle } from "@/data/meet";
 
@@ -13,90 +13,17 @@ type Props = {
   capacity: number | null;
 };
 
-type Model = {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  anchor: { set: (x: number, y?: number) => void };
-  scale: { set: (value: number) => void };
-  motion?: (group: string, index?: number) => unknown;
-  destroy?: (options?: unknown) => void;
+type RuntimeState = "loading" | "ready" | "failed";
+
+type MiaraMessage = {
+  source?: string;
+  type?: string;
 };
 
-type Pixi = {
-  Application: new (options: Record<string, unknown>) => {
-    stage: { addChild: (model: Model) => void };
-    renderer: { resize: (width: number, height: number) => void };
-    destroy: (removeView?: boolean, options?: Record<string, unknown>) => void;
-  };
-  live2d?: { Live2DModel?: { from: (url: string, options?: Record<string, unknown>) => Promise<Model> } };
-};
-
-declare global {
-  interface Window {
-    PIXI?: Pixi;
-    Live2D?: unknown;
-  }
-}
-
-const PIXI_URL = "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js";
-const CORE_URL = "https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js";
-const DISPLAY_URL = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js";
-const MODEL_URL =
-  "https://cdn.jsdelivr.net/gh/zenghongtu/live2d-model-assets@e8d97080d37a31d2813a56caa6776ae722c4b489/assets/moc/Gantzert_Felixander/Gantzert_Felixander.model.json";
-const LOAD_TIMEOUT_MS = 15_000;
-
-const scriptLoads = new Map<string, Promise<void>>();
-
-function loadScript(src: string) {
-  const cached = scriptLoads.get(src);
-  if (cached) return cached;
-
-  const task = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[data-oni-meet-src="${src}"]`);
-    if (existing) {
-      if (existing.dataset.loaded === "true") resolve();
-      else {
-        existing.addEventListener("load", () => resolve(), { once: true });
-        existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), { once: true });
-      }
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    script.crossOrigin = "anonymous";
-    script.dataset.oniMeetSrc = src;
-    script.onload = () => {
-      script.dataset.loaded = "true";
-      resolve();
-    };
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(script);
-  });
-
-  scriptLoads.set(src, task);
-  void task.catch(() => scriptLoads.delete(src));
-  return task;
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string) {
-  return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    promise.then(
-      (value) => {
-        window.clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        window.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
+const MIARA_MODEL_URLS = [
+  "https://raw.githubusercontent.com/ttoommoommii/joho.github.io/7be0056adca11e7b7bdfb2d2171881d42c2b5558/src0710LocalFile/miara/miara_pro_t04.model3.json",
+  "https://raw.githubusercontent.com/ttoommoommii/joho.github.io/main/src0710LocalFile/miara/miara_pro_t04.model3.json",
+];
 
 function resolveHostState(life: MeetLifecycle, registrationState: RegistrationState): HostState {
   if (registrationState === "registered") return "registered";
@@ -116,150 +43,195 @@ function hostCopy(state: HostState, nickname?: string) {
   if (state === "open") return "Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.";
   if (state === "full") return "Meet дүүрсэн байна. Дараагийн мэдээллийг эндээс хүлээнэ үү.";
   if (state === "closed") return "Энэ Meet-ийн бүртгэл хаагдсан байна.";
-  return "Gantzert ба Felixander дараагийн ONI MEET-ийг хүлээж байна.";
-}
-
-function playHostMotion(model: Model, state: HostState) {
-  try {
-    if (state === "idle") {
-      void model.motion?.("idle", 0);
-      return;
-    }
-
-    const index =
-      state === "open"
-        ? 0
-        : state === "live"
-          ? 1
-          : state === "loading"
-            ? 2
-            : state === "closed" || state === "full"
-              ? 3
-              : 4;
-    void model.motion?.("", index);
-  } catch {
-    // Motion failure must never take down the host renderer.
-  }
+  return "Miara дараагийн ONI MEET-ийг хүлээж байна.";
 }
 
 export function RenMeetHost({ life, registrationState, nickname, participants, capacity }: Props) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const modelRef = useRef<Model | null>(null);
-  const baseSizeRef = useRef<{ width: number; height: number } | null>(null);
-  const [runtime, setRuntime] = useState<"loading" | "ready" | "failed">("loading");
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
+  const [runtime, setRuntime] = useState<RuntimeState>("loading");
   const hostState = resolveHostState(life, registrationState);
 
-  useEffect(() => {
-    let cancelled = false;
-    let observer: ResizeObserver | undefined;
-    let app: InstanceType<Pixi["Application"]> | undefined;
+  const srcDoc = useMemo(
+    () => `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+body{touch-action:pan-y}
+#stage{position:absolute;inset:0;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+#loading{position:absolute;inset:0;display:grid;place-items:center;font:600 8px/1.2 system-ui;letter-spacing:.22em;color:rgba(255,255,255,.28)}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="loading">MIARA // LIVE2D SYNC</div>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+<script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
+<script>
+(function(){
+  var MODEL_URLS=${JSON.stringify(MIARA_MODEL_URLS)};
+  var SOURCE='oni-miara-meet';
+  var PARENT_SOURCE='oni-miara-meet-parent';
+  var stage=document.getElementById('stage');
+  var loading=document.getElementById('loading');
+  var app=null;
+  var model=null;
+  var observer=null;
+  var currentState='idle';
+  var idleTimer=0;
+  var disposed=false;
 
-    void (async () => {
-      try {
-        await withTimeout(
-          (async () => {
-            if (!window.PIXI?.Application) await loadScript(PIXI_URL);
-            if (!window.Live2D) await loadScript(CORE_URL);
-            if (!window.PIXI?.live2d?.Live2DModel) await loadScript(DISPLAY_URL);
-          })(),
-          LOAD_TIMEOUT_MS,
-          "Live2D runtime",
-        );
-        if (cancelled || !hostRef.current) return;
+  function send(type){
+    try{ parent.postMessage({source:SOURCE,type:type},'*'); }catch(e){}
+  }
 
-        const PIXI = window.PIXI;
-        const Live2DModel = PIXI?.live2d?.Live2DModel;
-        if (!PIXI || !Live2DModel) throw new Error("Cubism2 runtime unavailable");
+  function safeMotion(group,index){
+    if(!model||typeof model.motion!=='function') return;
+    try{ model.motion(group,index||0); }catch(e){}
+  }
 
-        const host = hostRef.current;
-        const canvas = document.createElement("canvas");
-        canvas.className = "h-full w-full";
-        canvas.setAttribute("aria-hidden", "true");
-        host.replaceChildren(canvas);
+  function applyState(next){
+    currentState=next||'idle';
+    if(!model) return;
 
-        app = new PIXI.Application({
-          view: canvas,
-          transparent: true,
-          antialias: true,
-          autoStart: true,
-          resolution: Math.min(window.devicePixelRatio || 1, window.innerWidth < 640 ? 1.2 : 1.6),
-          autoDensity: true,
-        });
+    if(currentState==='live'||currentState==='registered'){
+      safeMotion('Flick',0);
+      return;
+    }
+    if(currentState==='open'||currentState==='loading'){
+      safeMotion('Tap',0);
+      return;
+    }
+    safeMotion('Idle',0);
+  }
 
-        const model = await withTimeout(
-          Live2DModel.from(MODEL_URL, { autoInteract: false }),
-          LOAD_TIMEOUT_MS,
-          "Gantzert model",
-        );
-        if (cancelled) {
-          model.destroy?.({ children: true, texture: true, baseTexture: true });
-          return;
-        }
+  function fit(){
+    if(!app||!model||disposed) return;
+    var w=Math.max(1,stage.clientWidth);
+    var h=Math.max(1,stage.clientHeight);
+    app.renderer.resize(w,h);
 
-        model.anchor.set(0.5, 0.5);
-        model.scale.set(1);
-        baseSizeRef.current = {
-          width: Math.max(model.width, 1),
-          height: Math.max(model.height, 1),
-        };
-        modelRef.current = model;
-        app.stage.addChild(model);
+    model.scale.set(1);
+    var baseW=Math.max(model.width,1);
+    var baseH=Math.max(model.height,1);
+    var mobile=w<520;
+    var scale=Math.min((w*(mobile?.97:.94))/baseW,(h*(mobile?.97:.95))/baseH);
 
-        const fit = () => {
-          const currentHost = hostRef.current;
-          const currentModel = modelRef.current;
-          const base = baseSizeRef.current;
-          if (!currentHost || !currentModel || !base || !app) return;
+    model.scale.set(scale);
+    model.x=w*.5;
+    model.y=h*(mobile?.505:.5);
+  }
 
-          const width = Math.max(1, currentHost.clientWidth);
-          const height = Math.max(1, currentHost.clientHeight);
-          app.renderer.resize(width, height);
+  function loadModelAt(index){
+    if(disposed) return Promise.reject(new Error('disposed'));
+    if(index>=MODEL_URLS.length) return Promise.reject(new Error('Miara model sources unavailable'));
+    return PIXI.live2d.Live2DModel.from(MODEL_URLS[index],{autoInteract:false}).catch(function(error){
+      console.warn('[ONI Meet] Miara source failed',MODEL_URLS[index],error);
+      return loadModelAt(index+1);
+    });
+  }
 
-          // Intentionally use more of the viewport than the previous conservative
-          // fit. The lower HUD now overlays the render instead of reserving a large
-          // empty block, so the swordsman + dragon read as the hero of the panel.
-          const mobile = width < 520;
-          const safeWidth = width * (mobile ? 1.055 : 0.99);
-          const safeHeight = height * (mobile ? 1.045 : 0.995);
-          const scale = Math.min(safeWidth / base.width, safeHeight / base.height);
+  window.addEventListener('message',function(event){
+    var data=event.data;
+    if(!data||data.source!==PARENT_SOURCE||data.type!=='state') return;
+    applyState(data.state);
+  });
 
-          currentModel.scale.set(scale);
-          currentModel.x = width * (mobile ? 0.525 : 0.515);
-          currentModel.y = height * (mobile ? 0.475 : 0.49);
-        };
+  document.addEventListener('visibilitychange',function(){
+    if(!app||!app.ticker) return;
+    try{
+      if(document.visibilityState==='hidden') app.ticker.stop();
+      else app.ticker.start();
+    }catch(e){}
+  });
 
-        fit();
-        observer = new ResizeObserver(fit);
-        observer.observe(host);
-        playHostMotion(model, hostState);
-        if (!cancelled) setRuntime("ready");
-      } catch (error) {
-        console.error("[ONI Meet] Gantzert + Felixander load failed", error);
-        if (!cancelled) setRuntime("failed");
+  function fail(error){
+    console.error('[ONI Meet] Miara Live2D failed',error);
+    if(loading) loading.textContent='MIARA // VISUAL OFFLINE';
+    send('failed');
+  }
+
+  try{
+    if(!window.PIXI||!PIXI.Application||!PIXI.live2d||!PIXI.live2d.Live2DModel){
+      throw new Error('Cubism4 runtime unavailable');
+    }
+
+    app=new PIXI.Application({
+      transparent:true,
+      antialias:true,
+      autoStart:true,
+      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.25:1.6),
+      autoDensity:true
+    });
+    stage.appendChild(app.view);
+
+    loadModelAt(0).then(function(loaded){
+      if(disposed){
+        try{ loaded.destroy({children:true,texture:true,baseTexture:true}); }catch(e){}
+        return;
       }
-    })();
+      model=loaded;
+      model.anchor.set(.5,.5);
+      model.scale.set(1);
+      app.stage.addChild(model);
+      fit();
+      observer=new ResizeObserver(fit);
+      observer.observe(stage);
+      applyState(currentState);
+      if(loading) loading.remove();
+      send('ready');
 
-    return () => {
-      cancelled = true;
-      observer?.disconnect();
-      modelRef.current?.destroy?.({ children: true, texture: true, baseTexture: true });
-      modelRef.current = null;
-      baseSizeRef.current = null;
-      app?.destroy(true, { children: true, texture: true, baseTexture: true });
+      idleTimer=window.setInterval(function(){
+        if(!model||document.visibilityState==='hidden') return;
+        if(currentState==='idle'||currentState==='closed'||currentState==='full') safeMotion('Idle',0);
+      },9000);
+    }).catch(fail);
+  }catch(error){
+    fail(error);
+  }
+
+  window.addEventListener('beforeunload',function(){
+    disposed=true;
+    if(idleTimer) window.clearInterval(idleTimer);
+    if(observer) observer.disconnect();
+    try{ if(model) model.destroy({children:true,texture:true,baseTexture:true}); }catch(e){}
+    try{ if(app) app.destroy(true,{children:true,texture:true,baseTexture:true}); }catch(e){}
+    model=null;
+    app=null;
+  });
+})();
+</script>
+</body>
+</html>`,
+    [],
+  );
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent<MiaraMessage>) => {
+      if (event.source !== frameRef.current?.contentWindow) return;
+      if (event.data?.source !== "oni-miara-meet") return;
+      if (event.data.type === "ready") setRuntime("ready");
+      if (event.data.type === "failed") setRuntime("failed");
     };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   useEffect(() => {
-    if (runtime !== "ready" || !modelRef.current) return;
-    playHostMotion(modelRef.current, hostState);
-  }, [hostState, runtime]);
-
-  useEffect(() => {
     if (runtime !== "ready") return;
-    const timer = window.setInterval(() => {
-      if (hostState === "idle" && modelRef.current) playHostMotion(modelRef.current, "idle");
-    }, 9_000);
-    return () => window.clearInterval(timer);
+    frameRef.current?.contentWindow?.postMessage(
+      {
+        source: "oni-miara-meet-parent",
+        type: "state",
+        state: hostState,
+      },
+      "*",
+    );
   }, [hostState, runtime]);
 
   return (
@@ -272,10 +244,10 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 sm:left-4">
         <span className="border-l-2 border-crimson/70 pl-2 text-[0.5rem] font-semibold tracking-[0.2em] text-white/70 sm:text-[0.55rem]">
-          MEET GUARD // GANTZERT
+          MEET GUIDE // MIARA
         </span>
         <span className="hidden border border-white/10 bg-black/40 px-1.5 py-0.5 text-[0.4rem] tracking-[0.16em] text-white/35 sm:inline">
-          FELIXANDER ACTIVE
+          FULL BODY ACTIVE
         </span>
       </div>
 
@@ -298,20 +270,23 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
         </span>
       </div>
 
-      <div
-        ref={hostRef}
-        className="pointer-events-none absolute inset-x-0 bottom-1 top-6"
-        aria-label="Gantzert and Felixander Live2D Meet host"
+      <iframe
+        ref={frameRef}
+        title="Miara Live2D Meet guide"
+        srcDoc={srcDoc}
+        sandbox="allow-scripts"
+        className="pointer-events-none absolute inset-x-0 bottom-1 top-6 h-[calc(100%-1.75rem)] w-full border-0 bg-transparent"
+        onLoad={() => setRuntime("loading")}
       />
 
       {runtime === "loading" ? (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
-          SUMMONING HOST…
+          SUMMONING MIARA…
         </div>
       ) : null}
       {runtime === "failed" ? (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
-          HOST VISUAL OFFLINE
+          MIARA VISUAL OFFLINE
         </div>
       ) : null}
 
@@ -321,7 +296,7 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
             <div className="mb-1 flex items-center gap-2 text-[0.42rem] tracking-[0.2em] text-crimson/75 sm:text-[0.46rem]">
               <span>ONI // SECTOR 05</span>
               <span className="h-px w-8 bg-crimson/35" />
-              <span>SWORD + DRAGON</span>
+              <span>MIARA // LIVE2D</span>
             </div>
             <p className="max-w-[84%] text-[0.61rem] leading-relaxed text-white/88 sm:text-[0.68rem]">
               {hostCopy(hostState, nickname)}
@@ -337,7 +312,7 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
       </div>
 
       <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rotate-90 text-[0.36rem] tracking-[0.28em] text-white/15">
-        ONI // ALWAYS-ON HOST
+        ONI // ALWAYS-ON MIARA
       </div>
       <span className="pointer-events-none absolute left-0 top-0 h-7 w-px bg-crimson/70" />
       <span className="pointer-events-none absolute left-0 top-0 h-px w-7 bg-crimson/70" />
