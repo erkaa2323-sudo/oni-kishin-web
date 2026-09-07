@@ -130,11 +130,6 @@ select {
   header.fixed.inset-x-0.top-0 {
     padding-top: var(--oni-safe-top);
   }
-
-  /* Keep fixed onboarding/push surfaces above the iPhone home indicator. */
-  aside.fixed {
-    margin-bottom: var(--oni-safe-bottom);
-  }
 }
 
 /* Landscape is not the primary experience, but must never clip behind the sensor areas. */
