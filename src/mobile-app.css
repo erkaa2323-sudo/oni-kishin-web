@@ -1,0 +1,164 @@
+/* ONI NEXUS — iPhone / installed-web-app hardening.
+ * Loaded after the main design system so these rules only correct viewport,
+ * safe-area and touch ergonomics without changing the desktop composition.
+ */
+
+:root {
+  --oni-safe-top: env(safe-area-inset-top, 0px);
+  --oni-safe-right: env(safe-area-inset-right, 0px);
+  --oni-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --oni-safe-left: env(safe-area-inset-left, 0px);
+  --oni-app-height: 100dvh;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100%;
+}
+
+html {
+  overflow-x: clip;
+  background: var(--ink);
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+/* Prevent Safari's focus-zoom while keeping user page zoom available. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    max-width: 100%;
+  }
+
+  [class*="max-w-"] {
+    min-width: 0;
+  }
+
+  /* The old 920px floor forced the installed home scene beyond the iPhone viewport. */
+  .oni-command,
+  .oni-command__ui {
+    min-height: 100svh !important;
+  }
+
+  @supports (height: 100dvh) {
+    .oni-command,
+    .oni-command__ui {
+      min-height: 100dvh !important;
+    }
+  }
+
+  .oni-command__ui {
+    width: 100%;
+    padding-left: max(1rem, var(--oni-safe-left));
+    padding-right: max(1rem, var(--oni-safe-right));
+    padding-top: calc(5.25rem + var(--oni-safe-top));
+    padding-bottom: max(1rem, var(--oni-safe-bottom));
+  }
+
+  .oni-command__copy {
+    padding-bottom: clamp(6.75rem, 15svh, 9rem) !important;
+  }
+
+  .oni-command__copy h1 {
+    font-size: clamp(2.9rem, 15vw, 3.8rem) !important;
+  }
+
+  .oni-command__subject {
+    height: min(60svh, 34rem) !important;
+    min-height: 0 !important;
+    left: clamp(13%, 20vw, 24%) !important;
+    bottom: clamp(12%, 16svh, 18%) !important;
+  }
+
+  .oni-command__actions,
+  .oni-command__lede {
+    max-width: min(21rem, 100%) !important;
+  }
+
+  /* Full-screen menus must use the visible installed-app viewport and notch zones. */
+  [aria-label="Бүх хэсэг"] {
+    padding-bottom: max(0.75rem, var(--oni-safe-bottom));
+  }
+}
+
+/* Standalone mode has no Safari chrome; explicitly reserve the notch/home indicator. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    min-height: 100dvh;
+    background: var(--ink);
+  }
+
+  body {
+    padding-left: var(--oni-safe-left);
+    padding-right: var(--oni-safe-right);
+  }
+
+  header.fixed.inset-x-0.top-0 {
+    padding-top: var(--oni-safe-top);
+  }
+
+  /* Keep fixed onboarding/push surfaces above the iPhone home indicator. */
+  aside.fixed {
+    margin-bottom: var(--oni-safe-bottom);
+  }
+}
+
+/* Landscape is not the primary experience, but must never clip behind the sensor areas. */
+@media (orientation: landscape) and (max-height: 520px) {
+  body {
+    padding-left: max(0.5rem, var(--oni-safe-left));
+    padding-right: max(0.5rem, var(--oni-safe-right));
+  }
+
+  .oni-command,
+  .oni-command__ui {
+    min-height: 100dvh !important;
+  }
+
+  .oni-command__subject {
+    max-height: 88dvh;
+  }
+}
+
+/* The virtual keyboard shrinks the visual viewport; avoid fixed-height traps. */
+@media (max-width: 767px) and (max-height: 560px) {
+  .oni-command__subject,
+  .oni-command__car,
+  .oni-command__title {
+    opacity: 0.22 !important;
+  }
+}
