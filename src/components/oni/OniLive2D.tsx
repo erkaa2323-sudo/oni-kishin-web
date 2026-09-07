@@ -120,8 +120,8 @@ function loadScript(src: string) {
   const cached = scriptLoads.get(src);
   if (cached) return cached;
 
+  const selector = `script[data-oni-live2d-src="${src}"]`;
   const task = new Promise<void>((resolve, reject) => {
-    const selector = `script[data-oni-live2d-src="${src}"]`;
     const existing = document.querySelector<HTMLScriptElement>(selector);
     if (existing) {
       if (existing.dataset.loaded === "true") resolve();
@@ -150,6 +150,13 @@ function loadScript(src: string) {
   });
 
   scriptLoads.set(src, task);
+  void task.catch(() => {
+    // A rejected promise must not poison the cache for the rest of the SPA
+    // session. Remove the failed tag so a later mount can perform a clean retry.
+    if (scriptLoads.get(src) === task) scriptLoads.delete(src);
+    const failedScript = document.querySelector<HTMLScriptElement>(selector);
+    if (failedScript?.dataset.loaded !== "true") failedScript?.remove();
+  });
   return task;
 }
 
@@ -279,7 +286,10 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
           LIVE2D_MODEL_TIMEOUT_MS,
           "Live2D model",
         );
-        if (cancelled) return;
+        if (cancelled) {
+          model.destroy?.({ children: true, texture: true, baseTexture: true });
+          return;
+        }
         model.anchor.set(0.5, 0.5);
         model.scale.set(1);
         baseSizeRef.current = {
