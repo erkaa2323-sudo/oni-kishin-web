@@ -5,16 +5,18 @@ import { ONI_VAULT, type OniProgressionProfile } from "@/lib/oni-progression";
 const DEFAULT_EQUIPPED: Record<string, string> = {};
 
 function parseProfile(uid: string, data: Record<string, unknown>): OniProgressionProfile {
+  const unlocked = data["unlocked"];
+  const equipped = data["equipped"];
   return {
     uid,
-    nickname: String(data.nickname ?? "ONI"),
-    xp: Math.max(0, Number(data.xp ?? 0)),
-    coin: Math.max(0, Number(data.coin ?? 0)),
-    lifetimeXp: Math.max(0, Number(data.lifetimeXp ?? data.xp ?? 0)),
-    seasonXp: Math.max(0, Number(data.seasonXp ?? data.xp ?? 0)),
-    prestige: Math.max(0, Number(data.prestige ?? 0)),
-    unlocked: Array.isArray(data.unlocked) ? data.unlocked.map(String) : [],
-    equipped: data.equipped && typeof data.equipped === "object" ? data.equipped as Record<string, string> : DEFAULT_EQUIPPED,
+    nickname: String(data["nickname"] ?? "ONI"),
+    xp: Math.max(0, Number(data["xp"] ?? 0)),
+    coin: Math.max(0, Number(data["coin"] ?? 0)),
+    lifetimeXp: Math.max(0, Number(data["lifetimeXp"] ?? data["xp"] ?? 0)),
+    seasonXp: Math.max(0, Number(data["seasonXp"] ?? data["xp"] ?? 0)),
+    prestige: Math.max(0, Number(data["prestige"] ?? 0)),
+    unlocked: Array.isArray(unlocked) ? unlocked.map(String) : [],
+    equipped: equipped && typeof equipped === "object" ? equipped as Record<string, string> : DEFAULT_EQUIPPED,
   };
 }
 
@@ -22,13 +24,12 @@ export async function ensureMyProgression(): Promise<OniProgressionProfile | nul
   const user = firebaseAuth.currentUser;
   if (!user) return null;
   const account = await getDoc(doc(firebaseDb, "memberAccounts", user.uid));
-  if (!account.exists() || account.data().status !== "approved") return null;
+  if (!account.exists() || account.data()["status"] !== "approved") return null;
   const ref = doc(firebaseDb, "progressionProfiles", user.uid);
   const existing = await getDoc(ref);
   if (existing.exists()) return parseProfile(user.uid, existing.data());
-  const nickname = String(account.data().nickname ?? "ONI");
-  const initial = { uid: user.uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, unlocked: [], equipped: {}, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-  await setDoc(ref, initial);
+  const nickname = String(account.data()["nickname"] ?? "ONI");
+  await setDoc(ref, { uid: user.uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, unlocked: [], equipped: {}, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
   return { uid: user.uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, unlocked: [], equipped: {} };
 }
 
