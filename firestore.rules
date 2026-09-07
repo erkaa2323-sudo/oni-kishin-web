@@ -3,10 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // =========================================================
-    // ADMIN AUTHORIZATION
-    // =========================================================
-    // The current admin.html authenticates this address.
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email == "erkaa130@gmail.com"
@@ -19,59 +15,62 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.status == "approved";
     }
 
-    function isNumber(v) {
-      return v is int || v is float;
+    function isNumber(v) { return v is int || v is float; }
+    function hasOnlyKeys(data, allowed) { return data.keys().hasOnly(allowed); }
+    function hasAllKeys(data, required) { return data.keys().hasAll(required); }
+    function requiredText(v, maxLen) { return v is string && v.size() > 0 && v.size() <= maxLen; }
+    function optionalText(data, key, maxLen) { return !data.keys().hasAny([key]) || (data[key] is string && data[key].size() <= maxLen); }
+    function optionalTimestamp(data, key) { return !data.keys().hasAny([key]) || data[key] is timestamp; }
+    function optionalDateLike(data, key) { return !data.keys().hasAny([key]) || data[key] is timestamp || data[key] is string || data[key] is int; }
+
+    // Meet security helpers. New writes require server-comparable timestamp fields.
+    function currentMeetExists() {
+      return exists(/databases/$(database)/documents/meets/current);
     }
 
-    function hasOnlyKeys(data, allowed) {
-      return data.keys().hasOnly(allowed);
+    function currentMeet() {
+      return get(/databases/$(database)/documents/meets/current).data;
     }
 
-    function hasAllKeys(data, required) {
-      return data.keys().hasAll(required);
+    function meetRegistrationOpen() {
+      let meet = currentMeet();
+      return currentMeetExists()
+        && meet.enabled == true
+        && meet.keys().hasAll(["startAt"])
+        && meet.startAt is timestamp
+        && meet.get("status", "scheduled") != "closed"
+        && meet.get("status", "scheduled") != "ended"
+        && (
+          (meet.keys().hasAny(["registrationClosesAt"])
+            && meet.registrationClosesAt is timestamp
+            && request.time < meet.registrationClosesAt)
+          || (!meet.keys().hasAny(["registrationClosesAt"])
+            && request.time < meet.startAt + duration.value(20, 'm'))
+        );
     }
 
-    function requiredText(v, maxLen) {
-      return v is string && v.size() > 0 && v.size() <= maxLen;
+    function validMeetSlotId(slotId) {
+      let meet = currentMeet();
+      let maxPlayers = meet.get("maxPlayers", 20);
+      return maxPlayers is int
+        && maxPlayers >= 1
+        && maxPlayers <= 20
+        && slotId.matches("^current_[0-9]{2}$")
+        && int(slotId.split("_")[1]) >= 1
+        && int(slotId.split("_")[1]) <= maxPlayers;
     }
 
-    function optionalText(data, key, maxLen) {
-      return !data.keys().hasAny([key])
-        || (data[key] is string && data[key].size() <= maxLen);
-    }
-
-    function optionalTimestamp(data, key) {
-      return !data.keys().hasAny([key]) || data[key] is timestamp;
-    }
-
-    function optionalDateLike(data, key) {
-      return !data.keys().hasAny([key])
-        || data[key] is timestamp
-        || data[key] is string
-        || data[key] is int;
-    }
-
-    // =========================================================
-    // MEMBERS
-    // =========================================================
     match /members/{memberId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    // =========================================================
-    // CREW MEMBER ACCOUNTS
-    // =========================================================
     match /memberAccounts/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow create: if request.auth != null
         && request.auth.uid == uid
-        && hasOnlyKeys(request.resource.data, [
-          "email", "memberId", "nickname", "cpmId", "status", "createdAt", "updatedAt"
-        ])
-        && hasAllKeys(request.resource.data, [
-          "email", "memberId", "nickname", "cpmId", "status", "createdAt", "updatedAt"
-        ])
+        && hasOnlyKeys(request.resource.data, ["email", "memberId", "nickname", "cpmId", "status", "createdAt", "updatedAt"])
+        && hasAllKeys(request.resource.data, ["email", "memberId", "nickname", "cpmId", "status", "createdAt", "updatedAt"])
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.status == "pending"
         && requiredText(request.resource.data.memberId, 80)
@@ -80,117 +79,55 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedAt is timestamp
         && exists(/databases/$(database)/documents/members/$(request.resource.data.memberId))
-        && (
-          get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("nick", "") == request.resource.data.nickname
+        && (get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("nick", "") == request.resource.data.nickname
           || get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("nickname", "") == request.resource.data.nickname
-          || get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("name", "") == request.resource.data.nickname
-        )
-        && (
-          get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("cpmid", "") == request.resource.data.cpmId
-          || get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("cpmId", "") == request.resource.data.cpmId
-        );
+          || get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("name", "") == request.resource.data.nickname)
+        && (get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("cpmid", "") == request.resource.data.cpmId
+          || get(/databases/$(database)/documents/members/$(request.resource.data.memberId)).data.get("cpmId", "") == request.resource.data.cpmId);
       allow update, delete: if isAdmin();
     }
 
-    match /garage/{garageId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    match /garage/{garageId} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
     match /applications/{applicationId} {
-      allow create: if
-        hasOnlyKeys(request.resource.data, [
-          "last", "first", "age", "gender", "cpmid", "nick", "direction",
-          "contactType", "contact", "experience", "message", "status", "createdAt"
-        ])
-        && hasAllKeys(request.resource.data, [
-          "last", "first", "age", "gender", "cpmid", "nick", "direction",
-          "contactType", "contact", "experience", "message", "status"
-        ])
+      allow create: if hasOnlyKeys(request.resource.data, ["last", "first", "age", "gender", "cpmid", "nick", "direction", "contactType", "contact", "experience", "message", "status", "createdAt"])
+        && hasAllKeys(request.resource.data, ["last", "first", "age", "gender", "cpmid", "nick", "direction", "contactType", "contact", "experience", "message", "status"])
         && request.resource.data.status == "Шинэ"
-        && requiredText(request.resource.data.last, 80)
-        && requiredText(request.resource.data.first, 80)
-        && request.resource.data.age is int
-        && request.resource.data.age >= 17
-        && request.resource.data.age <= 90
+        && requiredText(request.resource.data.last, 80) && requiredText(request.resource.data.first, 80)
+        && request.resource.data.age is int && request.resource.data.age >= 17 && request.resource.data.age <= 90
         && request.resource.data.gender in ["Эрэгтэй", "Эмэгтэй"]
-        && requiredText(request.resource.data.cpmid, 60)
-        && requiredText(request.resource.data.nick, 60)
-        && request.resource.data.direction in [
-          "Clean Car", "Anime Car", "Racer / Drifter", "Drag Racer", "Content Creator", "Other"
-        ]
+        && requiredText(request.resource.data.cpmid, 60) && requiredText(request.resource.data.nick, 60)
+        && request.resource.data.direction in ["Clean Car", "Anime Car", "Racer / Drifter", "Drag Racer", "Content Creator", "Other"]
         && request.resource.data.contactType in ["Instagram", "Discord", "Phone"]
         && requiredText(request.resource.data.contact, 120)
-        && request.resource.data.experience in [
-          "6 сараас бага", "6 сар – 1 жил", "1 – 2 жил", "2 жилээс дээш"
-        ]
-        && request.resource.data.message is string
-        && request.resource.data.message.size() <= 1500
+        && request.resource.data.experience in ["6 сараас бага", "6 сар – 1 жил", "1 – 2 жил", "2 жилээс дээш"]
+        && request.resource.data.message is string && request.resource.data.message.size() <= 1500
         && optionalTimestamp(request.resource.data, "createdAt");
       allow read, update, delete: if isAdmin();
     }
 
-    match /products/{productId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /gallery/{galleryId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    match /products/{productId} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /gallery/{galleryId} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
     match /orders/{orderId} {
-      allow create: if
-        hasOnlyKeys(request.resource.data, [
-          "orderNo", "productId", "productName", "unitPrice", "quantity", "total",
-          "cpmNick", "cpmId", "instagram", "phone", "note", "status", "createdAt"
-        ])
-        && hasAllKeys(request.resource.data, [
-          "orderNo", "productId", "productName", "unitPrice", "quantity", "total",
-          "cpmNick", "cpmId", "status"
-        ])
+      allow create: if hasOnlyKeys(request.resource.data, ["orderNo", "productId", "productName", "unitPrice", "quantity", "total", "cpmNick", "cpmId", "instagram", "phone", "note", "status", "createdAt"])
+        && hasAllKeys(request.resource.data, ["orderNo", "productId", "productName", "unitPrice", "quantity", "total", "cpmNick", "cpmId", "status"])
         && request.resource.data.status == "Шинэ"
-        && requiredText(request.resource.data.orderNo, 40)
-        && requiredText(request.resource.data.productId, 120)
+        && requiredText(request.resource.data.orderNo, 40) && requiredText(request.resource.data.productId, 120)
         && requiredText(request.resource.data.productName, 180)
-        && isNumber(request.resource.data.unitPrice)
-        && request.resource.data.unitPrice >= 0
-        && request.resource.data.unitPrice <= 1000000000
-        && request.resource.data.quantity is int
-        && request.resource.data.quantity >= 1
-        && request.resource.data.quantity <= 99
-        && isNumber(request.resource.data.total)
-        && request.resource.data.total >= 0
-        && request.resource.data.total <= 1000000000
-        && requiredText(request.resource.data.cpmNick, 60)
-        && requiredText(request.resource.data.cpmId, 60)
-        && optionalText(request.resource.data, "instagram", 120)
-        && optionalText(request.resource.data, "phone", 40)
-        && optionalText(request.resource.data, "note", 800)
-        && optionalTimestamp(request.resource.data, "createdAt");
+        && isNumber(request.resource.data.unitPrice) && request.resource.data.unitPrice >= 0 && request.resource.data.unitPrice <= 1000000000
+        && request.resource.data.quantity is int && request.resource.data.quantity >= 1 && request.resource.data.quantity <= 99
+        && isNumber(request.resource.data.total) && request.resource.data.total >= 0 && request.resource.data.total <= 1000000000
+        && requiredText(request.resource.data.cpmNick, 60) && requiredText(request.resource.data.cpmId, 60)
+        && optionalText(request.resource.data, "instagram", 120) && optionalText(request.resource.data, "phone", 40)
+        && optionalText(request.resource.data, "note", 800) && optionalTimestamp(request.resource.data, "createdAt");
       allow read, update, delete: if isAdmin();
     }
 
-    match /site/{siteId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /settings/{settingId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /music/{musicId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /meets/{meetId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    match /site/{siteId} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /settings/{settingId} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /music/{musicId} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /meets/{meetId} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
     function validParticipantBase(participantId) {
       let data = request.resource.data;
@@ -204,143 +141,90 @@ service cloud.firestore {
         && get(accountPath).data.memberId == data.memberId
         && get(accountPath).data.nickname == data.nick
         && get(accountPath).data.cpmId == data.cpmId
-        && request.resource.data.meetId == "current"
-        && hasOnlyKeys(data, [
-          "meetId", "meetStartAt", "memberId", "nick", "name", "cpmId", "joinedAt", "source", "slotId"
-        ])
-        && hasAllKeys(data, ["meetId", "memberId", "nick", "name", "cpmId", "source", "slotId"])
-        && requiredText(data.slotId, 20)
-        && requiredText(data.memberId, 80)
-        && requiredText(data.nick, 60)
-        && requiredText(data.name, 60)
-        && requiredText(data.cpmId, 60)
-        && data.source == "website"
-        && optionalTimestamp(data, "joinedAt")
-        && optionalDateLike(data, "meetStartAt")
-        && exists(/databases/$(database)/documents/meets/current)
-        && get(/databases/$(database)/documents/meets/current).data.enabled == true
+        && data.meetId == "current"
+        && hasOnlyKeys(data, ["meetId", "meetStartAt", "memberId", "nick", "name", "cpmId", "joinedAt", "source", "slotId"])
+        && hasAllKeys(data, ["meetId", "meetStartAt", "memberId", "nick", "name", "cpmId", "source", "slotId"])
+        && data.meetStartAt is timestamp
+        && data.meetStartAt == currentMeet().startAt
+        && requiredText(data.slotId, 20) && validMeetSlotId(data.slotId)
+        && requiredText(data.memberId, 80) && requiredText(data.nick, 60) && requiredText(data.name, 60) && requiredText(data.cpmId, 60)
+        && data.source == "website" && optionalTimestamp(data, "joinedAt")
+        && meetRegistrationOpen()
         && exists(memberPath)
         && existsAfter(/databases/$(database)/documents/meetSlots/$(data.slotId))
         && getAfter(/databases/$(database)/documents/meetSlots/$(data.slotId)).data.participantId == participantId
-        && (
-          member.get("nick", "") == data.nick
-          || member.get("nickname", "") == data.nick
-          || member.get("name", "") == data.nick
-        )
-        && (
-          member.get("cpmid", "") == data.cpmId
-          || member.get("cpmId", "") == data.cpmId
-        )
-        && member.get("status", "active") != "inactive"
-        && member.get("status", "active") != "archived";
+        && (member.get("nick", "") == data.nick || member.get("nickname", "") == data.nick || member.get("name", "") == data.nick)
+        && (member.get("cpmid", "") == data.cpmId || member.get("cpmId", "") == data.cpmId)
+        && member.get("status", "active") != "inactive" && member.get("status", "active") != "archived";
     }
 
     match /meetParticipants/{participantId} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == participantId);
       allow create: if validParticipantBase(participantId);
       allow update: if validParticipantBase(participantId)
-        && resource.data.memberId == request.resource.data.memberId
-        && resource.data.meetId == request.resource.data.meetId
-        && resource.data.source == request.resource.data.source
-        && resource.data.nick == request.resource.data.nick
-        && resource.data.name == request.resource.data.name
-        && resource.data.cpmId == request.resource.data.cpmId;
+        && resource.data.memberId == request.resource.data.memberId && resource.data.meetId == request.resource.data.meetId
+        && resource.data.source == request.resource.data.source && resource.data.nick == request.resource.data.nick
+        && resource.data.name == request.resource.data.name && resource.data.cpmId == request.resource.data.cpmId;
       allow delete: if isAdmin();
     }
 
     match /meetRoster/{participantId} {
       allow read: if true;
-      allow create: if isApprovedMember()
+      allow create: if isApprovedMember() && meetRegistrationOpen()
         && request.auth.uid == participantId
         && hasOnlyKeys(request.resource.data, ["meetId", "nickname", "joinedAt"])
         && hasAllKeys(request.resource.data, ["meetId", "nickname", "joinedAt"])
-        && request.resource.data.meetId == "current"
-        && request.resource.data.joinedAt is timestamp
+        && request.resource.data.meetId == "current" && request.resource.data.joinedAt is timestamp
         && existsAfter(/databases/$(database)/documents/meetParticipants/$(participantId))
-        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.nick
-          == request.resource.data.nickname;
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.nick == request.resource.data.nickname;
       allow update: if false;
       allow delete: if isAdmin();
     }
 
     match /meetSlots/{slotId} {
       allow read: if isAdmin() || isApprovedMember();
-      allow create: if
-        isApprovedMember()
+      allow create: if isApprovedMember() && meetRegistrationOpen() && validMeetSlotId(slotId)
         && request.auth.uid == request.resource.data.participantId
-        && get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId
-          == request.resource.data.memberId
-        && slotId.matches("^current_[0-9]{2}$")
-        && hasOnlyKeys(request.resource.data, [
-          "meetId", "participantId", "memberId", "createdAt"
-        ])
-        && hasAllKeys(request.resource.data, [
-          "meetId", "participantId", "memberId", "createdAt"
-        ])
-        && request.resource.data.meetId == "current"
-        && requiredText(request.resource.data.participantId, 120)
-        && requiredText(request.resource.data.memberId, 80)
-        && request.resource.data.createdAt is timestamp
-        && existsAfter(
-          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
-        )
-        && getAfter(
-          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
-        ).data.slotId == slotId
-        && getAfter(
-          /databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)
-        ).data.memberId == request.resource.data.memberId;
+        && get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId == request.resource.data.memberId
+        && hasOnlyKeys(request.resource.data, ["meetId", "participantId", "memberId", "createdAt"])
+        && hasAllKeys(request.resource.data, ["meetId", "participantId", "memberId", "createdAt"])
+        && request.resource.data.meetId == "current" && requiredText(request.resource.data.participantId, 120)
+        && requiredText(request.resource.data.memberId, 80) && request.resource.data.createdAt is timestamp
+        && existsAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId))
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.slotId == slotId
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.memberId == request.resource.data.memberId;
       allow update: if false;
       allow delete: if isAdmin();
     }
 
     match /meetCredentials/{meetId} {
-      allow read: if isAdmin()
-        || (
-          meetId == "current"
-          && isApprovedMember()
-          && exists(/databases/$(database)/documents/meets/current)
-          && get(/databases/$(database)/documents/meets/current).data.enabled == true
-          && get(/databases/$(database)/documents/meets/current).data.keys().hasAll(["startAt"])
-          && exists(/databases/$(database)/documents/meetParticipants/$(request.auth.uid))
-          && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetId == "current"
-          && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.keys().hasAll(["meetStartAt", "slotId"])
-          && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetStartAt
-            == get(/databases/$(database)/documents/meets/current).data.startAt
-          && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.memberId
-            == get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId
-          && exists(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId))
-          && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.participantId
-            == request.auth.uid
-        );
+      allow read: if isAdmin() || (meetId == "current" && isApprovedMember()
+        && currentMeetExists() && currentMeet().enabled == true
+        && currentMeet().keys().hasAll(["startAt"]) && currentMeet().startAt is timestamp
+        && request.time >= currentMeet().startAt
+        && (!currentMeet().keys().hasAny(["endsAt"]) || !(currentMeet().endsAt is timestamp) || request.time < currentMeet().endsAt)
+        && exists(/databases/$(database)/documents/meetParticipants/$(request.auth.uid))
+        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetId == "current"
+        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetStartAt == currentMeet().startAt
+        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.memberId == get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId
+        && exists(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId))
+        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.participantId == request.auth.uid);
       allow create, update, delete: if isAdmin();
     }
 
-    match /meetResults/{resultId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
+    match /meetResults/{resultId} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
     match /auditLogs/{eventId} {
       allow read: if isAdmin();
       allow create: if isAdmin()
-        && hasOnlyKeys(request.resource.data, [
-          "actorId", "actorRole", "action", "target", "severity", "result", "detail", "createdAt"
-        ])
-        && hasAllKeys(request.resource.data, [
-          "actorId", "actorRole", "action", "severity", "result", "createdAt"
-        ])
-        && request.resource.data.actorId == request.auth.uid
-        && request.resource.data.actorRole in ["owner", "admin", "moderator"]
-        && requiredText(request.resource.data.action, 120)
-        && request.resource.data.severity in ["info", "warning", "critical"]
-        && request.resource.data.result in ["success", "failure", "denied"]
-        && request.resource.data.createdAt is timestamp;
+        && hasOnlyKeys(request.resource.data, ["actorId", "actorRole", "action", "target", "severity", "result", "detail", "createdAt"])
+        && hasAllKeys(request.resource.data, ["actorId", "actorRole", "action", "severity", "result", "createdAt"])
+        && request.resource.data.actorId == request.auth.uid && request.resource.data.actorRole in ["owner", "admin", "moderator"]
+        && requiredText(request.resource.data.action, 120) && request.resource.data.severity in ["info", "warning", "critical"]
+        && request.resource.data.result in ["success", "failure", "denied"] && request.resource.data.createdAt is timestamp;
       allow update, delete: if false;
     }
 
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
