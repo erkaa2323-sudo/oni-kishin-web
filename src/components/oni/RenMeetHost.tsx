@@ -52,9 +52,9 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;touch-action:pan-y}
-#stage{position:absolute;inset:0}
+#stage{position:absolute;inset:0;z-index:1}
 canvas{display:block;width:100%;height:100%;touch-action:none}
-#loading{position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);text-align:center;font:600 9px/1.45 system-ui;letter-spacing:.18em;color:rgba(255,255,255,.48)}
+#loading{position:absolute;z-index:2;left:12px;right:12px;top:50%;transform:translateY(-50%);text-align:center;font:600 9px/1.45 system-ui;letter-spacing:.18em;color:rgba(255,255,255,.48)}
 </style>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
 </head>
@@ -90,14 +90,21 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
     if(!app||!model)return;
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);
     app.renderer.resize(w,h);
+
+    // Avoid getLocalBounds() here. Live2D's custom display object can have its
+    // child bounds invalidated by that call, which is especially visible as a
+    // fully transparent model on WebKit/Safari. Use the model canvas metrics.
     model.scale.set(1);
-    const bounds=model.getLocalBounds?.();
-    const baseW=Math.max(bounds?.width||model.width||1,1);
-    const baseH=Math.max(bounds?.height||model.height||1,1);
-    const scale=Math.min((w*.91)/baseW,(h*.92)/baseH);
-    model.scale.set(scale);
     model.anchor?.set?.(.5,.5);
-    model.position?.set?.(w*.5,h*.50);
+    const internal=model.internalModel;
+    const baseW=Math.max(Number(internal?.width)||Number(internal?.originalWidth)||Number(model.width)||1,1);
+    const baseH=Math.max(Number(internal?.height)||Number(internal?.originalHeight)||Number(model.height)||1,1);
+    const scale=Math.min((w*.91)/baseW,(h*.90)/baseH);
+    model.scale.set(Math.max(scale,0.0001));
+    model.position?.set?.(w*.5,h*.49);
+    model.visible=true;
+    model.renderable=true;
+    model.alpha=1;
   }
 
   function focusAt(clientX,clientY){
@@ -186,21 +193,42 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       backgroundAlpha:0,
       antialias:true,
       preference:"webgl",
-      preferWebGLVersion:2,
       resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.1:1.5),
-      autoDensity:true
+      autoDensity:true,
+      autoStart:true
     });
+    if(app.ticker)app.ticker.maxFPS=window.innerWidth<640?30:45;
     if(PIXI.Ticker?.shared){
       PIXI.Ticker.shared.maxFPS=window.innerWidth<640?30:45;
+      PIXI.Ticker.shared.start?.();
     }
     stage.appendChild(app.canvas);
 
     model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
+    model.anchor?.set?.(.5,.5);
+    model.visible=true;
+    model.renderable=true;
+    model.alpha=1;
     app.stage.addChild(model);
     fit();
     observer=new ResizeObserver(fit);
     observer.observe(stage);
     applyState(currentState);
+
+    app.start?.();
+    await new Promise((resolve)=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    fit();
+    app.renderer.render(app.stage);
+
+    const internal=model.internalModel;
+    send(
+      "diagnostic",
+      diag+" · VIEW="+Math.round(stage.clientWidth)+"x"+Math.round(stage.clientHeight)+
+      " · MODEL="+Math.round(Number(internal?.width)||Number(model.width)||0)+"x"+
+      Math.round(Number(internal?.height)||Number(model.height)||0)+
+      " · SCALE="+Number(model.scale?.x||0).toFixed(4),
+    );
+
     loading?.remove();
     send("ready");
 
@@ -212,6 +240,13 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       const ticker=PIXI.Ticker?.shared;
       if(!ticker)return;
       if(document.hidden)ticker.stop();else ticker.start();
+      if(!document.hidden){
+        app?.start?.();
+        requestAnimationFrame(()=>{
+          fit();
+          if(app&&model)app.renderer.render(app.stage);
+        });
+      }
     });
   }catch(error){
     const base=error instanceof Error?error.message:String(error);
@@ -232,7 +267,7 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       const data = event.data as { source?: string; type?: string; error?: string } | undefined;
       if (!data || data.source !== "oni-ren-meet") return;
       if (data.type === "diagnostic") {
-        setRuntimeDiagnostic((data.error || "").slice(0, 180));
+        setRuntimeDiagnostic((data.error || "").slice(0, 220));
       }
       if (data.type === "ready") {
         setRuntime("ready");
