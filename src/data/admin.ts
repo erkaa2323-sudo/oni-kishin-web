@@ -15,6 +15,7 @@ import {
 } from "@/services/domains";
 import { listAuditEvents, recordAuditEvent } from "@/services/audit";
 import { reviewMemberAccount } from "@/data/member-auth";
+import { announceNexusMeet } from "@/lib/nexus-push-admin";
 
 /** Legacy Firebase (Firestore + Auth) is the live backend for this project. */
 export const ADMIN_BACKEND_CONNECTED = true;
@@ -110,6 +111,10 @@ export async function dispatchAdminAction(request:AdminActionRequest,actor:Admin
  case"meet.rotate_credentials":{const roomId=typeof data["room_id"]==="string"?data["room_id"]:"";const password=typeof data["room_password"]==="string"?data["room_password"]:"";if(!roomId||!password)return{ok:false,error:"ROOM ID болон нууц үг заавал шаардлагатай."};res=await meetService.setCredentials(targetId!,roomId,password);break}case"meet.registration_remove":res=await meetService.removeRegistration(targetId!);break;
  case"track.create":res=await musicService.create({...data,created_by:actor.uid,updated_by:actor.uid});break;case"track.update":res=await musicService.update(targetId!,{...data,updated_by:actor.uid});break;case"track.delete":res=await musicService.remove(targetId!);break;default:return{ok:false,error:NOT_IN_PHASE}}
  if(!res.ok){await recordAuditEvent({actorId:actor.uid,actorRole:actor.role,action:kind,target:targetId??undefined,severity:severityFor(kind),result:"failure",detail:"rejected_by_backend"});return{ok:false,error:res.error.message}}
+ if(kind==="meet.create"&&String(data["status"]??"draft")!=="draft"){
+   const push=await announceNexusMeet(typeof data["title"]==="string"?data["title"]:"ONI MEET").catch(()=>null);
+   if(!push?.ok)console.warn("[oni-nexus] meet created but push was not delivered",push&&"message" in push?push.message:"unknown");
+ }
  const audit=await recordAuditEvent({actorId:actor.uid,actorRole:actor.role,action:kind,target:targetId??(res.data&&typeof res.data==="object"&&"id" in res.data?String((res.data as {id:unknown}).id):undefined),severity:severityFor(kind),result:"success"});return{ok:true,auditEventId:audit.ok?audit.data.id:""};
 }
 
