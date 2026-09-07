@@ -20,14 +20,79 @@ jobs:
   deploy-rules:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      FIREBASE_PROJECT: oni-kishin-f59b4
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
 
-      - name: Deploy Firestore rules
-        run: npx --yes firebase-tools@15.29.0 deploy --only firestore:rules --project oni-kishin-f59b4 --non-interactive
+      - name: Create Firebase Rules ruleset
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          python - <<'PY' > /tmp/ruleset.json
+          import json
+          from pathlib import Path
+          print(json.dumps({
+              "source": {
+                  "files": [{
+                      "name": "firestore.rules",
+                      "content": Path("firestore.rules").read_text(encoding="utf-8"),
+                  }]
+              }
+          }))
+          PY
+
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data-binary @/tmp/ruleset.json \
+            "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/rulesets" \
+            > /tmp/ruleset-response.json
+
+          RULESET_NAME="$(python - <<'PY'
+          import json
+          print(json.load(open('/tmp/ruleset-response.json', encoding='utf-8'))['name'])
+          PY
+          )"
+          echo "RULESET_NAME=${RULESET_NAME}" >> "$GITHUB_ENV"
+
+      - name: Release Firestore ruleset
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          python - <<'PY' > /tmp/release.json
+          import json, os
+          project = os.environ['FIREBASE_PROJECT']
+          print(json.dumps({
+              "release": {
+                  "name": f"projects/{project}/releases/cloud.firestore",
+                  "rulesetName": os.environ['RULESET_NAME'],
+              },
+              "updateMask": "rulesetName",
+          }))
+          PY
+
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -X PATCH \
+            --data-binary @/tmp/release.json \
+            "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/releases/cloud.firestore" \
+            > /tmp/release-response.json
+
+          python - <<'PY'
+          import json
+          response = json.load(open('/tmp/release-response.json', encoding='utf-8'))
+          print('Released:', response.get('name'))
+          print('Ruleset:', response.get('rulesetName'))
+          PY
