@@ -3,7 +3,7 @@
  *
  * Music metadata is read live from the legacy ONI Firestore `music`
  * collection. Nothing is fabricated: an empty collection renders an empty
- * playlist. The ONI Brain reply below is an explicit offline shell.
+ * playlist. The Oni Shizuki reply below is an explicit offline shell.
  */
 
 export type OniTrack = {
@@ -52,7 +52,7 @@ export async function fetchTracks(): Promise<TrackLoad> {
   };
 }
 
-/** Quick prompts offered by the ONI Brain assistant shell. */
+/** Quick prompts offered by the Oni Shizuki assistant shell. */
 export const ONI_SUGGESTIONS: string[] = [
   "Кланы тухай товч танилцуул",
   "Гаражийн машинуудыг жагсаа",
@@ -77,7 +77,7 @@ const CREDENTIAL_PATTERN =
 export const CREDENTIAL_REFUSAL =
   "Уулзалтын ROOM ID болон нууц үгийг би хэзээ ч дамжуулахгүй. Эдгээр нь хамгаалагдсан бөгөөд зөвхөн УУЛЗАЛТ хэсгийн хамгаалалттай хандалтаар нээгдэнэ.";
 
-/** Defense-in-depth credential guard, shared with the ONI Brain router. */
+/** Defense-in-depth credential guard, shared with the Oni Shizuki router. */
 export function isCredentialRequest(input: string): boolean {
   return CREDENTIAL_PATTERN.test(input);
 }
@@ -87,7 +87,7 @@ export function draftOniReply(input: string): string {
   const q = input.trim();
   if (!q) return "Асуултаа бичнэ үү.";
   if (CREDENTIAL_PATTERN.test(q)) return CREDENTIAL_REFUSAL;
-  return `ONI BRAIN холболт хараахан идэвхжээгүй байна. Таны асуулт бүртгэгдлээ: «${q}». Backend холбогдмогц бодит хариу энд гарна.`;
+  return `Oni Shizuki холболт түр идэвхгүй байна. Таны асуулт бүртгэгдлээ: «${q}». Холболт сэргэмэгц бодит хариу энд гарна.`;
 }
 
 export function formatTime(sec: number): string {
