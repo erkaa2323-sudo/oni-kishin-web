@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - src/**
+      - scripts/prepare-live2d-core.mjs
       - tsconfig.json
       - vite.config.ts
       - package.json

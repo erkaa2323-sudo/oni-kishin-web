@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { inflateRawSync } from "node:zlib";
 
@@ -7,14 +7,34 @@ const SDK_VERSION = "5-r.5";
 const ARCHIVE_URL = `https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-${SDK_VERSION}.zip`;
 const ARCHIVE_SHA256 = "67064a7fb1812cf502f5c4a03bfe12cc638c75a621bb4acf06bb28763df06ba0";
 const ROOT = `CubismSdkForWeb-${SDK_VERSION}`;
-const REN_SOURCE = resolve("src/components/oni/RenMeetHost.tsx");
-const HOSTED_CORE_URL = "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js";
-const LOCAL_CORE_URL = "/vendor/live2d/live2dcubismcore.js";
 
-const OUTPUTS = [
+const CUBISM_OUTPUTS = [
   [`${ROOT}/Core/live2dcubismcore.js`, "public/vendor/live2d/live2dcubismcore.js"],
   [`${ROOT}/Core/LICENSE.md`, "public/vendor/live2d/LICENSE.md"],
   [`${ROOT}/Core/RedistributableFiles.txt`, "public/vendor/live2d/RedistributableFiles.txt"],
+];
+
+const CDN_OUTPUTS = [
+  {
+    name: "PixiJS 6.5.10",
+    url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js",
+    destination: "public/vendor/live2d/pixi.min.js",
+  },
+  {
+    name: "pixi-live2d-display 0.4.0",
+    url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js",
+    destination: "public/vendor/live2d/cubism4.min.js",
+  },
+  {
+    name: "PixiJS license",
+    url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/LICENSE",
+    destination: "public/vendor/live2d/licenses/PIXI-LICENSE",
+  },
+  {
+    name: "pixi-live2d-display license",
+    url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/LICENSE",
+    destination: "public/vendor/live2d/licenses/PIXI-LIVE2D-DISPLAY-LICENSE",
+  },
 ];
 
 function findEocd(buffer) {
@@ -72,45 +92,65 @@ function extractZipEntry(buffer, wantedName) {
   throw new Error(`ZIP entry not found: ${wantedName}`);
 }
 
-async function pinRenToLocalCore() {
-  const source = await readFile(REN_SOURCE, "utf8");
-  if (source.includes(LOCAL_CORE_URL)) {
-    console.log("[live2d] Ren already points to local Cubism Core");
-    return;
-  }
-  if (!source.includes(HOSTED_CORE_URL)) {
-    throw new Error("[live2d] Ren Core URL marker not found");
+async function fetchBuffer(url, timeoutMs) {
+  const response = await fetch(url, {
+    redirect: "follow",
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function writeOutput(destination, data) {
+  const path = resolve(destination);
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, data);
+  return createHash("sha256").update(data).digest("hex").slice(0, 12);
+}
+
+async function prepareCubismCore() {
+  console.log(`[live2d] preparing official Cubism SDK ${SDK_VERSION}`);
+  const archive = await fetchBuffer(ARCHIVE_URL, 45_000);
+  const actualSha256 = createHash("sha256").update(archive).digest("hex");
+  if (actualSha256 !== ARCHIVE_SHA256) {
+    throw new Error(`Cubism SDK checksum mismatch: ${actualSha256}`);
   }
 
-  await writeFile(REN_SOURCE, source.replaceAll(HOSTED_CORE_URL, LOCAL_CORE_URL), "utf8");
-  console.log(`[live2d] Ren compile target pinned to ${LOCAL_CORE_URL}`);
+  for (const [entry, destination] of CUBISM_OUTPUTS) {
+    const data = extractZipEntry(archive, entry);
+    const digest = await writeOutput(destination, data);
+    console.log(`[live2d] prepared ${destination} (${data.length} bytes, sha256:${digest})`);
+  }
+}
+
+async function prepareCdnRuntime({ name, url, destination }) {
+  const data = await fetchBuffer(url, 18_000);
+  const digest = await writeOutput(destination, data);
+  console.log(`[live2d] prepared ${name} -> ${destination} (sha256:${digest})`);
 }
 
 async function main() {
-  console.log(`[live2d] downloading official Cubism SDK ${SDK_VERSION}`);
-  const response = await fetch(ARCHIVE_URL, { redirect: "follow" });
-  if (!response.ok) {
-    throw new Error(`[live2d] Cubism SDK download failed: HTTP ${response.status}`);
+  const tasks = [
+    ["Cubism Core", prepareCubismCore],
+    ...CDN_OUTPUTS.map((asset) => [asset.name, () => prepareCdnRuntime(asset)]),
+  ];
+
+  let failed = 0;
+  for (const [name, run] of tasks) {
+    try {
+      await run();
+    } catch (error) {
+      failed += 1;
+      console.warn(`[live2d] ${name} local cache unavailable; runtime CDN fallback remains enabled.`);
+      console.warn(error instanceof Error ? error.message : error);
+    }
   }
 
-  const archive = Buffer.from(await response.arrayBuffer());
-  const actualSha256 = createHash("sha256").update(archive).digest("hex");
-  if (actualSha256 !== ARCHIVE_SHA256) {
-    throw new Error(`[live2d] Cubism SDK checksum mismatch: ${actualSha256}`);
+  if (failed === 0) {
+    console.log("[live2d] local-first runtime cache ready");
+  } else {
+    console.log(`[live2d] completed with ${failed} fallback asset(s); build may continue safely`);
   }
-
-  for (const [entry, destination] of OUTPUTS) {
-    const data = extractZipEntry(archive, entry);
-    const path = resolve(destination);
-    await mkdir(dirname(path), { recursive: true });
-    await writeFile(path, data);
-    console.log(`[live2d] prepared ${destination} (${data.length} bytes)`);
-  }
-
-  await pinRenToLocalCore();
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main();

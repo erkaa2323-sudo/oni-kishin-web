@@ -4,9 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - pages/ren-meet.html
+      - pages/kei-meet.html
+      - src/components/oni/KeiMeetHost.tsx
       - src/components/oni/RenMeetHost.tsx
-      - .github/workflows/github-pages-ren.yml
+      - scripts/prepare-live2d-core.mjs
+      - .github/workflows/github-pages-kei.yml
   workflow_dispatch:
 
 permissions:
@@ -29,12 +31,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare local-first Live2D runtime
+        run: node scripts/prepare-live2d-core.mjs
+
       - name: Build Vercel-independent Kei page
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p _site/meet
-          cp pages/ren-meet.html _site/meet/index.html
+          cp pages/kei-meet.html _site/meet/index.html
+          if [ -d public/vendor ]; then
+            cp -R public/vendor _site/vendor
+          fi
           touch _site/.nojekyll
           cat > _site/index.html <<'HTML'
           <!doctype html>
