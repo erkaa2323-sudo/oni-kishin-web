@@ -4,6 +4,7 @@ import garageBay from "@/assets/garage/garage-bay.jpg";
 import {
   BUILD_STAGE_LABEL,
   VEHICLE_CATEGORIES,
+  fallbackGarageArt,
   fetchVehicles,
   type Vehicle,
   type VehicleCategoryId,
@@ -48,6 +49,14 @@ export function OniGarageStage() {
     setFilter(f);
     const next = f === "all" ? vehicles : vehicles.filter((v) => v.categoryId === f);
     if (next.length && !next.some((v) => v.id === activeId)) setActiveId(next[0]!.id);
+  };
+
+  const recoverImage = (vehicle: Vehicle) => {
+    const fallback = fallbackGarageArt(`${vehicle.id}:${vehicle.name}`);
+    if (vehicle.image === fallback) return;
+    setVehicles((current) =>
+      current.map((item) => (item.id === vehicle.id ? { ...item, image: fallback } : item)),
+    );
   };
 
   return (
@@ -152,7 +161,6 @@ export function OniGarageStage() {
               </div>
             ) : null}
 
-            {/* showcase */}
             <div
               className={`relative mt-2 flex-1 ${loadState === "ready" && vehicles.length ? "flex" : "hidden"} flex-col justify-center gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-center lg:gap-10`}
             >
@@ -175,6 +183,7 @@ export function OniGarageStage() {
                             width={1536}
                             height={1024}
                             decoding="async"
+                            onError={() => recoverImage(active)}
                             className="w-full animate-breathe object-contain drop-shadow-[0_40px_60px_rgba(0,0,0,0.75)]"
                           />
                           <div
@@ -235,7 +244,6 @@ export function OniGarageStage() {
                 ) : null}
               </div>
 
-              {/* selector: horizontal on mobile, vertical on desktop */}
               <div className="min-w-0">
                 <span className="hud-label block">ЦУГЛУУЛГА</span>
                 <ul
@@ -266,6 +274,7 @@ export function OniGarageStage() {
                                 height={1024}
                                 loading="lazy"
                                 decoding="async"
+                                onError={() => recoverImage(v)}
                                 className="h-full w-full object-cover"
                               />
                             ) : (
