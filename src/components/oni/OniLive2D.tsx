@@ -101,6 +101,19 @@ const STATE_MOTIONS: Partial<Record<OniState, Array<{ group: string; index: numb
   ],
 };
 
+const BLINK_INTERVALS: Record<OniState, [number, number]> = {
+  idle: [3000, 5600],
+  listening: [2600, 4600],
+  thinking: [3600, 6200],
+  speaking: [2800, 5000],
+  happy: [2500, 4400],
+  excited: [1900, 3600],
+  concerned: [3900, 6500],
+  serious: [4200, 7000],
+  surprised: [2200, 3900],
+  music: [2400, 4300],
+};
+
 function loadScript(src: string) {
   const cached = scriptLoads.get(src);
   if (cached) return cached;
@@ -146,6 +159,11 @@ function setMouth(model: Model, value: number) {
   setParam(model, "PARAM_MOUTH_OPEN_Y", value);
 }
 
+function setEyes(model: Model, value: number) {
+  setParam(model, "PARAM_EYE_L_OPEN", value);
+  setParam(model, "PARAM_EYE_R_OPEN", value);
+}
+
 function hashState(state: OniState) {
   return state.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
@@ -160,6 +178,27 @@ function playState(model: Model, state: OniState, variation = 0) {
   void model.motion?.(motion.group, motion.index);
 }
 
+function stateHeadBias(state: OniState) {
+  switch (state) {
+    case "thinking":
+      return { x: 3.2, y: 2.3, intensity: 0.7 };
+    case "concerned":
+      return { x: -2.3, y: -1.6, intensity: 0.55 };
+    case "serious":
+      return { x: 0, y: -1.4, intensity: 0.45 };
+    case "happy":
+      return { x: 2.2, y: 0.9, intensity: 0.8 };
+    case "excited":
+      return { x: 0, y: 1.4, intensity: 1 };
+    case "surprised":
+      return { x: -1.2, y: 2.5, intensity: 0.9 };
+    case "listening":
+      return { x: -1.6, y: 0.8, intensity: 0.72 };
+    default:
+      return { x: 0, y: 0, intensity: 0.6 };
+  }
+}
+
 export function OniLive2D({ state, glow, speaking = false }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef<Model | null>(null);
@@ -167,6 +206,8 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
   const stateRef = useRef<OniState>(state);
   const speakingRef = useRef(speaking);
   const lastGestureRef = useRef<string>("");
+  const gazeTargetRef = useRef({ x: 0, y: 0, active: false });
+  const gazeCurrentRef = useRef({ x: 0, y: 0 });
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -267,9 +308,47 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
     playState(model, state, hashState(state) + Math.floor(performance.now() / 1000));
   }, [state, ready]);
 
-  // Micro-behavior layer: breathing, gentle head/body sway and gaze drift.
-  // These parameters are deliberately subtle so they do not fight Shizuku's
-  // authored motions and physics.
+  // Track the user's pointer/touch position relative to the character viewport.
+  // We listen on window so the Live2D layer can stay pointer-events:none and never
+  // block the chat UI below it.
+  useEffect(() => {
+    if (!ready) return;
+
+    const updateTarget = (clientX: number, clientY: number) => {
+      const host = hostRef.current;
+      if (!host) return;
+      const rect = host.getBoundingClientRect();
+      const x = ((clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1;
+      const y = ((clientY - rect.top) / Math.max(rect.height, 1)) * 2 - 1;
+      gazeTargetRef.current = {
+        x: Math.max(-1, Math.min(1, x)),
+        y: Math.max(-1, Math.min(1, y)),
+        active: clientX >= rect.left - rect.width * 0.35 && clientX <= rect.right + rect.width * 0.35,
+      };
+    };
+
+    const onPointer = (event: PointerEvent) => updateTarget(event.clientX, event.clientY);
+    const onTouch = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (touch) updateTarget(touch.clientX, touch.clientY);
+    };
+    const reset = () => {
+      gazeTargetRef.current.active = false;
+    };
+
+    window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    window.addEventListener("blur", reset);
+
+    return () => {
+      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("blur", reset);
+    };
+  }, [ready]);
+
+  // Micro-behavior layer: breathing, state-biased head/body movement, and a
+  // smoothed gaze target that follows the user when nearby without snapping.
   useEffect(() => {
     if (!ready) return;
     let frame = 0;
@@ -279,19 +358,29 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
       if (!model) return;
 
       const now = performance.now();
+      const currentState = stateRef.current;
+      const bias = stateHeadBias(currentState);
+      const target = gazeTargetRef.current;
+      const fallbackX = Math.sin(now / 1800 + 0.35) * 0.22;
+      const fallbackY = Math.sin(now / 2400 + 1.1) * 0.12;
+      const targetX = target.active ? target.x * 0.72 : fallbackX;
+      const targetY = target.active ? -target.y * 0.5 : fallbackY;
+
+      gazeCurrentRef.current.x += (targetX - gazeCurrentRef.current.x) * 0.055;
+      gazeCurrentRef.current.y += (targetY - gazeCurrentRef.current.y) * 0.055;
+
       const breath = (Math.sin(now / 1150) + 1) * 0.5;
-      const headX = Math.sin(now / 2100) * (speakingRef.current ? 4.2 : 2.4);
-      const headY = Math.sin(now / 2750 + 0.8) * 1.7;
-      const bodyX = Math.sin(now / 3200 + 1.4) * 1.2;
-      const eyeX = Math.sin(now / 1800 + 0.35) * 0.22;
-      const eyeY = Math.sin(now / 2400 + 1.1) * 0.12;
+      const speakingBoost = speakingRef.current ? 1.45 : 1;
+      const headX = bias.x + Math.sin(now / 2100) * 2.4 * bias.intensity * speakingBoost + gazeCurrentRef.current.x * 7.5;
+      const headY = bias.y + Math.sin(now / 2750 + 0.8) * 1.7 * bias.intensity + gazeCurrentRef.current.y * 4.2;
+      const bodyX = Math.sin(now / 3200 + 1.4) * 1.2 * bias.intensity + gazeCurrentRef.current.x * 1.2;
 
       setParam(model, "PARAM_BREATH", breath);
       setParam(model, "PARAM_ANGLE_X", headX);
       setParam(model, "PARAM_ANGLE_Y", headY);
       setParam(model, "PARAM_BODY_ANGLE_X", bodyX);
-      setParam(model, "PARAM_EYE_BALL_X", eyeX);
-      setParam(model, "PARAM_EYE_BALL_Y", eyeY);
+      setParam(model, "PARAM_EYE_BALL_X", gazeCurrentRef.current.x);
+      setParam(model, "PARAM_EYE_BALL_Y", gazeCurrentRef.current.y);
 
       frame = window.requestAnimationFrame(tick);
     };
@@ -299,6 +388,55 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
   }, [ready]);
+
+  // Emotion-aware blink layer. Concerned/serious states blink more slowly,
+  // excited/surprised states blink a little faster. Double-blinks happen rarely
+  // to avoid a robotic fixed rhythm.
+  useEffect(() => {
+    if (!ready) return;
+    let blinkTimeout = 0;
+    let phaseTimeout = 0;
+    let cycle = 0;
+
+    const blinkOnce = (doubleBlink = false) => {
+      const model = modelRef.current;
+      if (!model) return;
+      setEyes(model, 0.15);
+      phaseTimeout = window.setTimeout(() => {
+        const current = modelRef.current;
+        if (!current) return;
+        setEyes(current, 1);
+        if (doubleBlink) {
+          phaseTimeout = window.setTimeout(() => {
+            const next = modelRef.current;
+            if (!next) return;
+            setEyes(next, 0.12);
+            phaseTimeout = window.setTimeout(() => {
+              if (modelRef.current) setEyes(modelRef.current, 1);
+            }, 95);
+          }, 115);
+        }
+      }, 105);
+    };
+
+    const schedule = () => {
+      const [min, max] = BLINK_INTERVALS[stateRef.current];
+      const spread = Math.max(1, max - min);
+      const delay = min + ((hashState(stateRef.current) * 53 + cycle * 977) % spread);
+      blinkTimeout = window.setTimeout(() => {
+        blinkOnce(cycle % 7 === 5 && stateRef.current !== "serious");
+        cycle += 1;
+        schedule();
+      }, delay);
+    };
+
+    schedule();
+    return () => {
+      window.clearTimeout(blinkTimeout);
+      window.clearTimeout(phaseTimeout);
+      if (modelRef.current) setEyes(modelRef.current, 1);
+    };
+  }, [ready, state]);
 
   // Speaking layer: non-mechanical lip-sync plus periodic gestures. The timing
   // varies so the same motion is not repeated like a fixed animation loop.
@@ -319,8 +457,9 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
       const now = performance.now();
       const syllable = Math.abs(Math.sin(now / 92));
       const secondary = Math.abs(Math.sin(now / 173 + 0.9));
-      const mouth = 0.08 + syllable * 0.54 + secondary * 0.22;
-      setMouth(current, Math.min(0.9, mouth));
+      const phrasePause = Math.max(0.22, Math.abs(Math.sin(now / 610 + 0.4)));
+      const mouth = (0.06 + syllable * 0.5 + secondary * 0.2) * phrasePause;
+      setMouth(current, Math.min(0.88, mouth));
       frame = window.requestAnimationFrame(mouthTick);
     };
 
