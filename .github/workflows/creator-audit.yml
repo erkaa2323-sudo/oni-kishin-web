@@ -1,0 +1,31 @@
+name: Creator Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/components/oni/OniCreatorStudio.tsx
+      - src/components/oni/OniCreatorReviewDock.tsx
+      - src/components/oni/OniAdminPage.tsx
+      - src/data/creator-publish.ts
+      - src/data/gallery.ts
+      - src/lib/oni-creator.functions.ts
+      - .github/workflows/creator-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Production build
+        run: bun run build
