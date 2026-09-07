@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { ONI_STATE_VISUALS, type OniState } from "@/lib/oni-emotion";
-import { OniWebRig } from "./OniWebRig";
+import { OniLive2D } from "./OniLive2D";
 
 const STATES: OniState[] = [
   "idle",
@@ -40,9 +40,8 @@ function sameTargets(current: RigTarget[], next: RigTarget[]) {
 }
 
 /**
- * Migration bridge for the existing OniAiChamber character slots.
- * It watches only each slot's state class, avoiding body-wide mutation loops
- * and preserving one stable OniWebRig instance per slot.
+ * Bridges the existing ONI AI character slots to the real Live2D renderer.
+ * The old WebRig remains inside OniLive2D as a graceful fallback if CDN/WebGL fails.
  */
 export function OniRigBridge() {
   const [targets, setTargets] = useState<RigTarget[]>([]);
@@ -90,13 +89,13 @@ export function OniRigBridge() {
       {targets.map(({ element, state }, index) => {
         const visual = ONI_STATE_VISUALS[state];
         return createPortal(
-          <OniWebRig
+          <OniLive2D
             state={state}
             glow={visual.glow}
             speaking={state === "speaking"}
           />,
           element,
-          `oni-rig-${index}`,
+          `oni-live2d-${index}`,
         );
       })}
     </>
