@@ -5,8 +5,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email == "erkaa130@gmail.com"
-        && request.auth.token.firebase.sign_in_provider == "password";
+        && request.auth.token.email == "erkaa130@gmail.com";
     }
 
     function isApprovedMember() {
