@@ -1,0 +1,40 @@
+    match /progressionProfiles/{uid} {
+      allow read: if true;
+      allow create: if isApprovedMember()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.xp == 0
+        && request.resource.data.coin == 0
+        && request.resource.data.lifetimeXp == 0
+        && request.resource.data.seasonXp == 0
+        && request.resource.data.prestige == 0
+        && request.resource.data.unlocked.size() == 0;
+      allow update: if isAdmin() || (isApprovedMember()
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname
+        && request.resource.data.xp == resource.data.xp
+        && request.resource.data.lifetimeXp == resource.data.lifetimeXp
+        && request.resource.data.seasonXp == resource.data.seasonXp
+        && request.resource.data.prestige == resource.data.prestige
+        && request.resource.data.coin >= 0
+        && request.resource.data.coin <= resource.data.coin
+        && request.resource.data.unlocked.size() >= resource.data.unlocked.size()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "unlocked", "equipped", "updatedAt"]));
+      allow delete: if isAdmin();
+    }
+
+    match /progressionLedger/{ledgerId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /progressionMissions/{missionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /progressionAchievements/{achievementId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
