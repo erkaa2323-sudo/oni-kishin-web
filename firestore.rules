@@ -23,7 +23,6 @@ service cloud.firestore {
     function optionalTimestamp(data, key) { return !data.keys().hasAny([key]) || data[key] is timestamp; }
     function optionalDateLike(data, key) { return !data.keys().hasAny([key]) || data[key] is timestamp || data[key] is string || data[key] is int; }
 
-    // Meet security helpers. New writes require server-comparable timestamp fields.
     function currentMeetExists() {
       return exists(/databases/$(database)/documents/meets/current);
     }
@@ -50,14 +49,21 @@ service cloud.firestore {
     }
 
     function validMeetSlotId(slotId) {
-      let meet = currentMeet();
-      let maxPlayers = meet.get("maxPlayers", 20);
+      let maxPlayers = currentMeet().get("maxPlayers", 20);
       return maxPlayers is int
-        && maxPlayers >= 1
-        && maxPlayers <= 20
-        && slotId.matches("^current_[0-9]{2}$")
-        && int(slotId.split("_")[1]) >= 1
-        && int(slotId.split("_")[1]) <= maxPlayers;
+        && maxPlayers >= 1 && maxPlayers <= 20
+        && (
+          (slotId == "current_01" && maxPlayers >= 1) || (slotId == "current_02" && maxPlayers >= 2) ||
+          (slotId == "current_03" && maxPlayers >= 3) || (slotId == "current_04" && maxPlayers >= 4) ||
+          (slotId == "current_05" && maxPlayers >= 5) || (slotId == "current_06" && maxPlayers >= 6) ||
+          (slotId == "current_07" && maxPlayers >= 7) || (slotId == "current_08" && maxPlayers >= 8) ||
+          (slotId == "current_09" && maxPlayers >= 9) || (slotId == "current_10" && maxPlayers >= 10) ||
+          (slotId == "current_11" && maxPlayers >= 11) || (slotId == "current_12" && maxPlayers >= 12) ||
+          (slotId == "current_13" && maxPlayers >= 13) || (slotId == "current_14" && maxPlayers >= 14) ||
+          (slotId == "current_15" && maxPlayers >= 15) || (slotId == "current_16" && maxPlayers >= 16) ||
+          (slotId == "current_17" && maxPlayers >= 17) || (slotId == "current_18" && maxPlayers >= 18) ||
+          (slotId == "current_19" && maxPlayers >= 19) || (slotId == "current_20" && maxPlayers >= 20)
+        );
     }
 
     match /members/{memberId} {
