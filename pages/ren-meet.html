@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#050506" />
-  <title>ONI HUB · Ren Foster Meet Host</title>
+  <title>ONI HUB · Gantzert + Felixander Meet Host</title>
   <style>
     :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050506;color:#f5f5f7}body{min-height:100svh;overflow:hidden}
@@ -12,94 +12,64 @@
     .shell{position:relative;min-height:100svh;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);display:grid;grid-template-rows:auto 1fr auto;gap:10px}
     .top{display:flex;align-items:center;justify-content:space-between;padding:15px 12px;border-bottom:1px solid rgba(255,45,65,.28);letter-spacing:.22em;font-size:11px;font-weight:700}.brand{font-size:17px;letter-spacing:.23em}.sub{color:rgba(255,255,255,.42);font-size:9px;margin-top:4px}.status{color:#8ef0ba}.status.bad{color:#ff4458}
     .frame{position:relative;min-height:0;border:1px solid rgba(255,255,255,.12);overflow:hidden;background:rgba(0,0,0,.22);box-shadow:0 0 50px rgba(120,0,18,.12)}
-    #stage{position:absolute;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}
-    .label{position:absolute;left:16px;top:14px;z-index:4;font-size:10px;font-weight:700;letter-spacing:.23em;color:rgba(255,255,255,.58)}
+    #stage{position:absolute;inset:34px 0 70px}canvas{display:block;width:100%;height:100%;touch-action:none}
+    .label{position:absolute;left:16px;top:14px;z-index:4;font-size:10px;font-weight:700;letter-spacing:.19em;color:rgba(255,255,255,.58)}
     #diag{position:absolute;left:16px;right:16px;bottom:14px;z-index:4;padding:10px 12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.58);font-size:9px;line-height:1.5;letter-spacing:.08em;color:rgba(255,255,255,.52);backdrop-filter:blur(14px)}
     #loading{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.44)}
     .foot{padding:11px 12px;color:rgba(255,255,255,.45);font-size:9px;line-height:1.5;letter-spacing:.11em;text-align:center}
     @media(min-width:800px){.shell{max-width:920px;margin:auto}.frame{min-height:720px}.brand{font-size:20px}}
   </style>
-  <script src="../vendor/live2d/live2dcubismcore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js"></script>
 </head>
 <body>
   <main class="shell">
     <header class="top"><div><div class="brand">ONI HUB</div><div class="sub">ONI AND KISHIN · GITHUB HOST</div></div><div id="status" class="status">SYNC</div></header>
     <section class="frame">
-      <div class="label">REN FOSTER / MEET HOST</div>
+      <div class="label">GANTZERT + FELIXANDER / MEET HOST</div>
       <div id="stage"></div>
-      <div id="loading">REN / CORE 6 · INITIALIZING</div>
-      <div id="diag">GitHub-hosted Live2D runtime · Vercel required: NO</div>
+      <div id="loading">SUMMONING SWORD + DRAGON HOST…</div>
+      <div id="diag">Cubism2 stable runtime · Vercel required: NO</div>
     </section>
-    <footer class="foot">ONI MEET · Vercel-ээс тусдаа GitHub Pages runtime</footer>
+    <footer class="foot">ONI MEET · Gantzert swordsman + Felixander flying dragon</footer>
   </main>
-  <script type="module">
-    import * as PIXI from "https://cdn.jsdelivr.net/npm/pixi.js@8.13.2/+esm";
-    import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-live2d@0.2.0/+esm";
+  <script>
+    (async function(){
+      const MODEL_URL="https://cdn.jsdelivr.net/gh/zenghongtu/live2d-model-assets@e8d97080d37a31d2813a56caa6776ae722c4b489/assets/moc/Gantzert_Felixander/Gantzert_Felixander.model.json";
+      const stage=document.getElementById("stage"),status=document.getElementById("status"),loading=document.getElementById("loading"),diag=document.getElementById("diag");
+      let app=null,model=null,observer=null,baseW=1,baseH=1;
+      const setDiag=(text)=>{diag.textContent=text};
+      try{
+        if(!window.PIXI?.Application)throw new Error("PixiJS 6 unavailable");
+        if(!window.Live2D)throw new Error("Cubism2 Core unavailable");
+        const Live2DModel=window.PIXI?.live2d?.Live2DModel;
+        if(!Live2DModel)throw new Error("pixi-live2d-display unavailable");
 
-    const MODEL_URL="https://raw.githubusercontent.com/Live2D/CubismWebSamples/b1de66b0b1f1cb881d95fb6158622aeb6a2827bd/Samples/Resources/Ren/Ren.model3.json";
-    const stageEl=document.getElementById("stage");
-    const status=document.getElementById("status");
-    const loading=document.getElementById("loading");
-    const diag=document.getElementById("diag");
-    let renderer=null,root=null,model=null,observer=null,renderTicker=null;
+        const canvas=document.createElement("canvas");
+        stage.replaceChildren(canvas);
+        app=new PIXI.Application({view:canvas,transparent:true,antialias:true,autoStart:true,resolution:Math.min(devicePixelRatio||1,1.35),autoDensity:true});
+        model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
+        model.anchor.set(.5,.5);model.scale.set(1);
+        baseW=Math.max(model.width,1);baseH=Math.max(model.height,1);
+        app.stage.addChild(model);
 
-    function setDiag(text){diag.textContent=text}
-    function renderNow(){if(renderer&&root)renderer.render(root)}
-    function fit(){
-      if(!renderer||!root||!model)return;
-      const w=Math.max(stageEl.clientWidth,1),h=Math.max(stageEl.clientHeight,1);
-      renderer.resize(w,h);
-      model.anchor?.set?.(.5,.5);
-      const scale=window.innerWidth<640?Math.max(.115,Math.min(.22,h/4200)):Math.max(.16,Math.min(.30,h/3300));
-      model.scale.set(scale);
-      model.position.set(w*.5,h*.54);
-      model.visible=true;model.renderable=true;model.alpha=1;
-      renderNow();
-      setDiag(`ONLINE · DIRECT WEBGL · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · CORE=${String(window.Live2DCubismCore?.Version?.csmGetVersion?.() ?? "?")}`);
-    }
-
-    try{
-      if(!window.Live2DCubismCore)throw new Error("Cubism Core unavailable");
-      if(!PIXI.WebGLRenderer)throw new Error("Pixi WebGLRenderer unavailable");
-      window.Live2DCubismCore.Memory?.initializeAmountOfMemory?.(128*1024*1024);
-      Live2DModel.registerTicker?.(PIXI.Ticker);
-
-      const w=Math.max(stageEl.clientWidth,1),h=Math.max(stageEl.clientHeight,1);
-      renderer=new PIXI.WebGLRenderer();
-      await renderer.init({
-        width:w,
-        height:h,
-        backgroundAlpha:0,
-        antialias:true,
-        resolution:Math.min(devicePixelRatio||1,1.35),
-        autoDensity:true,
-        powerPreference:"high-performance"
-      });
-      root=new PIXI.Container();
-      stageEl.appendChild(renderer.canvas);
-
-      model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
-      root.addChild(model);
-      fit();
-      observer=new ResizeObserver(fit);observer.observe(stageEl);
-
-      renderTicker=PIXI.Ticker.shared;
-      renderTicker.maxFPS=window.innerWidth<640?30:45;
-      renderTicker.add(renderNow);
-      renderTicker.start();
-
-      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-      fit();
-      try{model.expression?.("exp_01");model.motion?.("Idle",0)}catch{}
-      loading.remove();status.textContent="ONLINE";
-      stageEl.addEventListener("pointerdown",()=>{try{model.motion?.("TapBody",0);model.expression?.("exp_02")}catch{}},{passive:true});
-      document.addEventListener("visibilitychange",()=>{
-        if(document.hidden){renderTicker?.stop?.();return;}
-        renderTicker?.start?.();requestAnimationFrame(fit);
-      });
-    }catch(error){
-      console.error(error);status.textContent="OFFLINE";status.classList.add("bad");loading.textContent="REN LIVE2D OFFLINE";setDiag(error instanceof Error?error.message:String(error));
-    }
+        const fit=()=>{
+          const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
+          app.renderer.resize(w,h);
+          const scale=Math.min((w*.94)/baseW,(h*.92)/baseH);
+          model.scale.set(scale);model.x=w*.5;model.y=h*.51;
+          setDiag(`ONLINE · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · PIXI=6.5.10 · CUBISM2`);
+        };
+        fit();observer=new ResizeObserver(fit);observer.observe(stage);
+        try{model.motion("idle",0)}catch{}
+        loading.remove();status.textContent="ONLINE";
+        setInterval(()=>{try{model.motion("idle",0)}catch{}},9000);
+        document.addEventListener("visibilitychange",()=>{if(!document.hidden)requestAnimationFrame(fit)});
+      }catch(error){
+        console.error(error);status.textContent="OFFLINE";status.classList.add("bad");loading.textContent="HOST VISUAL OFFLINE";setDiag(error instanceof Error?error.message:String(error));
+      }
+    })();
   </script>
 </body>
 </html>

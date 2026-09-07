@@ -1,4 +1,4 @@
-name: GitHub Pages Ren Host
+name: GitHub Pages Gantzert Host
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
     paths:
       - pages/ren-meet.html
       - src/components/oni/RenMeetHost.tsx
-      - scripts/prepare-live2d-core.mjs
       - .github/workflows/github-pages-ren.yml
   workflow_dispatch:
 
@@ -16,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: github-pages-ren
+  group: github-pages-meet-host
   cancel-in-progress: true
 
 jobs:
@@ -30,27 +29,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Prepare official Cubism R5 Core
-        run: node scripts/prepare-live2d-core.mjs
-
-      - name: Build Vercel-independent Ren page
+      - name: Build Vercel-independent Gantzert page
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p _site/meet _site/vendor/live2d
+          mkdir -p _site/meet
           cp pages/ren-meet.html _site/meet/index.html
-          cp public/vendor/live2d/live2dcubismcore.js _site/vendor/live2d/live2dcubismcore.js
-          cp public/vendor/live2d/LICENSE.md _site/vendor/live2d/LICENSE.md
-          cp public/vendor/live2d/RedistributableFiles.txt _site/vendor/live2d/RedistributableFiles.txt
           touch _site/.nojekyll
           cat > _site/index.html <<'HTML'
           <!doctype html>
-          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / REN FOSTER</a></body></html>
+          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / GANTZERT + FELIXANDER</a></body></html>
           HTML
 
       - name: Configure GitHub Pages

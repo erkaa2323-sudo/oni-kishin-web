@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "node scripts/prepare-live2d-core.mjs && vite build",
+    "build": "vite build",
     "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
