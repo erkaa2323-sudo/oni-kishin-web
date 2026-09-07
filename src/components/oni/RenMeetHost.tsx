@@ -1,2 +1,2 @@
-// Compatibility export for older imports. New Meet host implementation lives in KeiMeetHost.tsx.
-export { KeiMeetHost as RenMeetHost } from "./KeiMeetHost";
+// Compatibility export for older imports. The active Meet host is the iPhone-safe Kei renderer.
+export { KeiMeetHostStable as RenMeetHost } from "./KeiMeetHostStable";
