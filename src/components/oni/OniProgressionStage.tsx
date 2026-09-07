@@ -1,0 +1,34 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Coins, LockKeyhole, ShieldCheck, Sparkles, Trophy, Zap } from "lucide-react";
+import { OniHudNav } from "./OniHudNav";
+import { OniFooter } from "./OniFooter";
+import { equipVaultItem, getMyProgression, getProgressionLeaderboard, unlockVaultItem } from "@/data/progression";
+import { ONI_VAULT, levelForXp, nextRankForXp, rankForXp, type OniProgressionProfile } from "@/lib/oni-progression";
+
+export function OniProgressionStage() {
+  const [profile, setProfile] = useState<OniProgressionProfile | null>(null);
+  const [leaders, setLeaders] = useState<OniProgressionProfile[]>([]);
+  const [state, setState] = useState<"loading" | "ready" | "guest" | "error">("loading");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState("");
+  const load = useCallback(async () => {
+    try {
+      const [mine, board] = await Promise.all([getMyProgression(), getProgressionLeaderboard().catch(() => [])]);
+      setProfile(mine); setLeaders(board); setState(mine ? "ready" : "guest");
+    } catch { setState("error"); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  const rank = profile ? rankForXp(profile.xp) : null;
+  const next = profile ? nextRankForXp(profile.xp) : null;
+  const progress = useMemo(() => {
+    if (!profile || !rank || !next) return profile ? 100 : 0;
+    return Math.min(100, Math.max(0, ((profile.xp - rank.minXp) / (next.minXp - rank.minXp)) * 100));
+  }, [profile, rank, next]);
+  const act = async (id: string, mode: "unlock" | "equip") => {
+    setBusy(id); setNotice("");
+    try { if (mode === "unlock") await unlockVaultItem(id); else await equipVaultItem(id); await load(); setNotice(mode === "unlock" ? "VAULT ITEM UNLOCKED ✨" : "COSMETIC EQUIPPED ✨"); }
+    catch (error) { const code = error instanceof Error ? error.message : "failed"; setNotice(code === "coin_required" ? "ONI Coin хүрэлцэхгүй байна." : code === "rank_required" ? "Энэ item-д XP/Rank хүрээгүй байна." : "Үйлдлийг гүйцэтгэж чадсангүй."); }
+    finally { setBusy(""); }
+  };
+  return <div className="min-h-screen bg-ink text-white"><OniHudNav /><main className="mx-auto max-w-6xl px-4 pb-20 pt-28 sm:px-6"><header className="border-b border-white/10 pb-7"><p className="text-xs tracking-[0.32em] text-crimson">ONI NEXUS // PROGRESSION</p><h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-6xl">ӨӨРИЙН ДОМОГОО ӨСГӨ.</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">Meet, Event, Creator болон clan contribution-аас XP / ONI Coin авч Rank өсгөн, cosmetic collection-оо нээнэ. Бодит мөнгөтэй холбоогүй.</p></header>{state === "loading" ? <p className="py-16 text-white/50">NEXUS profile ачаалж байна…</p> : state !== "ready" || !profile ? <section className="my-8 border border-white/10 bg-white/[0.03] p-6"><LockKeyhole className="h-6 w-6 text-crimson"/><h2 className="mt-4 text-xl">CREW ACCOUNT ШААРДЛАГАТАЙ</h2><p className="mt-2 text-sm text-white/55">Approved Crew account-аар нэвтэрсний дараа progression profile идэвхжинэ.</p></section> : <><section className="my-8 grid gap-3 md:grid-cols-3"><div className="border border-crimson/30 bg-crimson/[0.06] p-5 md:col-span-2"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs tracking-[0.25em] text-white/45">{profile.nickname}</p><h2 className="mt-2 text-3xl font-semibold">LV.{levelForXp(profile.xp)} · {rank?.name}</h2></div><div className="text-right"><p className="text-xs text-white/45">SEASON XP</p><strong className="text-2xl">{profile.seasonXp.toLocaleString()}</strong></div></div><div className="mt-6 h-2 overflow-hidden bg-white/10"><div className="h-full bg-crimson transition-all" style={{ width: `${progress}%` }} /></div><p className="mt-2 text-xs text-white/45">{next ? `${profile.xp.toLocaleString()} / ${next.minXp.toLocaleString()} XP → ${next.name}` : `${profile.xp.toLocaleString()} XP · MAX RANK`}</p></div><div className="grid grid-cols-2 gap-px bg-white/10"><div className="bg-ink p-5"><Coins className="h-5 w-5 text-crimson"/><strong className="mt-3 block text-2xl">{profile.coin.toLocaleString()}</strong><span className="text-xs text-white/45">ONI COIN</span></div><div className="bg-ink p-5"><Trophy className="h-5 w-5 text-crimson"/><strong className="mt-3 block text-2xl">{profile.unlocked.length}</strong><span className="text-xs text-white/45">COLLECTION</span></div></div></section><section><div className="flex items-end justify-between gap-4"><div><p className="text-xs tracking-[0.25em] text-crimson">ONI VAULT</p><h2 className="mt-2 text-2xl font-semibold">COSMETIC UNLOCKS</h2></div><span className="text-xs text-white/40">{profile.unlocked.length} / {ONI_VAULT.length}</span></div>{notice ? <p className="mt-4 border border-crimson/25 bg-crimson/[0.06] p-3 text-xs">{notice}</p> : null}<div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{ONI_VAULT.map((item) => { const owned = profile.unlocked.includes(item.id); const equipped = profile.equipped[item.category] === item.id; return <article key={item.id} className="flex min-h-64 flex-col border border-white/10 bg-white/[0.025] p-4"><div className="flex items-center justify-between"><span className="text-[0.62rem] tracking-[0.2em] text-crimson">{item.rarity}</span>{owned ? <ShieldCheck className="h-4 w-4 text-emerald-300"/> : <Sparkles className="h-4 w-4 text-white/35"/>}</div><h3 className="mt-5 text-lg font-semibold">{item.name}</h3><p className="mt-2 text-xs leading-5 text-white/45">{item.description}</p><div className="mt-auto pt-5"><div className="flex justify-between text-xs"><span>🪙 {item.price}</span><span>{item.minXp} XP</span></div><button disabled={busy === item.id || equipped} onClick={() => void act(item.id, owned ? "equip" : "unlock")} className="mt-3 min-h-11 w-full border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.16em] disabled:opacity-45">{equipped ? "EQUIPPED" : owned ? "EQUIP" : "UNLOCK"}</button></div></article>; })}</div></section></>}<section className="mt-12"><div className="flex items-center gap-2"><Zap className="h-5 w-5 text-crimson"/><h2 className="text-xl font-semibold">SEASON REPUTATION</h2></div><div className="mt-4 divide-y divide-white/10 border-y border-white/10">{leaders.length ? leaders.slice(0,10).map((entry,index)=><div key={entry.uid} className="flex items-center justify-between py-3 text-sm"><span><b className="mr-4 text-crimson">#{index+1}</b>{entry.nickname}</span><span className="text-white/55">{entry.seasonXp.toLocaleString()} XP · {rankForXp(entry.xp).name}</span></div>) : <p className="py-5 text-sm text-white/40">Season ranking одоогоор хоосон.</p>}</div></section></main><OniFooter /></div>;
+}
