@@ -92,14 +92,57 @@ export function OniMeetAccess() {
   const life = useMemo(() => deriveLifecycle(session, now), [session, now]);
   const approved = memberAccount?.status === "approved";
   const open = canRegister(life) && state !== "registered" && approved;
+  const sessionId = session?.id ?? null;
 
   const onMemberAccount = useCallback((account: MemberAccount | null) => {
     setMemberAccount(account);
     if (account?.status === "approved") {
       setValues({ cpmNickname: account.nickname, cpmId: account.cpmId });
       setErrors({});
+    } else {
+      setCredentials(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (!sessionId || state !== "registered" || credentials) return;
+
+    let cancelled = false;
+    let timer = 0;
+
+    const syncCredentials = async () => {
+      window.clearTimeout(timer);
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") {
+        timer = window.setTimeout(() => void syncCredentials(), 8_000);
+        return;
+      }
+
+      const next = await fetchMeetCredentialsForMember(sessionId);
+      if (cancelled) return;
+      if (next) {
+        setCredentials(next);
+        return;
+      }
+      timer = window.setTimeout(() => void syncCredentials(), 8_000);
+    };
+
+    const onFocus = () => void syncCredentials();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void syncCredentials();
+    };
+
+    void syncCredentials();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [credentials, sessionId, state]);
 
   const set = <K extends keyof VerificationInput>(k: K, v: string) => {
     setValues((p) => ({ ...p, [k]: v }));
@@ -148,6 +191,8 @@ export function OniMeetAccess() {
             <RenMeetHost
               life={life}
               registrationState={state}
+              accessReady={state === "registered" && credentials !== null}
+              notice={notice}
               nickname={memberAccount?.nickname || values.cpmNickname}
               participants={participants.length}
               capacity={session?.capacity ?? null}
@@ -274,7 +319,7 @@ export function OniMeetAccess() {
                   </div>
                 ) : (
                   <p className="mt-4 text-xs text-amber-300">
-                    Бүртгэл амжилттай. Admin өрөөний мэдээлэл оруулмагц энд нээгдэнэ.
+                    Бүртгэл амжилттай. Admin өрөөний мэдээлэл оруулмагц энд автоматаар нээгдэнэ.
                   </p>
                 )
               ) : null}
