@@ -14,6 +14,12 @@ export const EXPERIENCE_OPTIONS: { id: ExperienceLevel; label: string; code: str
   { id: "veteran", label: "ТУРШЛАГАТАЙ", code: "VETERAN" },
 ];
 
+const FIRESTORE_EXPERIENCE: Record<ExperienceLevel, string> = {
+  rookie: "6 сараас бага",
+  regular: "6 сар – 1 жил",
+  veteran: "2 жилээс дээш",
+};
+
 export type JoinInterest = "drift" | "street" | "media" | "music" | "tech";
 
 export const INTEREST_OPTIONS: { id: JoinInterest; label: string }[] = [
@@ -95,6 +101,10 @@ function cleanText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizedIdentity(value: string): string {
+  return value.trim().toLocaleLowerCase("mn-MN");
+}
+
 export function readJoinMembershipWatch(): JoinMembershipWatch | null {
   if (typeof window === "undefined") return null;
   try {
@@ -139,7 +149,7 @@ export function saveJoinMembershipWatch(watch: JoinMembershipWatch) {
 /**
  * Approval is detected without exposing private application documents.
  * Admin approval already promotes the applicant into the public `members`
- * collection, so an exact CPM ID lookup is enough to confirm membership.
+ * collection, so an exact CPM ID + nickname lookup confirms membership.
  */
 export async function checkJoinMembershipStatus(
   watch: JoinMembershipWatch,
@@ -156,10 +166,17 @@ export async function checkJoinMembershipStatus(
     let snapshot = await find("cpmid");
     if (snapshot.empty) snapshot = await find("cpmId");
 
+    const expectedNickname = normalizedIdentity(watch.cpmNickname);
     const active = snapshot.docs.find((entry) => {
       const data = entry.data() as Record<string, unknown>;
       const status = cleanText(data.status).toLowerCase();
-      return status !== "inactive" && status !== "archived";
+      const memberNickname =
+        cleanText(data.nick) || cleanText(data.nickname) || cleanText(data.name);
+      return (
+        status !== "inactive" &&
+        status !== "archived" &&
+        normalizedIdentity(memberNickname) === expectedNickname
+      );
     });
 
     if (!active) return { state: "pending" };
@@ -194,7 +211,7 @@ export async function submitApplication(application: JoinApplication): Promise<S
     direction: application.direction,
     contact_type: application.contactType,
     contact: application.contact.trim(),
-    experience: application.experience,
+    experience: FIRESTORE_EXPERIENCE[application.experience],
     interests,
     ...(application.message.trim() ? { message: application.message.trim() } : {}),
   });
