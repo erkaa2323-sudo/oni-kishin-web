@@ -41,6 +41,7 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [runtime, setRuntime] = useState<"loading" | "ready" | "failed">("loading");
   const [runtimeError, setRuntimeError] = useState("");
+  const [runtimeDiagnostic, setRuntimeDiagnostic] = useState("");
   const hostState = resolveHostState(life, registrationState);
 
   const srcDoc = useMemo(
@@ -65,9 +66,11 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
 
 (async function(){
   const MODEL_URL=${JSON.stringify(REN_MODEL_URL)};
+  const EXPECTED_MOC_BYTES=915200;
+  const CORE_MEMORY_BYTES=128*1024*1024;
   const stage=document.getElementById("stage");
   const loading=document.getElementById("loading");
-  let app=null,model=null,currentState="idle",tapCycle=0,observer=null;
+  let app=null,model=null,currentState="idle",tapCycle=0,observer=null,diag="";
   const send=(type,error)=>parent.postMessage({source:"oni-ren-meet",type,error:error||""},"*");
   const expr=(name)=>{try{model?.expression?.(name)}catch{}};
   const motion=(group,index)=>{try{model?.motion?.(group,index)}catch{}};
@@ -105,6 +108,56 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
     try{model.focus(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))}catch{}
   }
 
+  async function diagnoseCoreAndMoc(){
+    const core=window.Live2DCubismCore;
+    const bits=[];
+    let memoryState="NA";
+
+    try{
+      if(core?.Memory?.initializeAmountOfMemory){
+        core.Memory.initializeAmountOfMemory(CORE_MEMORY_BYTES);
+        memoryState="128M";
+      }
+    }catch(error){
+      memoryState="ERR";
+      console.warn("[ONI Meet] Cubism memory reserve failed",error);
+    }
+
+    let coreVersion="?";
+    let latestMoc="?";
+    try{coreVersion=String(core?.Version?.csmGetVersion?.() ?? "?")}catch{}
+    try{latestMoc=String(core?.Version?.csmGetLatestMocVersion?.() ?? "?")}catch{}
+
+    const modelResponse=await fetch(MODEL_URL,{cache:"no-store"});
+    if(!modelResponse.ok)throw new Error("model3 HTTP "+modelResponse.status);
+    const settings=await modelResponse.json();
+    const mocPath=settings?.FileReferences?.Moc;
+    if(!mocPath)throw new Error("model3 Moc path missing");
+
+    const mocUrl=new URL(mocPath,MODEL_URL).toString();
+    const mocResponse=await fetch(mocUrl,{cache:"no-store"});
+    if(!mocResponse.ok)throw new Error("moc3 HTTP "+mocResponse.status);
+    const mocBytes=await mocResponse.arrayBuffer();
+    const header=Array.from(new Uint8Array(mocBytes.slice(0,4)))
+      .map((value)=>String.fromCharCode(value)).join("");
+
+    let mocVersion="?";
+    try{mocVersion=String(core?.Version?.csmGetMocVersion?.(mocBytes) ?? "?")}catch{}
+
+    bits.push("CORE="+coreVersion);
+    bits.push("MEM="+memoryState);
+    bits.push("MOC="+mocBytes.byteLength);
+    bits.push("MV="+mocVersion+"/"+latestMoc);
+    bits.push("HDR="+header);
+    diag=bits.join(" · ");
+    send("diagnostic",diag);
+
+    if(header!=="MOC3")throw new Error("invalid moc3 header "+header);
+    if(mocBytes.byteLength!==EXPECTED_MOC_BYTES){
+      throw new Error("moc3 bytes "+mocBytes.byteLength+" expected "+EXPECTED_MOC_BYTES);
+    }
+  }
+
   window.addEventListener("message",(event)=>{
     const data=event.data;
     if(!data||data.source!=="oni-meet-parent"||data.type!=="state")return;
@@ -121,8 +174,11 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
   },{passive:true});
 
   try{
-    if(!window.Live2DCubismCore)throw new Error("Cubism Core 6 unavailable");
+    if(!window.Live2DCubismCore)throw new Error("Cubism Core unavailable");
     if(!PIXI?.Application)throw new Error("PixiJS unavailable");
+
+    await diagnoseCoreAndMoc();
+    if(loading)loading.textContent="REN / "+diag;
 
     Live2DModel.registerTicker?.(PIXI.Ticker);
     app=new PIXI.Application();
@@ -158,7 +214,8 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       if(document.hidden)ticker.stop();else ticker.start();
     });
   }catch(error){
-    const message=error instanceof Error?error.message:String(error);
+    const base=error instanceof Error?error.message:String(error);
+    const message=diag?diag+" | "+base:base;
     console.error("[ONI Meet] Ren Foster init failed",error);
     if(loading)loading.textContent="REN LIVE2D OFFLINE";
     send("failed",message);
@@ -174,13 +231,16 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
     const onMessage = (event: MessageEvent) => {
       const data = event.data as { source?: string; type?: string; error?: string } | undefined;
       if (!data || data.source !== "oni-ren-meet") return;
+      if (data.type === "diagnostic") {
+        setRuntimeDiagnostic((data.error || "").slice(0, 180));
+      }
       if (data.type === "ready") {
         setRuntime("ready");
         setRuntimeError("");
       }
       if (data.type === "failed") {
         setRuntime("failed");
-        setRuntimeError((data.error || "Live2D runtime error").slice(0, 120));
+        setRuntimeError((data.error || "Live2D runtime error").slice(0, 220));
       }
     };
     window.addEventListener("message", onMessage);
@@ -226,8 +286,11 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       />
 
       {runtime === "failed" && runtimeError ? (
-        <div className="pointer-events-none absolute inset-x-4 top-10 z-10 truncate text-[0.52rem] tracking-[0.08em] text-crimson/70">
-          {runtimeError}
+        <div className="pointer-events-none absolute inset-x-4 top-10 z-10 space-y-1 text-[0.48rem] leading-relaxed tracking-[0.05em] text-crimson/75">
+          <div className="break-words">{runtimeError}</div>
+          {runtimeDiagnostic && !runtimeError.includes(runtimeDiagnostic) ? (
+            <div className="text-white/35">{runtimeDiagnostic}</div>
+          ) : null}
         </div>
       ) : null}
 
