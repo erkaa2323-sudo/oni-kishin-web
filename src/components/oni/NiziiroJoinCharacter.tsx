@@ -3,13 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   checkJoinMembershipStatus,
   JOIN_MEMBERSHIP_WATCH_EVENT,
+  JOIN_MEMBERSHIP_WATCH_KEY,
   readJoinMembershipWatch,
   saveJoinMembershipWatch,
   type JoinMembershipWatch,
 } from "@/data/join";
 
 type JoinGuideState = "idle" | "engaged" | "loading" | "success" | "error";
-type MembershipPhase = "none" | "checking" | "pending" | "accepted";
+type MembershipPhase = "none" | "checking" | "pending" | "accepted" | "rejected";
 
 type Props = {
   state: JoinGuideState;
@@ -20,7 +21,7 @@ const MAO_MODEL_URL =
   "https://raw.githubusercontent.com/Live2D/CubismWebSamples/b1de66b0b1f1cb881d95fb6158622aeb6a2827bd/Samples/Resources/Mao/Mao.model3.json";
 
 const LAST_APPLICATION_KEY = "oni_join_last_application_v1";
-const APPROVAL_RELOAD_KEY = "oni_join_approval_reload_v1";
+const OUTCOME_RELOAD_KEY = "oni_join_outcome_reload_v1";
 
 function guideCopy(
   state: JoinGuideState,
@@ -30,6 +31,9 @@ function guideCopy(
 ) {
   if (membership === "accepted") {
     return `${nickname?.trim() || "Rider"}, ONI & KISHIN-д тавтай морил! Таны хүсэлт зөвшөөрөгдөж Crew-д нэмэгдлээ.`;
+  }
+  if (membership === "rejected") {
+    return `${nickname?.trim() || "Rider"}, таны хүсэлтийг энэ удаа зөвшөөрсөнгүй. Мэдээллээ шинэчлээд дахин хүсэлт илгээж болно.`;
   }
   if ((membership === "pending" || membership === "checking") && reference) {
     return `${nickname?.trim() || "Rider"}, таны хүсэлт хянагдаж байна. REF / ${reference}`;
@@ -48,7 +52,8 @@ export function NiziiroJoinCharacter({ state, nickname }: Props) {
   const [membership, setMembership] = useState<MembershipPhase>("none");
   const [approvedNickname, setApprovedNickname] = useState("");
 
-  const effectiveState: JoinGuideState = membership === "accepted" ? "success" : state;
+  const effectiveState: JoinGuideState =
+    membership === "accepted" ? "success" : membership === "rejected" ? "error" : state;
   const displayNickname = approvedNickname || nickname?.trim() || watch?.cpmNickname || "";
 
   const srcDoc = useMemo(
@@ -166,6 +171,9 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
       if (next.accepted) {
         setMembership("accepted");
         setApprovedNickname(next.cpmNickname);
+      } else if (next.rejected) {
+        setMembership("rejected");
+        setApprovedNickname("");
       } else {
         setMembership("pending");
       }
@@ -177,7 +185,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
   }, []);
 
   useEffect(() => {
-    if (!watch || watch.accepted) return;
+    if (!watch || watch.accepted || watch.rejected) return;
 
     let cancelled = false;
     let timer = 0;
@@ -187,6 +195,22 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
       timer = window.setTimeout(run, 25_000);
     };
 
+    const persistOutcomeAndReload = (
+      outcome: "accepted" | "rejected",
+      nextWatch: JoinMembershipWatch,
+    ) => {
+      saveJoinMembershipWatch(nextWatch);
+      try {
+        window.localStorage.removeItem(LAST_APPLICATION_KEY);
+        if (!window.sessionStorage.getItem(OUTCOME_RELOAD_KEY)) {
+          window.sessionStorage.setItem(OUTCOME_RELOAD_KEY, outcome);
+          window.setTimeout(() => window.location.reload(), 1600);
+        }
+      } catch {
+        // The final state is already visible even when browser storage is unavailable.
+      }
+    };
+
     const run = async () => {
       if (cancelled) return;
       if (document.visibilityState === "hidden") {
@@ -194,7 +218,9 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         return;
       }
 
-      setMembership((current) => (current === "accepted" ? current : "checking"));
+      setMembership((current) =>
+        current === "accepted" || current === "rejected" ? current : "checking",
+      );
       const result = await checkJoinMembershipStatus(watch);
       if (cancelled) return;
 
@@ -202,21 +228,24 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         const acceptedWatch: JoinMembershipWatch = {
           ...watch,
           accepted: true,
+          rejected: false,
           memberId: result.memberId,
         };
         setApprovedNickname(result.nickname || watch.cpmNickname);
         setMembership("accepted");
-        saveJoinMembershipWatch(acceptedWatch);
+        persistOutcomeAndReload("accepted", acceptedWatch);
+        return;
+      }
 
-        try {
-          window.localStorage.removeItem(LAST_APPLICATION_KEY);
-          if (!window.sessionStorage.getItem(APPROVAL_RELOAD_KEY)) {
-            window.sessionStorage.setItem(APPROVAL_RELOAD_KEY, "1");
-            window.setTimeout(() => window.location.reload(), 1800);
-          }
-        } catch {
-          // The accepted state is already visible even if storage is unavailable.
-        }
+      if (result.state === "rejected") {
+        const rejectedWatch: JoinMembershipWatch = {
+          ...watch,
+          accepted: false,
+          rejected: true,
+        };
+        setApprovedNickname("");
+        setMembership("rejected");
+        persistOutcomeAndReload("rejected", rejectedWatch);
         return;
       }
 
@@ -253,39 +282,59 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
     );
   }, [effectiveState, runtime]);
 
+  const resetRejectedApplication = () => {
+    try {
+      window.localStorage.removeItem(JOIN_MEMBERSHIP_WATCH_KEY);
+      window.localStorage.removeItem(LAST_APPLICATION_KEY);
+      window.sessionStorage.removeItem(OUTCOME_RELOAD_KEY);
+    } finally {
+      window.location.reload();
+    }
+  };
+
   const statusBadge =
     membership === "accepted"
       ? "APPROVED"
-      : membership === "checking"
-        ? "CHECKING"
-        : membership === "pending"
-          ? "PENDING"
-          : runtime === "ready"
-            ? "ONLINE"
-            : runtime === "failed"
-              ? "OFFLINE"
-              : "SYNC";
+      : membership === "rejected"
+        ? "REJECTED"
+        : membership === "checking"
+          ? "CHECKING"
+          : membership === "pending"
+            ? "PENDING"
+            : runtime === "ready"
+              ? "ONLINE"
+              : runtime === "failed"
+                ? "OFFLINE"
+                : "SYNC";
 
   const statusClass =
-    membership === "accepted" || runtime === "ready"
+    membership === "accepted"
       ? "text-emerald-300/80"
-      : runtime === "failed"
+      : membership === "rejected" || runtime === "failed"
         ? "text-crimson"
-        : "text-white/40";
+        : runtime === "ready"
+          ? "text-emerald-300/80"
+          : "text-white/40";
+
+  const outcome = membership === "accepted" || membership === "rejected";
 
   return (
     <div
       className={`relative overflow-hidden rounded-[28px] border bg-black/20 shadow-2xl transition-colors duration-700 ${
         membership === "accepted"
           ? "border-emerald-300/35 shadow-emerald-400/10"
-          : "border-white/10 shadow-crimson/10"
+          : membership === "rejected"
+            ? "border-crimson/40 shadow-crimson/15"
+            : "border-white/10 shadow-crimson/10"
       }`}
     >
       <div
         className={`pointer-events-none absolute inset-0 ${
           membership === "accepted"
             ? "bg-[radial-gradient(circle_at_50%_58%,rgba(110,255,190,0.19),transparent_54%)]"
-            : "bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]"
+            : membership === "rejected"
+              ? "bg-[radial-gradient(circle_at_50%_58%,rgba(255,55,85,0.18),transparent_54%)]"
+              : "bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]"
         }`}
       />
 
@@ -320,7 +369,9 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         className={`absolute inset-x-4 bottom-4 z-10 rounded-2xl border px-4 py-3 backdrop-blur-xl ${
           membership === "accepted"
             ? "border-emerald-300/25 bg-black/65"
-            : "pointer-events-none border-white/10 bg-black/55"
+            : membership === "rejected"
+              ? "border-crimson/30 bg-black/70"
+              : "pointer-events-none border-white/10 bg-black/55"
         }`}
       >
         <p className="text-xs leading-relaxed text-white/88">
@@ -329,14 +380,20 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         <div className="mt-2 flex items-center justify-between gap-3">
           <p
             className={`text-[0.6rem] tracking-[0.14em] ${
-              membership === "accepted" ? "text-emerald-200/80" : "text-white/40"
+              membership === "accepted"
+                ? "text-emerald-200/80"
+                : membership === "rejected"
+                  ? "text-crimson/85"
+                  : "text-white/40"
             }`}
           >
             {membership === "accepted"
               ? "APPROVED · CREW ACTIVE"
-              : membership === "pending" || membership === "checking"
-                ? "AUTO STATUS · 25 SEC"
-                : "ДҮР ДЭЭР ДАРЖ REACTION ҮЗЭЭРЭЙ"}
+              : membership === "rejected"
+                ? "REJECTED · RETRY AVAILABLE"
+                : membership === "pending" || membership === "checking"
+                  ? "AUTO STATUS · 25 SEC"
+                  : "ДҮР ДЭЭР ДАРЖ REACTION ҮЗЭЭРЭЙ"}
           </p>
           {membership === "accepted" ? (
             <a
@@ -345,9 +402,19 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
             >
               CREW-Д ОРОХ
             </a>
+          ) : membership === "rejected" ? (
+            <button
+              type="button"
+              onClick={resetRejectedApplication}
+              className="shrink-0 border border-crimson/40 bg-crimson/10 px-3 py-2 text-[0.58rem] font-semibold tracking-[0.14em] text-white transition-colors hover:bg-crimson/20"
+            >
+              ШИНЭ ХҮСЭЛТ
+            </button>
           ) : null}
         </div>
       </div>
+
+      {outcome ? <span className="sr-only" aria-live="polite">{statusBadge}</span> : null}
     </div>
   );
 }
