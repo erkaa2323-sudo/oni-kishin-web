@@ -69,7 +69,7 @@ export function getServiceStatuses(): ServiceStatus[] { return [
   {key:"storage",label:"ФАЙЛ САН",code:"STORAGE",state:"connected",note:"Зураг болон аудио шууд холбоосоор ажиллана."},
 ]; }
 
-export type AdminMemberRecord={id:string;cpmNickname:string;cpmId:string;role:string;status:"active"|"inactive"|"archived";joinedAt?:string};
+export type AdminMemberRecord={id:string;cpmNickname:string;cpmId:string;role:string;portraitUrl:string;status:"active"|"inactive"|"archived";joinedAt?:string};
 export type AdminVehicleRecord={id:string;model:string;owner:string;category:string;build:string;imagePath:string;status:"published"|"draft"|"archived"};
 export type AdminApplicationRecord={id:string;cpmNickname:string;cpmId:string;contact:string;message:string;experience:string;submittedAt:string;state:"pending"|"accepted"|"rejected"};
 export type AdminMeetRecord={id:string;title:string;scheduledAt:string;endsAt:string;registrationClosesAt:string;capacity:number;status:"draft"|"scheduled"|"live"|"ended"|"closed"};
@@ -79,7 +79,7 @@ export type AuditEvent={id:string;at:string;actor:string;createdAt:string;actorR
 export type DataResult<T>={status:"ok";rows:T[]}|{status:"unavailable";reason:string};
 const UNAVAILABLE=(reason:string)=>({status:"unavailable" as const,reason});
 async function toResult<T,R>(load:()=>Promise<{ok:true;data:T[]}|{ok:false;error:{message:string}}>,map:(row:T)=>R):Promise<DataResult<R>>{const res=await load();if(!res.ok)return UNAVAILABLE(res.error.message);return{status:"ok",rows:res.data.map(map)}}
-export async function getMembers():Promise<DataResult<AdminMemberRecord>>{return toResult(membersService.list,m=>({id:m.id,cpmNickname:m.cpmNickname,cpmId:m.cpmId,role:m.role??"",status:m.status,...(m.joinedAt?{joinedAt:m.joinedAt}:{})}))}
+export async function getMembers():Promise<DataResult<AdminMemberRecord>>{return toResult(membersService.list,m=>({id:m.id,cpmNickname:m.cpmNickname,cpmId:m.cpmId,role:m.role??"",portraitUrl:m.portraitUrl??"",status:m.status,...(m.joinedAt?{joinedAt:m.joinedAt}:{})}))}
 export async function getVehicles():Promise<DataResult<AdminVehicleRecord>>{return toResult(garageService.list,v=>({id:v.id,model:v.model,owner:v.ownerName??"—",category:v.category??"",build:v.build??"",imagePath:v.imagePath??"",status:v.status}))}
 export async function getApplications():Promise<DataResult<AdminApplicationRecord>>{return toResult(applicationsService.list,a=>({id:a.id,cpmNickname:a.cpmNickname,cpmId:a.cpmId,contact:a.contact,message:a.message??"",experience:a.experience??"",submittedAt:a.createdAt??"",state:a.state}))}
 export async function getMeets():Promise<DataResult<AdminMeetRecord>>{return toResult(meetService.list,m=>({id:m.id,title:m.title,scheduledAt:m.scheduledAt??"",endsAt:m.endsAt??"",registrationClosesAt:m.registrationClosesAt??"",capacity:m.capacity??0,status:m.status}))}
