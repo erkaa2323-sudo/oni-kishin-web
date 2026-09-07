@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - pages/kei-cubism5.html
       - pages/kei-meet.html
       - src/components/oni/KeiMeetHost.tsx
+      - src/components/oni/KeiMeetHostStable.tsx
       - src/components/oni/RenMeetHost.tsx
       - scripts/prepare-live2d-core.mjs
       - .github/workflows/github-pages-kei.yml
@@ -31,22 +33,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare local-first Live2D runtime
+      - name: Prepare Cubism 5 Core
         run: node scripts/prepare-live2d-core.mjs
 
-      - name: Build Vercel-independent Kei page
+      - name: Build Vercel-independent Kei Cubism 5 page
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p _site/meet
-          cp pages/kei-meet.html _site/meet/index.html
+          cp pages/kei-cubism5.html _site/meet/index.html
           if [ -d public/vendor ]; then
             cp -R public/vendor _site/vendor
           fi
           touch _site/.nojekyll
           cat > _site/index.html <<'HTML'
           <!doctype html>
-          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / KEI LIVE2D</a></body></html>
+          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / KEI CUBISM 5</a></body></html>
           HTML
 
       - name: Configure GitHub Pages
