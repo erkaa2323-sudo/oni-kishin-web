@@ -42,6 +42,8 @@ const PIXI_URL = "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.
 const CORE_URL = "https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js";
 const DISPLAY_URL = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js";
 const MODEL_URL = "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@0.4.0/test/assets/shizuku/shizuku.model.json";
+const LIVE2D_RUNTIME_TIMEOUT_MS = 7_000;
+const LIVE2D_MODEL_TIMEOUT_MS = 8_000;
 
 const scriptLoads = new Map<string, Promise<void>>();
 
@@ -151,6 +153,22 @@ function loadScript(src: string) {
   return task;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+}
+
 function setParam(model: Model, id: string, value: number) {
   model.internalModel?.coreModel?.setParamFloat?.(id, value);
 }
@@ -226,9 +244,15 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
 
     void (async () => {
       try {
-        await loadScript(PIXI_URL);
-        await loadScript(CORE_URL);
-        await loadScript(DISPLAY_URL);
+        await withTimeout(
+          (async () => {
+            await loadScript(PIXI_URL);
+            await loadScript(CORE_URL);
+            await loadScript(DISPLAY_URL);
+          })(),
+          LIVE2D_RUNTIME_TIMEOUT_MS,
+          "Live2D runtime",
+        );
         if (cancelled || !hostRef.current) return;
 
         const PIXI = window.PIXI;
@@ -250,7 +274,11 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
           autoDensity: true,
         });
 
-        const model = await Live2DModel.from(MODEL_URL, { autoInteract: true });
+        const model = await withTimeout(
+          Live2DModel.from(MODEL_URL, { autoInteract: true }),
+          LIVE2D_MODEL_TIMEOUT_MS,
+          "Live2D model",
+        );
         if (cancelled) return;
         model.anchor.set(0.5, 0.5);
         model.scale.set(1);
