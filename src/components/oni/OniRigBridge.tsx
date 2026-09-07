@@ -12,9 +12,7 @@ const STATES: OniState[] = [
 type RigTarget = { element: HTMLElement; state: OniState };
 
 function stateFromElement(element: HTMLElement): OniState {
-  for (const state of STATES) {
-    if (element.classList.contains(`oni-character-presence--${state}`)) return state;
-  }
+  for (const state of STATES) if (element.classList.contains(`oni-character-presence--${state}`)) return state;
   return "idle";
 }
 
@@ -59,10 +57,8 @@ function AdaptiveLive2D({ state }: { state: OniState }) {
     const timers: number[] = [];
     setDisplayState(state);
     if (state !== "speaking") return () => timers.forEach((timer) => window.clearTimeout(timer));
-
     const segments = replySegments(latestOniReply());
     if (!segments.length) return () => timers.forEach((timer) => window.clearTimeout(timer));
-
     let elapsed = 420;
     segments.forEach((segment, index) => {
       const emotion = inferReplyState("", segment);
@@ -83,26 +79,22 @@ export function OniRigBridge() {
 
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll<HTMLElement>(".oni-character-presence"));
-
     const read = () => {
       const visible = elements.filter(isVisible);
       const active = visible.length ? visible : elements.slice(0, 1);
       const next = active.slice(0, 1).map((element) => ({ element, state: stateFromElement(element) }));
       setTargets((current) => (sameTargets(current, next) ? current : next));
     };
-
     const observers = elements.map((element) => {
       const oldBody = element.querySelector<HTMLElement>(".oni-character-presence__body");
       const observer = new MutationObserver(read);
       observer.observe(element, { attributes: true, attributeFilter: ["class", "style"] });
       return { observer, oldBody };
     });
-
     const resizeObserver = new ResizeObserver(read);
     elements.forEach((element) => resizeObserver.observe(element));
     window.addEventListener("resize", read, { passive: true });
     read();
-
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", read);
@@ -110,6 +102,27 @@ export function OniRigBridge() {
         observer.disconnect();
         if (oldBody) oldBody.style.opacity = "";
       }
+    };
+  }, []);
+
+  // Both responsive chat logs exist in the DOM. Observe both, but scroll only the
+  // visible one so mobile replies never get sent to the hidden desktop log ref.
+  useEffect(() => {
+    const logs = Array.from(document.querySelectorAll<HTMLElement>('[role="log"]'));
+    const scrollVisible = () => {
+      const log = logs.find(isVisible);
+      if (log) requestAnimationFrame(() => log.scrollTo({ top: log.scrollHeight, behavior: "smooth" }));
+    };
+    const observers = logs.map((log) => {
+      const observer = new MutationObserver(scrollVisible);
+      observer.observe(log, { childList: true, subtree: true });
+      return observer;
+    });
+    window.addEventListener("resize", scrollVisible, { passive: true });
+    scrollVisible();
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+      window.removeEventListener("resize", scrollVisible);
     };
   }, []);
 
