@@ -134,7 +134,9 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
       resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.1:1.5),
       autoDensity:true
     });
-    app.ticker.maxFPS=window.innerWidth<640?30:45;
+    if(PIXI.Ticker?.shared){
+      PIXI.Ticker.shared.maxFPS=window.innerWidth<640?30:45;
+    }
     stage.appendChild(app.canvas);
 
     model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
@@ -151,8 +153,9 @@ import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-l
     },8500);
 
     document.addEventListener("visibilitychange",()=>{
-      if(!app)return;
-      if(document.hidden)app.stop();else app.start();
+      const ticker=PIXI.Ticker?.shared;
+      if(!ticker)return;
+      if(document.hidden)ticker.stop();else ticker.start();
     });
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
