@@ -3,11 +3,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MeetLifecycle } from "@/data/meet";
 
 type RegistrationState = "idle" | "sending" | "denied" | "registered";
-type HostState = "idle" | "open" | "live" | "loading" | "registered" | "full" | "closed";
+type HostState =
+  | "idle"
+  | "scheduled"
+  | "starting"
+  | "open"
+  | "live"
+  | "loading"
+  | "registered"
+  | "access"
+  | "denied"
+  | "full"
+  | "closed";
 
 type Props = {
   life: MeetLifecycle;
   registrationState: RegistrationState;
+  accessReady?: boolean;
+  notice?: string;
   nickname?: string;
   participants: number;
   capacity: number | null;
@@ -25,31 +38,68 @@ const MIARA_MODEL_URLS = [
   "https://raw.githubusercontent.com/ttoommoommii/joho.github.io/main/src0710LocalFile/miara/miara_pro_t04.model3.json",
 ];
 
-function resolveHostState(life: MeetLifecycle, registrationState: RegistrationState): HostState {
+function resolveHostState(
+  life: MeetLifecycle,
+  registrationState: RegistrationState,
+  accessReady: boolean,
+): HostState {
+  if (registrationState === "registered" && accessReady) return "access";
   if (registrationState === "registered") return "registered";
   if (registrationState === "sending") return "loading";
+  if (registrationState === "denied") return "denied";
   if (life === "active") return "live";
-  if (life === "open" || life === "starting_soon") return "open";
+  if (life === "starting_soon") return "starting";
+  if (life === "open") return "open";
+  if (life === "scheduled") return "scheduled";
   if (life === "full") return "full";
   if (life === "closed" || life === "ended") return "closed";
   return "idle";
 }
 
-function hostCopy(state: HostState, nickname?: string) {
+function hostCopy(state: HostState, nickname?: string, notice?: string) {
   const rider = nickname?.trim() || "Rider";
-  if (state === "registered") return `${rider}, Meet access бэлэн боллоо.`;
-  if (state === "loading") return "Бүртгэлийг шалгаж байна…";
-  if (state === "live") return "ONI MEET эхэлсэн. Room access-аа шалгаарай.";
+  if (state === "access")
+    return `${rider}, ROOM ID ба PASSWORD бэлэн боллоо. Доорх Meet access хэсгээс аваарай.`;
+  if (state === "registered")
+    return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Miara энд автоматаар мэдэгдэнэ.`;
+  if (state === "denied") return notice?.trim() || "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
+  if (state === "loading") return "Crew мэдээлэл болон Meet slot-ийг шалгаж байна…";
+  if (state === "live") return "ONI MEET эхэллээ. Бүртгүүлсэн Rider бол room access-аа шалгаарай.";
+  if (state === "starting") return "ONI MEET удахгүй эхэлнэ. Бүртгэлээ одоо баталгаажуулаарай.";
   if (state === "open") return "Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.";
+  if (state === "scheduled") return "Дараагийн ONI MEET товлогдсон. Бүртгэл болон countdown-аа шалгаарай.";
   if (state === "full") return "Meet дүүрсэн байна. Дараагийн мэдээллийг эндээс хүлээнэ үү.";
   if (state === "closed") return "Энэ Meet-ийн бүртгэл хаагдсан байна.";
   return "Miara дараагийн ONI MEET-ийг хүлээж байна.";
 }
 
-export function RenMeetHost({ life, registrationState, nickname, participants, capacity }: Props) {
+function hostModeLabel(state: HostState) {
+  if (state === "access") return "ACCESS READY";
+  if (state === "registered") return "RIDER VERIFIED";
+  if (state === "denied") return "VERIFY FAILED";
+  if (state === "loading") return "VERIFYING";
+  if (state === "live") return "MEET LIVE";
+  if (state === "starting") return "STARTING SOON";
+  if (state === "open") return "REGISTRATION OPEN";
+  if (state === "scheduled") return "MEET SCHEDULED";
+  if (state === "full") return "CAPACITY FULL";
+  if (state === "closed") return "REGISTRATION CLOSED";
+  return "STANDBY";
+}
+
+export function RenMeetHost({
+  life,
+  registrationState,
+  accessReady = false,
+  notice,
+  nickname,
+  participants,
+  capacity,
+}: Props) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [runtime, setRuntime] = useState<RuntimeState>("loading");
-  const hostState = resolveHostState(life, registrationState);
+  const hostState = resolveHostState(life, registrationState, accessReady);
+  const modeLabel = hostModeLabel(hostState);
 
   const srcDoc = useMemo(
     () => `<!doctype html>
@@ -84,6 +134,7 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
   var currentState='idle';
   var idleTimer=0;
   var disposed=false;
+  var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function send(type){
     try{ parent.postMessage({source:SOURCE,type:type},'*'); }catch(e){}
@@ -91,18 +142,18 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
 
   function safeMotion(group,index){
     if(!model||typeof model.motion!=='function') return;
-    try{ model.motion(group,index||0); }catch(e){}
+    try{ model.motion(reduceMotion?'Idle':group,index||0); }catch(e){}
   }
 
   function applyState(next){
     currentState=next||'idle';
     if(!model) return;
 
-    if(currentState==='live'||currentState==='registered'){
+    if(currentState==='access'||currentState==='registered'||currentState==='live'){
       safeMotion('Flick',0);
       return;
     }
-    if(currentState==='open'||currentState==='loading'){
+    if(currentState==='open'||currentState==='starting'||currentState==='loading'){
       safeMotion('Tap',0);
       return;
     }
@@ -187,8 +238,8 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
 
       idleTimer=window.setInterval(function(){
         if(!model||document.visibilityState==='hidden') return;
-        if(currentState==='idle'||currentState==='closed'||currentState==='full') safeMotion('Idle',0);
-      },9000);
+        if(currentState!=='loading') safeMotion('Idle',0);
+      },12000);
     }).catch(fail);
   }catch(error){
     fail(error);
@@ -247,7 +298,7 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
           MEET GUIDE // MIARA
         </span>
         <span className="hidden border border-white/10 bg-black/40 px-1.5 py-0.5 text-[0.4rem] tracking-[0.16em] text-white/35 sm:inline">
-          FULL BODY ACTIVE
+          {modeLabel}
         </span>
       </div>
 
@@ -296,10 +347,10 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
             <div className="mb-1 flex items-center gap-2 text-[0.42rem] tracking-[0.2em] text-crimson/75 sm:text-[0.46rem]">
               <span>ONI // SECTOR 05</span>
               <span className="h-px w-8 bg-crimson/35" />
-              <span>MIARA // LIVE2D</span>
+              <span>{modeLabel}</span>
             </div>
             <p className="max-w-[84%] text-[0.61rem] leading-relaxed text-white/88 sm:text-[0.68rem]">
-              {hostCopy(hostState, nickname)}
+              {hostCopy(hostState, nickname, notice)}
             </p>
           </div>
           <div className="shrink-0 text-right">
