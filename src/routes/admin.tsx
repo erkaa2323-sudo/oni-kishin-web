@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { OniAdminGate } from "@/components/oni/OniAdminGate";
+import { OniAdminPage } from "@/components/oni/OniAdminPage";
 
 const description =
-  "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем ба ONI AI командын самбар.";
+  "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем ба Live2D ONI AI админ copilot.";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -15,5 +15,5 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: OniAdminGate,
+  component: OniAdminPage,
 });
