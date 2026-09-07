@@ -2,13 +2,7 @@
  * CREW roster data boundary.
  *
  * Live source: the legacy ONI Firestore `members` collection, read through its
- * public projection (active members only, safe columns only). Nothing here
- * fabricates members or clan statistics — an empty collection
- * renders as a real empty state.
- *
- * The portrait images below are DECORATIVE ARTWORK ONLY. Command portraits
- * are assigned by public role/name and are never treated as
- * member data, identity or a database record.
+ * public projection (active members only, safe columns only).
  */
 
 import crew01 from "@/assets/crew/crew-01.webp";
@@ -16,16 +10,9 @@ import crew02 from "@/assets/crew/crew-02.webp";
 import crew03 from "@/assets/crew/crew-03.webp";
 import crew04 from "@/assets/crew/crew-04.webp";
 
-/** Role/category buckets used by the roster filters. */
 export type CrewRoleId = "command" | "driver" | "mechanic" | "media";
 
-export type CrewRole = {
-  id: CrewRoleId;
-  /** Mongolian label (primary UI language) */
-  label: string;
-  /** Decorative game-world code */
-  code: string;
-};
+export type CrewRole = { id: CrewRoleId; label: string; code: string };
 
 export const CREW_ROLES: CrewRole[] = [
   { id: "command", label: "УДИРДАХ", code: "COMMAND" },
@@ -34,7 +21,6 @@ export const CREW_ROLES: CrewRole[] = [
   { id: "media", label: "МЕДИА", code: "MEDIA" },
 ];
 
-/** Mongolian labels admins pick from when assigning a member role. */
 export const CREW_ROLE_TITLE: Record<CrewRoleId, string> = {
   command: "Удирдлага",
   driver: "Жолооч",
@@ -43,7 +29,6 @@ export const CREW_ROLE_TITLE: Record<CrewRoleId, string> = {
 };
 
 export type CrewStatus = "active" | "standby" | "field";
-
 export const CREW_STATUS_LABEL: Record<CrewStatus, string> = {
   active: "ИДЭВХТЭЙ",
   standby: "БЭЛЭН",
@@ -51,23 +36,25 @@ export const CREW_STATUS_LABEL: Record<CrewStatus, string> = {
 };
 
 export type CrewMember = {
-  /** Database row id */
   id: string;
-  /** Callsign / handle shown as the primary identity */
   callsign: string;
   kana?: string;
   roleId: CrewRoleId;
-  /** Short Mongolian role title */
   title: string;
   status: CrewStatus;
-  /** Decorative portrait artwork (not member data). */
   portrait?: string;
   bio: string;
-  /** Small labelled traits shown in the HUD block */
   traits: { label: string; value: string }[];
 };
 
-function portraitFor(callsign: string, role: string | undefined, index: number): string {
+function safePortraitUrl(value: string | undefined): string | undefined {
+  const v = (value ?? "").trim();
+  if (/^https?:\/\/\S+$/i.test(v)) return v;
+  if (/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
+  return undefined;
+}
+
+function fallbackPortrait(callsign: string, role: string | undefined, index: number): string {
   const identity = `${callsign} ${role ?? ""}`.toLowerCase();
   if (identity.includes("kitsune") || /(^|\s)leader($|\s)/.test(identity)) return crew01;
   if (identity.includes("hugo") || identity.includes("co-leader")) return crew02;
@@ -76,22 +63,13 @@ function portraitFor(callsign: string, role: string | undefined, index: number):
 
 export function parseCrewRole(value: string | undefined | null): CrewRoleId {
   const v = (value ?? "").toLowerCase();
-  // Leadership (incl. Leader / Co-Leader / Deputy) → COMMAND
   if (
-    v.includes("leader") ||
-    v.includes("command") ||
-    v.includes("captain") ||
-    v.includes("owner") ||
-    v.includes("удирд") ||
-    v.includes("ахлагч") ||
-    v.includes("тэргүүн") ||
-    v.includes("дэд")
-  )
-    return "command";
+    v.includes("leader") || v.includes("command") || v.includes("captain") ||
+    v.includes("owner") || v.includes("удирд") || v.includes("ахлагч") ||
+    v.includes("тэргүүн") || v.includes("дэд")
+  ) return "command";
   if (v.includes("mechanic") || v.includes("tuner") || v.includes("механ")) return "mechanic";
-  if (v.includes("media") || v.includes("content") || v.includes("editor") || v.includes("медиа"))
-    return "media";
-  // Special Member / Member / anything else → DRIVER bucket
+  if (v.includes("media") || v.includes("content") || v.includes("editor") || v.includes("медиа")) return "media";
   return "driver";
 }
 
@@ -103,7 +81,6 @@ function formatDate(iso?: string): string | null {
 
 export type CrewLoad = { status: "ok"; rows: CrewMember[] } | { status: "error"; reason: string };
 
-/** Live roster read. Only records the public Firebase projection exposes are returned. */
 export async function fetchCrew(): Promise<CrewLoad> {
   const { membersService } = await import("@/services/domains");
   const res = await membersService.listPublic();
@@ -124,7 +101,7 @@ export async function fetchCrew(): Promise<CrewLoad> {
       roleId,
       title: m.role || CREW_ROLE_TITLE[roleId],
       status: "active",
-      portrait: portraitFor(m.cpmNickname, m.role, i),
+      portrait: safePortraitUrl(m.portraitUrl) ?? fallbackPortrait(m.cpmNickname, m.role, i),
       bio: "",
       traits,
     };
