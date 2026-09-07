@@ -70,6 +70,10 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /memberCpmIndex/{indexId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /memberAccounts/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow create: if request.auth != null
@@ -95,7 +99,7 @@ service cloud.firestore {
     match /garage/{garageId} { allow read: if true; allow create, update, delete: if isAdmin(); }
 
     match /applications/{applicationId} {
-      allow create: if hasOnlyKeys(request.resource.data, ["last", "first", "age", "gender", "cpmid", "nick", "direction", "contactType", "contact", "experience", "message", "status", "createdAt"])
+      allow create: if hasOnlyKeys(request.resource.data, ["last", "first", "age", "gender", "cpmid", "nick", "direction", "contactType", "contact", "experience", "message", "status", "statusToken", "createdAt"])
         && hasAllKeys(request.resource.data, ["last", "first", "age", "gender", "cpmid", "nick", "direction", "contactType", "contact", "experience", "message", "status"])
         && request.resource.data.status == "Шинэ"
         && requiredText(request.resource.data.last, 80) && requiredText(request.resource.data.first, 80)
@@ -107,8 +111,23 @@ service cloud.firestore {
         && requiredText(request.resource.data.contact, 120)
         && request.resource.data.experience in ["6 сараас бага", "6 сар – 1 жил", "1 – 2 жил", "2 жилээс дээш"]
         && request.resource.data.message is string && request.resource.data.message.size() <= 1500
+        && optionalText(request.resource.data, "statusToken", 80)
         && optionalTimestamp(request.resource.data, "createdAt");
       allow read, update, delete: if isAdmin();
+    }
+
+    match /applicationStatus/{statusToken} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if hasOnlyKeys(request.resource.data, ["applicationId", "reference", "state", "createdAt"])
+        && hasAllKeys(request.resource.data, ["applicationId", "reference", "state", "createdAt"])
+        && requiredText(request.resource.data.applicationId, 80)
+        && requiredText(request.resource.data.reference, 16)
+        && request.resource.data.state == "pending"
+        && request.resource.data.createdAt is timestamp
+        && existsAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId))
+        && getAfter(/databases/$(database)/documents/applications/$(request.resource.data.applicationId)).data.get("statusToken", "") == statusToken;
+      allow update, delete: if isAdmin();
     }
 
     match /products/{productId} { allow read: if true; allow create, update, delete: if isAdmin(); }
