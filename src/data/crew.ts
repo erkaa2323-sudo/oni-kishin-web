@@ -47,14 +47,15 @@ export type CrewMember = {
   traits: { label: string; value: string }[];
 };
 
-function safePortraitUrl(value: string | undefined): string | undefined {
+export function safePortraitUrl(value: string | undefined): string | undefined {
   const v = (value ?? "").trim();
   if (/^https?:\/\/\S+$/i.test(v)) return v;
+  if (/^\/(?!\/)[^\s]+$/.test(v)) return v;
   if (/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
   return undefined;
 }
 
-function fallbackPortrait(callsign: string, role: string | undefined, index: number): string {
+export function fallbackPortrait(callsign: string, role: string | undefined, index: number): string {
   const identity = `${callsign} ${role ?? ""}`.toLowerCase();
   if (identity.includes("kitsune") || /(^|\s)leader($|\s)/.test(identity)) return crew01;
   if (identity.includes("hugo") || identity.includes("co-leader")) return crew02;
