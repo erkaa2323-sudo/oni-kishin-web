@@ -62,6 +62,17 @@ export async function unlockVaultItem(itemId: string) {
     if (p.xp < item.minXp) throw new Error("rank_required");
     if (p.coin < item.price) throw new Error("coin_required");
     tx.update(ref, { coin: p.coin - item.price, unlocked: [...p.unlocked, item.id], updatedAt: serverTimestamp() });
+    tx.set(doc(firebaseDb, "socialEvents", `${user.uid}_cosmetic_${item.id}`), {
+      uid: user.uid,
+      nickname: p.nickname,
+      type: "cosmetic_unlock",
+      itemId: item.id,
+      title: `${p.nickname} шинэ cosmetic unlock хийлээ`,
+      detail: `${item.name} · ${item.rarity}`,
+      targetUrl: "/progression",
+      reactions: 0,
+      createdAt: serverTimestamp(),
+    });
   });
 }
 
@@ -102,6 +113,17 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
     tx.set(claimRef, { uid: user.uid, meetStartAt: start, claimNonce: nonce, updatedAt: serverTimestamp() });
     tx.set(doc(firebaseDb, "progressionLedger", `${user.uid}_${nonce}`), { uid: user.uid, sourceType: "meet_attendance", sourceKey: nonce, xp: reward.xp, coin: reward.coin, meetStartAt: start, createdAt: serverTimestamp() });
     tx.update(profileRef, { xp: p.xp + reward.xp, coin: p.coin + reward.coin, lifetimeXp: p.lifetimeXp + reward.xp, seasonXp: p.seasonXp + reward.xp, meetCount: p.meetCount + 1, updatedAt: serverTimestamp() });
+    tx.set(doc(firebaseDb, "socialEvents", `${user.uid}_meet_${nonce}`), {
+      uid: user.uid,
+      nickname: p.nickname,
+      type: "meet_attendance",
+      sourceKey: nonce,
+      title: `${p.nickname} ONI Meet-д оролцлоо`,
+      detail: `+${reward.xp} XP · +${reward.coin} ONI`,
+      targetUrl: "/meet",
+      reactions: 0,
+      createdAt: serverTimestamp(),
+    });
     return "claimed" as const;
   });
 }
