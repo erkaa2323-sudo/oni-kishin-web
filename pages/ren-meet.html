@@ -8,16 +8,20 @@
   <style>
     :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050506;color:#f5f5f7}body{min-height:100svh;overflow:hidden}
-    body:before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 50% 46%,rgba(146,8,26,.22),transparent 43%),linear-gradient(180deg,#070708,#020203);pointer-events:none}
+    body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(155,8,28,.22),transparent 45%),linear-gradient(180deg,#070708,#020203);pointer-events:none}
     .shell{position:relative;min-height:100svh;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);display:grid;grid-template-rows:auto 1fr auto;gap:10px}
-    .top{display:flex;align-items:center;justify-content:space-between;padding:15px 12px;border-bottom:1px solid rgba(255,45,65,.28);letter-spacing:.22em;font-size:11px;font-weight:700}.brand{font-size:17px;letter-spacing:.23em}.sub{color:rgba(255,255,255,.42);font-size:9px;margin-top:4px}.status{color:#8ef0ba}.status.bad{color:#ff4458}
-    .frame{position:relative;min-height:0;border:1px solid rgba(255,255,255,.12);overflow:hidden;background:rgba(0,0,0,.22);box-shadow:0 0 50px rgba(120,0,18,.12)}
-    #stage{position:absolute;inset:34px 0 70px}canvas{display:block;width:100%;height:100%;touch-action:none}
-    .label{position:absolute;left:16px;top:14px;z-index:4;font-size:10px;font-weight:700;letter-spacing:.19em;color:rgba(255,255,255,.58)}
-    #diag{position:absolute;left:16px;right:16px;bottom:14px;z-index:4;padding:10px 12px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.58);font-size:9px;line-height:1.5;letter-spacing:.08em;color:rgba(255,255,255,.52);backdrop-filter:blur(14px)}
-    #loading{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.44)}
-    .foot{padding:11px 12px;color:rgba(255,255,255,.45);font-size:9px;line-height:1.5;letter-spacing:.11em;text-align:center}
-    @media(min-width:800px){.shell{max-width:920px;margin:auto}.frame{min-height:720px}.brand{font-size:20px}}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:15px 12px;border-bottom:1px solid rgba(255,45,65,.28);letter-spacing:.22em;font-size:11px;font-weight:700}.brand{font-size:17px;letter-spacing:.23em}.sub{color:rgba(255,255,255,.42);font-size:9px;margin-top:4px}.status{display:flex;align-items:center;gap:6px;color:#8ef0ba}.status:before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;box-shadow:0 0 12px currentColor}.status.bad{color:#ff4458}
+    .frame{position:relative;min-height:0;border:1px solid rgba(255,255,255,.12);overflow:hidden;background:rgba(0,0,0,.32);box-shadow:0 18px 60px rgba(120,0,18,.14)}
+    .frame:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 58%,rgba(180,20,38,.20),rgba(52,4,12,.08) 34%,transparent 64%);pointer-events:none}
+    .frame:after{content:"";position:absolute;left:8%;right:8%;bottom:66px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,65,.40),transparent);pointer-events:none}
+    #stage{position:absolute;inset:34px 0 64px}canvas{display:block;width:100%;height:100%;touch-action:none}
+    .label{position:absolute;left:14px;top:13px;z-index:4;display:flex;align-items:center;gap:8px;font-size:9px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.58)}
+    .chip{border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.34);padding:3px 6px;font-size:7px;letter-spacing:.15em;color:rgba(255,255,255,.35)}
+    #diag{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;padding:9px 11px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.62);font-size:8px;line-height:1.5;letter-spacing:.08em;color:rgba(255,255,255,.48);backdrop-filter:blur(14px)}
+    #loading{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:9px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.35)}
+    .cornerA,.cornerB{position:absolute;z-index:5;width:22px;height:22px;pointer-events:none}.cornerA{left:0;top:0;border-left:1px solid rgba(255,45,65,.55);border-top:1px solid rgba(255,45,65,.55)}.cornerB{right:0;bottom:0;border-right:1px solid rgba(255,45,65,.36);border-bottom:1px solid rgba(255,45,65,.36)}
+    .foot{padding:10px 12px;color:rgba(255,255,255,.42);font-size:8px;line-height:1.5;letter-spacing:.12em;text-align:center}
+    @media(min-width:800px){.shell{max-width:920px;margin:auto}.frame{min-height:720px}.brand{font-size:20px}#stage{inset:38px 0 68px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
@@ -27,12 +31,13 @@
   <main class="shell">
     <header class="top"><div><div class="brand">ONI HUB</div><div class="sub">ONI AND KISHIN · GITHUB HOST</div></div><div id="status" class="status">SYNC</div></header>
     <section class="frame">
-      <div class="label">GANTZERT + FELIXANDER / MEET HOST</div>
+      <i class="cornerA"></i><i class="cornerB"></i>
+      <div class="label">GANTZERT + FELIXANDER <span class="chip">SWORD / DRAGON</span></div>
       <div id="stage"></div>
-      <div id="loading">SUMMONING SWORD + DRAGON HOST…</div>
-      <div id="diag">Cubism2 stable runtime · Vercel required: NO</div>
+      <div id="loading">SUMMONING HOST…</div>
+      <div id="diag">ALWAYS-ON MEET GUARD · Cubism2 stable runtime · Vercel required: NO</div>
     </section>
-    <footer class="foot">ONI MEET · Gantzert swordsman + Felixander flying dragon</footer>
+    <footer class="foot">ONI MEET · full-body swordsman + dragon composition</footer>
   </main>
   <script>
     (async function(){
@@ -48,7 +53,7 @@
 
         const canvas=document.createElement("canvas");
         stage.replaceChildren(canvas);
-        app=new PIXI.Application({view:canvas,transparent:true,antialias:true,autoStart:true,resolution:Math.min(devicePixelRatio||1,1.35),autoDensity:true});
+        app=new PIXI.Application({view:canvas,transparent:true,antialias:true,autoStart:true,resolution:Math.min(devicePixelRatio||1,innerWidth<640?1.2:1.55),autoDensity:true});
         model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
         model.anchor.set(.5,.5);model.scale.set(1);
         baseW=Math.max(model.width,1);baseH=Math.max(model.height,1);
@@ -57,9 +62,10 @@
         const fit=()=>{
           const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
           app.renderer.resize(w,h);
-          const scale=Math.min((w*.94)/baseW,(h*.92)/baseH);
-          model.scale.set(scale);model.x=w*.5;model.y=h*.51;
-          setDiag(`ONLINE · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · PIXI=6.5.10 · CUBISM2`);
+          const safeW=w*(w<520?.965:.94),safeH=h*(w<520?.975:.95);
+          const scale=Math.min(safeW/baseW,safeH/baseH);
+          model.scale.set(scale);model.x=w*.5;model.y=h*(w<520?.515:.51);
+          setDiag(`ONLINE · FULL BODY · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · PIXI=6.5.10 · CUBISM2`);
         };
         fit();observer=new ResizeObserver(fit);observer.observe(stage);
         try{model.motion("idle",0)}catch{}
