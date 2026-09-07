@@ -8,20 +8,22 @@
   <style>
     :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050506;color:#f5f5f7}body{min-height:100svh;overflow:hidden}
-    body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(155,8,28,.22),transparent 45%),linear-gradient(180deg,#070708,#020203);pointer-events:none}
+    body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 52% 58%,rgba(190,15,38,.26),transparent 44%),linear-gradient(180deg,#070708,#020203);pointer-events:none}
     .shell{position:relative;min-height:100svh;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);display:grid;grid-template-rows:auto 1fr auto;gap:10px}
     .top{display:flex;align-items:center;justify-content:space-between;padding:15px 12px;border-bottom:1px solid rgba(255,45,65,.28);letter-spacing:.22em;font-size:11px;font-weight:700}.brand{font-size:17px;letter-spacing:.23em}.sub{color:rgba(255,255,255,.42);font-size:9px;margin-top:4px}.status{display:flex;align-items:center;gap:6px;color:#8ef0ba}.status:before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;box-shadow:0 0 12px currentColor}.status.bad{color:#ff4458}
-    .frame{position:relative;min-height:0;border:1px solid rgba(255,255,255,.12);overflow:hidden;background:rgba(0,0,0,.32);box-shadow:0 18px 60px rgba(120,0,18,.14)}
-    .frame:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 58%,rgba(180,20,38,.20),rgba(52,4,12,.08) 34%,transparent 64%);pointer-events:none}
-    .frame:after{content:"";position:absolute;left:8%;right:8%;bottom:66px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,65,.40),transparent);pointer-events:none}
-    #stage{position:absolute;inset:34px 0 64px}canvas{display:block;width:100%;height:100%;touch-action:none}
-    .label{position:absolute;left:14px;top:13px;z-index:4;display:flex;align-items:center;gap:8px;font-size:9px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.58)}
-    .chip{border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.34);padding:3px 6px;font-size:7px;letter-spacing:.15em;color:rgba(255,255,255,.35)}
-    #diag{position:absolute;left:8px;right:8px;bottom:8px;z-index:4;padding:9px 11px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.62);font-size:8px;line-height:1.5;letter-spacing:.08em;color:rgba(255,255,255,.48);backdrop-filter:blur(14px)}
+    .frame{position:relative;min-height:0;border:1px solid rgba(255,45,65,.22);overflow:hidden;background:rgba(0,0,0,.42);box-shadow:0 26px 80px rgba(0,0,0,.58)}
+    .frame:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(96,0,14,.20),transparent 34%,rgba(0,0,0,.12) 58%,rgba(96,0,14,.12)),radial-gradient(ellipse at 52% 64%,rgba(210,26,48,.24),rgba(70,5,14,.08) 35%,transparent 68%);pointer-events:none}
+    .frame:after{content:"";position:absolute;left:10%;right:10%;bottom:54px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,65,.55),transparent);pointer-events:none}
+    #stage{position:absolute;inset:28px 0 4px}canvas{display:block;width:100%;height:100%;touch-action:none}
+    .label{position:absolute;left:14px;top:13px;z-index:5;display:flex;align-items:center;gap:8px;border-left:2px solid rgba(255,45,65,.72);padding-left:8px;font-size:9px;font-weight:700;letter-spacing:.20em;color:rgba(255,255,255,.68)}
+    .chip{border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.40);padding:3px 6px;font-size:7px;letter-spacing:.15em;color:rgba(255,255,255,.35)}
+    .hud{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:48px 14px 13px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.70) 42%,rgba(0,0,0,.97));pointer-events:none}
+    .hudrow{display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.sector{font-size:7px;letter-spacing:.20em;color:rgba(255,62,82,.78);margin-bottom:6px}.copy{font-size:10px;line-height:1.45;color:rgba(255,255,255,.86);max-width:82%}.riders{font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,.82);text-align:right}.riders span{display:block;margin-top:5px;font:600 7px/1 Inter,system-ui;letter-spacing:.18em;color:rgba(255,255,255,.28)}
+    #diag{display:none}
     #loading{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:9px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.35)}
-    .cornerA,.cornerB{position:absolute;z-index:5;width:22px;height:22px;pointer-events:none}.cornerA{left:0;top:0;border-left:1px solid rgba(255,45,65,.55);border-top:1px solid rgba(255,45,65,.55)}.cornerB{right:0;bottom:0;border-right:1px solid rgba(255,45,65,.36);border-bottom:1px solid rgba(255,45,65,.36)}
-    .foot{padding:10px 12px;color:rgba(255,255,255,.42);font-size:8px;line-height:1.5;letter-spacing:.12em;text-align:center}
-    @media(min-width:800px){.shell{max-width:920px;margin:auto}.frame{min-height:720px}.brand{font-size:20px}#stage{inset:38px 0 68px}}
+    .side{position:absolute;right:-28px;top:50%;z-index:5;transform:translateY(-50%) rotate(90deg);font-size:7px;letter-spacing:.26em;color:rgba(255,255,255,.14);pointer-events:none}.cornerA,.cornerB{position:absolute;z-index:6;width:28px;height:28px;pointer-events:none}.cornerA{left:0;top:0;border-left:1px solid rgba(255,45,65,.72);border-top:1px solid rgba(255,45,65,.72)}.cornerB{right:0;bottom:0;border-right:1px solid rgba(255,45,65,.45);border-bottom:1px solid rgba(255,45,65,.45)}
+    .foot{padding:10px 12px;color:rgba(255,255,255,.36);font-size:8px;line-height:1.5;letter-spacing:.12em;text-align:center}
+    @media(min-width:800px){.shell{max-width:920px;margin:auto}.frame{min-height:720px}.brand{font-size:20px}#stage{inset:30px 0 4px}.copy{font-size:12px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
@@ -32,12 +34,14 @@
     <header class="top"><div><div class="brand">ONI HUB</div><div class="sub">ONI AND KISHIN · GITHUB HOST</div></div><div id="status" class="status">SYNC</div></header>
     <section class="frame">
       <i class="cornerA"></i><i class="cornerB"></i>
-      <div class="label">GANTZERT + FELIXANDER <span class="chip">SWORD / DRAGON</span></div>
+      <div class="label">MEET GUARD // GANTZERT <span class="chip">FELIXANDER ACTIVE</span></div>
+      <div class="side">ONI // ALWAYS-ON HOST</div>
       <div id="stage"></div>
       <div id="loading">SUMMONING HOST…</div>
-      <div id="diag">ALWAYS-ON MEET GUARD · Cubism2 stable runtime · Vercel required: NO</div>
+      <div class="hud"><div class="sector">ONI // SECTOR 05 — SWORD + DRAGON</div><div class="hudrow"><div class="copy">Gantzert ба Felixander дараагийн ONI MEET-ийг хүлээж байна.</div><div class="riders">1/20<span>RIDERS</span></div></div></div>
+      <div id="diag"></div>
     </section>
-    <footer class="foot">ONI MEET · full-body swordsman + dragon composition</footer>
+    <footer class="foot">ONI MEET · cinematic mobile host composition</footer>
   </main>
   <script>
     (async function(){
@@ -60,12 +64,12 @@
         app.stage.addChild(model);
 
         const fit=()=>{
-          const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
+          const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1),mobile=w<520;
           app.renderer.resize(w,h);
-          const safeW=w*(w<520?.965:.94),safeH=h*(w<520?.975:.95);
+          const safeW=w*(mobile?1.055:.99),safeH=h*(mobile?1.045:.995);
           const scale=Math.min(safeW/baseW,safeH/baseH);
-          model.scale.set(scale);model.x=w*.5;model.y=h*(w<520?.515:.51);
-          setDiag(`ONLINE · FULL BODY · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · PIXI=6.5.10 · CUBISM2`);
+          model.scale.set(scale);model.x=w*(mobile?.525:.515);model.y=h*(mobile?.475:.49);
+          setDiag(`ONLINE · HERO FIT · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · PIXI=6.5.10 · CUBISM2`);
         };
         fit();observer=new ResizeObserver(fit);observer.observe(stage);
         try{model.motion("idle",0)}catch{}
