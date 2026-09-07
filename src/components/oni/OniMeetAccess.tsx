@@ -11,6 +11,7 @@ import {
 
 import garageBay from "@/assets/garage/garage-bay.jpg";
 import type { MemberAccount } from "@/data/member-auth";
+import { subscribeActiveMeet, subscribeMeetParticipants } from "@/data/meet-realtime";
 import {
   CPM_ID_MAX,
   CPM_LAUNCH_FALLBACK_LABEL,
@@ -66,7 +67,8 @@ function countdownPhase(iso: string | null, now: number): { phase: CountdownPhas
   if (!iso) return { phase: "none", seconds: 0 };
   const diff = new Date(iso).getTime() - now;
   const seconds = Math.max(0, Math.ceil(diff / 1000));
-  if (diff <= 0) return diff > -8_000 ? { phase: "go", seconds: 0 } : { phase: "none", seconds: 0 };
+  if (diff <= 0)
+    return diff > -8_000 ? { phase: "go", seconds: 0 } : { phase: "none", seconds: 0 };
   if (diff <= 10_000) return { phase: "final10", seconds };
   if (diff <= 60_000) return { phase: "one", seconds };
   if (diff <= 5 * 60_000) return { phase: "five", seconds };
@@ -104,12 +106,52 @@ export function OniMeetAccess() {
     void load();
   }, [load]);
 
+  // Keep Admin changes (time/status/capacity) live without a page refresh.
+  useEffect(
+    () =>
+      subscribeActiveMeet(
+        (next) => {
+          setLoadState("ok");
+          setLoadError("");
+          setSession((current) => {
+            if (!next) return null;
+            return {
+              ...next,
+              registered: current?.id === next.id ? current.registered : next.registered,
+            };
+          });
+        },
+        (reason) => {
+          setLoadState("error");
+          setLoadError(reason);
+        },
+      ),
+    [],
+  );
+
   const now = useTick(!!session);
   const life = useMemo(() => deriveLifecycle(session, now), [session, now]);
-  const countdown = useMemo(() => countdownPhase(session?.scheduledAt ?? null, now), [session?.scheduledAt, now]);
+  const countdown = useMemo(
+    () => countdownPhase(session?.scheduledAt ?? null, now),
+    [session?.scheduledAt, now],
+  );
   const approved = memberAccount?.status === "approved";
   const open = canRegister(life) && state !== "registered" && approved;
   const sessionId = session?.id ?? null;
+
+  // Public roster is realtime too, and is the canonical participant count.
+  useEffect(() => {
+    if (!sessionId) {
+      setParticipants([]);
+      return;
+    }
+    return subscribeMeetParticipants(sessionId, (next) => {
+      setParticipants(next);
+      setSession((current) =>
+        current?.id === sessionId ? { ...current, registered: next.length } : current,
+      );
+    });
+  }, [sessionId]);
 
   const onMemberAccount = useCallback((account: MemberAccount | null) => {
     setMemberAccount(account);
