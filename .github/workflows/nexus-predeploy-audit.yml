@@ -11,6 +11,7 @@ on:
       - src/lib/nexus-push.functions.ts
       - src/lib/nexus-push-admin.ts
       - src/components/oni/OniNexusDock.tsx
+      - src/components/oni/NexusMeetPushBridge.tsx
       - src/routes/__root.tsx
       - src/data/admin.ts
       - firestore.nexus.rules.fragment
@@ -37,7 +38,7 @@ jobs:
           bun run typecheck 2>&1 | tee /tmp/typecheck.log
           status=${PIPESTATUS[0]}
           set -e
-          if grep -E 'src/(lib/(pwa|nexus-push|nexus-push\.functions|nexus-push-admin)|components/oni/OniNexusDock|routes/__root|data/admin)\.tsx?\(' /tmp/typecheck.log; then
+          if grep -E 'src/(lib/(pwa|nexus-push|nexus-push\.functions|nexus-push-admin)|components/oni/(OniNexusDock|NexusMeetPushBridge)|routes/__root|data/admin)\.tsx?\(' /tmp/typecheck.log; then
             echo "ONI NEXUS-specific TypeScript errors found."
             exit 1
           fi
@@ -52,4 +53,5 @@ jobs:
           test -f public/manifest.webmanifest
           grep -q 'self.addEventListener("push"' public/sw.js
           grep -q 'ONI NEXUS' public/manifest.webmanifest
+          grep -q 'sendNexusMeetPush' src/components/oni/NexusMeetPushBridge.tsx
           echo "ONI NEXUS PWA/push assets present."
