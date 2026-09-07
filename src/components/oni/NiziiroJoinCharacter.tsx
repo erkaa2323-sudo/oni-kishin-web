@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  checkJoinMembershipStatus,
+  JOIN_MEMBERSHIP_WATCH_EVENT,
+  readJoinMembershipWatch,
+  saveJoinMembershipWatch,
+  type JoinMembershipWatch,
+} from "@/data/join";
+
 type JoinGuideState = "idle" | "engaged" | "loading" | "success" | "error";
+type MembershipPhase = "none" | "checking" | "pending" | "accepted";
 
 type Props = {
   state: JoinGuideState;
@@ -10,7 +19,21 @@ type Props = {
 const MAO_MODEL_URL =
   "https://raw.githubusercontent.com/Live2D/CubismWebSamples/b1de66b0b1f1cb881d95fb6158622aeb6a2827bd/Samples/Resources/Mao/Mao.model3.json";
 
-function guideCopy(state: JoinGuideState, nickname?: string) {
+const LAST_APPLICATION_KEY = "oni_join_last_application_v1";
+const APPROVAL_RELOAD_KEY = "oni_join_approval_reload_v1";
+
+function guideCopy(
+  state: JoinGuideState,
+  nickname?: string,
+  membership?: MembershipPhase,
+  reference?: string,
+) {
+  if (membership === "accepted") {
+    return `${nickname?.trim() || "Rider"}, ONI & KISHIN-д тавтай морил! Таны хүсэлт зөвшөөрөгдөж Crew-д нэмэгдлээ.`;
+  }
+  if ((membership === "pending" || membership === "checking") && reference) {
+    return `${nickname?.trim() || "Rider"}, таны хүсэлт хянагдаж байна. REF / ${reference}`;
+  }
   if (state === "success") return "Амжилттай! Хүсэлтийг хүлээн авлаа.";
   if (state === "loading") return "Хүсэлтийг аюулгүй дамжуулж байна…";
   if (state === "error") return "Илгээхэд асуудал гарлаа. Мэдээллээ шалгаад дахин оролдоорой.";
@@ -21,6 +44,12 @@ function guideCopy(state: JoinGuideState, nickname?: string) {
 export function NiziiroJoinCharacter({ state, nickname }: Props) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [runtime, setRuntime] = useState<"loading" | "ready" | "failed">("loading");
+  const [watch, setWatch] = useState<JoinMembershipWatch | null>(null);
+  const [membership, setMembership] = useState<MembershipPhase>("none");
+  const [approvedNickname, setApprovedNickname] = useState("");
+
+  const effectiveState: JoinGuideState = membership === "accepted" ? "success" : state;
+  const displayNickname = approvedNickname || nickname?.trim() || watch?.cpmNickname || "";
 
   const srcDoc = useMemo(
     () => `<!doctype html>
@@ -111,7 +140,11 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
       applyState(currentState);
       if(loading) loading.remove();
       send("ready");
-      window.setInterval(function(){ if(model&&currentState==="idle") safeMotion("Idle",tapCycle%2); },7000);
+      window.setInterval(function(){
+        if(!model) return;
+        if(currentState==="idle") safeMotion("Idle",tapCycle%2);
+        if(currentState==="success") safeMotion("TapBody",4);
+      },7000);
     }).catch(function(error){ console.error("[ONI Join] Niziiro Mao load failed",error); if(loading) loading.textContent="LIVE2D OFFLINE"; send("failed"); });
   }catch(error){ console.error("[ONI Join] Live2D init failed",error); if(loading) loading.textContent="LIVE2D OFFLINE"; send("failed"); }
 })();
@@ -120,6 +153,87 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 </html>`,
     [],
   );
+
+  useEffect(() => {
+    const loadWatch = () => {
+      const next = readJoinMembershipWatch();
+      setWatch(next);
+      if (!next) {
+        setMembership("none");
+        setApprovedNickname("");
+        return;
+      }
+      if (next.accepted) {
+        setMembership("accepted");
+        setApprovedNickname(next.cpmNickname);
+      } else {
+        setMembership("pending");
+      }
+    };
+
+    loadWatch();
+    window.addEventListener(JOIN_MEMBERSHIP_WATCH_EVENT, loadWatch);
+    return () => window.removeEventListener(JOIN_MEMBERSHIP_WATCH_EVENT, loadWatch);
+  }, []);
+
+  useEffect(() => {
+    if (!watch || watch.accepted) return;
+
+    let cancelled = false;
+    let timer = 0;
+
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(run, 25_000);
+    };
+
+    const run = async () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") {
+        schedule();
+        return;
+      }
+
+      setMembership((current) => (current === "accepted" ? current : "checking"));
+      const result = await checkJoinMembershipStatus(watch);
+      if (cancelled) return;
+
+      if (result.state === "accepted") {
+        const acceptedWatch: JoinMembershipWatch = {
+          ...watch,
+          accepted: true,
+          memberId: result.memberId,
+        };
+        setApprovedNickname(result.nickname || watch.cpmNickname);
+        setMembership("accepted");
+        saveJoinMembershipWatch(acceptedWatch);
+
+        try {
+          window.localStorage.removeItem(LAST_APPLICATION_KEY);
+          if (!window.sessionStorage.getItem(APPROVAL_RELOAD_KEY)) {
+            window.sessionStorage.setItem(APPROVAL_RELOAD_KEY, "1");
+            window.setTimeout(() => window.location.reload(), 1800);
+          }
+        } catch {
+          // The accepted state is already visible even if storage is unavailable.
+        }
+        return;
+      }
+
+      setMembership("pending");
+      schedule();
+    };
+
+    const onFocus = () => void run();
+    void run();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [watch]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -134,19 +248,59 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 
   useEffect(() => {
     frameRef.current?.contentWindow?.postMessage(
-      { source: "oni-join-parent", type: "state", state },
+      { source: "oni-join-parent", type: "state", state: effectiveState },
       "*",
     );
-  }, [state, runtime]);
+  }, [effectiveState, runtime]);
+
+  const statusBadge =
+    membership === "accepted"
+      ? "APPROVED"
+      : membership === "checking"
+        ? "CHECKING"
+        : membership === "pending"
+          ? "PENDING"
+          : runtime === "ready"
+            ? "ONLINE"
+            : runtime === "failed"
+              ? "OFFLINE"
+              : "SYNC";
+
+  const statusClass =
+    membership === "accepted" || runtime === "ready"
+      ? "text-emerald-300/80"
+      : runtime === "failed"
+        ? "text-crimson"
+        : "text-white/40";
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/20 shadow-2xl shadow-crimson/10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]" />
+    <div
+      className={`relative overflow-hidden rounded-[28px] border bg-black/20 shadow-2xl transition-colors duration-700 ${
+        membership === "accepted"
+          ? "border-emerald-300/35 shadow-emerald-400/10"
+          : "border-white/10 shadow-crimson/10"
+      }`}
+    >
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          membership === "accepted"
+            ? "bg-[radial-gradient(circle_at_50%_58%,rgba(110,255,190,0.19),transparent_54%)]"
+            : "bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]"
+        }`}
+      />
+
+      {membership === "accepted" ? (
+        <div className="pointer-events-none absolute inset-0 z-[2] opacity-70">
+          <span className="absolute left-[12%] top-[18%] h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-200" />
+          <span className="absolute right-[16%] top-[28%] h-1 w-1 animate-pulse rounded-full bg-white" />
+          <span className="absolute left-[20%] top-[48%] h-1 w-1 animate-pulse rounded-full bg-white" />
+          <span className="absolute right-[18%] top-[58%] h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-200" />
+        </div>
+      ) : null}
+
       <div className="pointer-events-none absolute inset-x-5 top-4 z-10 flex items-center justify-between text-[0.58rem] font-semibold tracking-[0.2em] text-white/55">
         <span>NIZIIRO MAO / LIVE2D</span>
-        <span className={runtime === "ready" ? "text-emerald-300/80" : runtime === "failed" ? "text-crimson" : "text-white/40"}>
-          {runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC"}
-        </span>
+        <span className={statusClass}>{statusBadge}</span>
       </div>
 
       <iframe
@@ -156,15 +310,43 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         className="relative z-[1] block h-[360px] w-full border-0 sm:h-[430px] lg:h-[500px]"
         onLoad={() =>
           frameRef.current?.contentWindow?.postMessage(
-            { source: "oni-join-parent", type: "state", state },
+            { source: "oni-join-parent", type: "state", state: effectiveState },
             "*",
           )
         }
       />
 
-      <div className="pointer-events-none absolute inset-x-4 bottom-4 z-10 rounded-2xl border border-white/10 bg-black/55 px-4 py-3 backdrop-blur-xl">
-        <p className="text-xs leading-relaxed text-white/88">{guideCopy(state, nickname)}</p>
-        <p className="mt-1 text-[0.6rem] tracking-[0.14em] text-white/40">ДҮР ДЭЭР ДАРЖ REACTION ҮЗЭЭРЭЙ</p>
+      <div
+        className={`absolute inset-x-4 bottom-4 z-10 rounded-2xl border px-4 py-3 backdrop-blur-xl ${
+          membership === "accepted"
+            ? "border-emerald-300/25 bg-black/65"
+            : "pointer-events-none border-white/10 bg-black/55"
+        }`}
+      >
+        <p className="text-xs leading-relaxed text-white/88">
+          {guideCopy(effectiveState, displayNickname, membership, watch?.reference)}
+        </p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <p
+            className={`text-[0.6rem] tracking-[0.14em] ${
+              membership === "accepted" ? "text-emerald-200/80" : "text-white/40"
+            }`}
+          >
+            {membership === "accepted"
+              ? "APPROVED · CREW ACTIVE"
+              : membership === "pending" || membership === "checking"
+                ? "AUTO STATUS · 25 SEC"
+                : "ДҮР ДЭЭР ДАРЖ REACTION ҮЗЭЭРЭЙ"}
+          </p>
+          {membership === "accepted" ? (
+            <a
+              href="/crew"
+              className="shrink-0 border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-[0.58rem] font-semibold tracking-[0.14em] text-emerald-100 transition-colors hover:bg-emerald-300/20"
+            >
+              CREW-Д ОРОХ
+            </a>
+          ) : null}
+        </div>
       </div>
     </div>
   );
