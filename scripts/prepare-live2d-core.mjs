@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { inflateRawSync } from "node:zlib";
 
@@ -7,6 +7,9 @@ const SDK_VERSION = "5-r.5";
 const ARCHIVE_URL = `https://cubism.live2d.com/sdk-web/bin/CubismSdkForWeb-${SDK_VERSION}.zip`;
 const ARCHIVE_SHA256 = "67064a7fb1812cf502f5c4a03bfe12cc638c75a621bb4acf06bb28763df06ba0";
 const ROOT = `CubismSdkForWeb-${SDK_VERSION}`;
+const REN_SOURCE = resolve("src/components/oni/RenMeetHost.tsx");
+const HOSTED_CORE_URL = "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js";
+const LOCAL_CORE_URL = "/vendor/live2d/live2dcubismcore.js";
 
 const OUTPUTS = [
   [`${ROOT}/Core/live2dcubismcore.js`, "public/vendor/live2d/live2dcubismcore.js"],
@@ -69,6 +72,20 @@ function extractZipEntry(buffer, wantedName) {
   throw new Error(`ZIP entry not found: ${wantedName}`);
 }
 
+async function pinRenToLocalCore() {
+  const source = await readFile(REN_SOURCE, "utf8");
+  if (source.includes(LOCAL_CORE_URL)) {
+    console.log("[live2d] Ren already points to local Cubism Core");
+    return;
+  }
+  if (!source.includes(HOSTED_CORE_URL)) {
+    throw new Error("[live2d] Ren Core URL marker not found");
+  }
+
+  await writeFile(REN_SOURCE, source.replaceAll(HOSTED_CORE_URL, LOCAL_CORE_URL), "utf8");
+  console.log(`[live2d] Ren compile target pinned to ${LOCAL_CORE_URL}`);
+}
+
 async function main() {
   console.log(`[live2d] downloading official Cubism SDK ${SDK_VERSION}`);
   const response = await fetch(ARCHIVE_URL, { redirect: "follow" });
@@ -89,6 +106,8 @@ async function main() {
     await writeFile(path, data);
     console.log(`[live2d] prepared ${destination} (${data.length} bytes)`);
   }
+
+  await pinRenToLocalCore();
 }
 
 main().catch((error) => {
