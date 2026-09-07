@@ -1,10 +1,8 @@
 /**
- * ONI MEET — live meet data boundary (Lovable Cloud).
+ * ONI MEET — Firestore-backed meet data boundary.
  *
- * Room ID / password NEVER travel through this module. They live in the
- * isolated `meet_credentials` table which no public path can read.
- * Registration rules (deadline, capacity, duplicates) are enforced by the
- * database function `meet_register`, not only by this UI layer.
+ * Room ID / password are kept in the protected `meetCredentials` collection.
+ * Firestore Rules remain the authority for registration, capacity and access.
  */
 
 import {
@@ -12,10 +10,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   runTransaction,
   serverTimestamp,
   where,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { fetchMemberAccount } from "@/data/member-auth";
 import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
@@ -47,7 +47,14 @@ export function cpmLaunchUrl(userAgent?: string): string {
 }
 
 export type MeetLifecycle =
-  "none" | "scheduled" | "starting_soon" | "open" | "closed" | "full" | "active" | "ended";
+  | "none"
+  | "scheduled"
+  | "starting_soon"
+  | "open"
+  | "closed"
+  | "full"
+  | "active"
+  | "ended";
 
 export type MeetSession = {
   id: string;
@@ -68,7 +75,8 @@ export type MeetParticipant = {
 export type MeetCredentials = { roomId: string; password: string };
 
 export type MeetLoad =
-  { status: "ok"; session: MeetSession | null } | { status: "error"; reason: string };
+  | { status: "ok"; session: MeetSession | null }
+  | { status: "error"; reason: string };
 
 export type VerificationInput = {
   cpmNickname: string;
@@ -148,6 +156,13 @@ export const REGISTRATION_MESSAGE: Record<RegistrationOutcome, string> = {
   error: "Бүртгэл хийх үед алдаа гарлаа. Дахин оролдоно уу.",
 };
 
+function snapshotCredentials(data: Record<string, unknown> | undefined): MeetCredentials | null {
+  if (!data) return null;
+  const roomId = String(data["roomId"] ?? "").trim();
+  const password = String(data["password"] ?? "").trim();
+  return roomId && password ? { roomId, password } : null;
+}
+
 /** Current publicly visible meet. Returns null when none is announced. */
 export async function fetchActiveMeet(): Promise<MeetLoad> {
   try {
@@ -172,6 +187,7 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
       (scheduledAt
         ? new Date(new Date(scheduledAt).getTime() + MEET_REGISTRATION_GRACE_MS).toISOString()
         : null);
+    const registered = participants.docs.filter((entry) => entry.id !== "__counter__").length;
     return {
       status: "ok",
       session: {
@@ -181,10 +197,8 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         endsAt: value(row["endsAt"]),
         registrationClosesAt,
         capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
-        registered:
-          typeof row["registeredCount"] === "number"
-            ? row["registeredCount"]
-            : participants.docs.filter((x) => x.id !== "__counter__").length,
+        // Roster is canonical. Admin-maintained registeredCount can become stale.
+        registered,
         status: row["status"] === "live" ? "live" : "scheduled",
       },
     };
@@ -200,9 +214,9 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
       query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId)),
     );
     return snapshot.docs
-      .filter((x) => x.id !== "__counter__")
-      .map((x) => {
-        const row = x.data();
+      .filter((entry) => entry.id !== "__counter__")
+      .map((entry) => {
+        const row = entry.data();
         const joined = row["joinedAt"];
         return {
           cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
@@ -214,6 +228,18 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
       });
   } catch {
     return [];
+  }
+}
+
+/** Restore the signed-in rider's current Meet registration after refresh/reopen. */
+export async function fetchCurrentMeetRegistration(meetId: string): Promise<boolean> {
+  const user = firebaseAuth.currentUser;
+  if (!user || meetId !== "current") return false;
+  try {
+    const snapshot = await getDoc(doc(firebaseDb, "meetParticipants", user.uid));
+    return snapshot.exists() && snapshot.data()["meetId"] === meetId;
+  } catch {
+    return false;
   }
 }
 
@@ -326,14 +352,31 @@ export async function fetchMeetCredentialsForMember(
   if (!user || meetId !== "current") return null;
   try {
     const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
-    if (!snapshot.exists()) return null;
-    const row = snapshot.data();
-    const roomId = String(row["roomId"] ?? "").trim();
-    const password = String(row["password"] ?? "").trim();
-    return roomId && password ? { roomId, password } : null;
+    return snapshot.exists() ? snapshotCredentials(snapshot.data()) : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Realtime room access. Call only once the lifecycle is `active`; Firestore
+ * Rules intentionally reject credential reads before the Meet start time.
+ */
+export function subscribeMeetCredentialsForMember(
+  meetId: string,
+  onChange: (credentials: MeetCredentials | null) => void,
+): Unsubscribe {
+  const user = firebaseAuth.currentUser;
+  if (!user || meetId !== "current") {
+    onChange(null);
+    return () => undefined;
+  }
+
+  return onSnapshot(
+    doc(firebaseDb, "meetCredentials", meetId),
+    (snapshot) => onChange(snapshot.exists() ? snapshotCredentials(snapshot.data()) : null),
+    () => onChange(null),
+  );
 }
 
 export const CREDENTIAL_GATE_NOTICE =
