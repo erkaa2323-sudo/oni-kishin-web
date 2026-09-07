@@ -54,94 +54,117 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 canvas{display:block;width:100%;height:100%;touch-action:none}
 #loading{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 9px/1.2 system-ui;letter-spacing:.2em;color:rgba(255,255,255,.42)}
 </style>
-<script type="importmap">{"imports":{"pixi.js":"https://esm.sh/pixi.js@8.13.2"}}</script>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi.js@8.13.2/dist/pixi.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/untitled-pixi-live2d-engine@1.3.5/dist/cubism.js"></script>
 </head>
 <body>
-<div id="stage"></div><div id="loading">REN / CUBISM 5.3 INITIALIZING</div>
-<script type="module">
-import { Application, Ticker } from "pixi.js";
-import { Live2DModel } from "https://esm.sh/@laplace.live/pixijs-live2d@0.2.0?external=pixi.js";
+<div id="stage"></div><div id="loading">REN / LIVE2D INITIALIZING</div>
+<script>
+(async function(){
+  const MODEL_URL=${JSON.stringify(REN_MODEL_URL)};
+  const stage=document.getElementById("stage");
+  const loading=document.getElementById("loading");
+  let app=null,model=null,currentState="idle",tapCycle=0,observer=null;
+  const send=(type,error)=>parent.postMessage({source:"oni-ren-meet",type,error:error||""},"*");
+  const expr=(name)=>{try{model&&model.expression&&model.expression(name)}catch(e){}};
+  const motion=(group,index)=>{try{model&&model.motion&&model.motion(group,index)}catch(e){}};
 
-const MODEL_URL=${JSON.stringify(REN_MODEL_URL)};
-const stage=document.getElementById("stage");
-const loading=document.getElementById("loading");
-let app=null, model=null, currentState="idle", tapCycle=0, observer=null;
-const send=(type)=>parent.postMessage({source:"oni-ren-meet",type},"*");
-const expr=(name)=>{try{model?.expression?.(name)}catch{}};
-const motion=(group,index)=>{try{model?.motion?.(group,index)}catch{}};
+  function applyState(next){
+    currentState=next||"idle";
+    if(!model)return;
+    if(currentState==="registered"){expr("exp_05");motion("TapBody",1);return;}
+    if(currentState==="loading"){expr("exp_03");return;}
+    if(currentState==="live"){expr("exp_02");motion("TapBody",0);return;}
+    if(currentState==="open"){expr("exp_02");return;}
+    if(currentState==="full"||currentState==="closed"){expr("exp_04");return;}
+    expr("exp_01");motion("Idle",0);
+  }
 
-function applyState(next){
-  currentState=next||"idle";
-  if(!model) return;
-  if(currentState==="registered"){expr("exp_05");motion("TapBody",1);return;}
-  if(currentState==="loading"){expr("exp_03");return;}
-  if(currentState==="live"){expr("exp_02");motion("TapBody",0);return;}
-  if(currentState==="open"){expr("exp_02");return;}
-  if(currentState==="full"||currentState==="closed"){expr("exp_04");return;}
-  expr("exp_01");motion("Idle",0);
-}
+  function fit(){
+    if(!app||!model)return;
+    const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);
+    app.renderer.resize(w,h);
+    model.scale.set(1);
+    const bounds=model.getLocalBounds ? model.getLocalBounds() : null;
+    const baseW=Math.max(bounds&&bounds.width?bounds.width:model.width||1,1);
+    const baseH=Math.max(bounds&&bounds.height?bounds.height:model.height||1,1);
+    const scale=Math.min((w*.90)/baseW,(h*.91)/baseH);
+    model.scale.set(scale);
+    if(model.anchor&&model.anchor.set)model.anchor.set(.5,.5);
+    if(model.position&&model.position.set)model.position.set(w*.5,h*.50);
+    else{model.x=w*.5;model.y=h*.50;}
+  }
 
-function fit(){
-  if(!app||!model) return;
-  const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);
-  app.renderer.resize(w,h);
-  const sx=model.scale.x||1,sy=model.scale.y||1;
-  const baseW=Math.max(model.width/sx,1),baseH=Math.max(model.height/sy,1);
-  const scale=Math.min((w*.92)/baseW,(h*.94)/baseH);
-  model.scale.set(scale);
-  model.x=w*.5;
-  model.y=h*.51;
-}
+  function focusAt(clientX,clientY){
+    if(!model||!model.focus)return;
+    const rect=stage.getBoundingClientRect();
+    const x=((clientX-rect.left)/Math.max(rect.width,1))*2-1;
+    const y=-(((clientY-rect.top)/Math.max(rect.height,1))*2-1);
+    try{model.focus(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))}catch(e){}
+  }
 
-function focusAt(clientX,clientY){
-  if(!model?.focus) return;
-  const rect=stage.getBoundingClientRect();
-  const x=((clientX-rect.left)/Math.max(rect.width,1))*2-1;
-  const y=-(((clientY-rect.top)/Math.max(rect.height,1))*2-1);
-  try{model.focus(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))}catch{}
-}
+  window.addEventListener("message",(event)=>{
+    const data=event.data;
+    if(!data||data.source!=="oni-meet-parent"||data.type!=="state")return;
+    applyState(data.state);
+  });
+  stage.addEventListener("pointermove",(e)=>focusAt(e.clientX,e.clientY),{passive:true});
+  stage.addEventListener("pointerdown",(e)=>{
+    focusAt(e.clientX,e.clientY);
+    tapCycle=(tapCycle+1)%2;
+    expr(tapCycle?"exp_03":"exp_02");
+    motion("TapBody",tapCycle);
+    window.setTimeout(()=>applyState(currentState),1500);
+  },{passive:true});
 
-window.addEventListener("message",(event)=>{
-  const data=event.data;
-  if(!data||data.source!=="oni-meet-parent"||data.type!=="state") return;
-  applyState(data.state);
-});
-stage.addEventListener("pointermove",(e)=>focusAt(e.clientX,e.clientY),{passive:true});
-stage.addEventListener("pointerdown",(e)=>{
-  focusAt(e.clientX,e.clientY);
-  tapCycle=(tapCycle+1)%2;
-  expr(tapCycle?"exp_03":"exp_02");
-  motion("TapBody",tapCycle);
-  window.setTimeout(()=>applyState(currentState),1500);
-},{passive:true});
+  try{
+    if(!window.Live2DCubismCore)throw new Error("Cubism Core unavailable");
+    if(!window.PIXI)throw new Error("PixiJS unavailable");
+    if(!PIXI.live2d||!PIXI.live2d.Live2DModel)throw new Error("Live2D engine unavailable");
 
-document.addEventListener("visibilitychange",()=>{
-  if(!app) return;
-  if(document.hidden) app.stop(); else app.start();
-});
+    if(PIXI.live2d.Live2DPlugin&&PIXI.extensions){
+      try{PIXI.extensions.add(PIXI.live2d.Live2DPlugin)}catch(e){}
+    }
+    if(PIXI.live2d.configureCubismSDK){
+      try{PIXI.live2d.configureCubismSDK({memorySizeMB:32})}catch(e){}
+    }
 
-try{
-  if(!window.Live2DCubismCore) throw new Error("Cubism 5.3 Core unavailable");
-  app=new Application();
-  await app.init({backgroundAlpha:0,antialias:true,resolution:Math.min(devicePixelRatio||1,innerWidth<640?1.25:1.75),autoDensity:true});
-  app.ticker.maxFPS=innerWidth<640?30:45;
-  stage.appendChild(app.canvas);
-  Live2DModel.registerTicker(Ticker);
-  model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
-  model.anchor.set(.5,.5);
-  app.stage.addChild(model);
-  fit();
-  observer=new ResizeObserver(fit);observer.observe(stage);
-  applyState(currentState);
-  loading?.remove();
-  send("ready");
-  window.setInterval(()=>{if(model&&currentState==="idle")motion("Idle",0)},8500);
-}catch(error){
-  console.error("[ONI Meet] Ren Foster init failed",error);
-  if(loading) loading.textContent="REN LIVE2D OFFLINE";
-  send("failed");
-}
+    app=new PIXI.Application();
+    await app.init({
+      backgroundAlpha:0,
+      antialias:true,
+      preference:"webgl",
+      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.15:1.5),
+      autoDensity:true
+    });
+    app.ticker.maxFPS=window.innerWidth<640?30:45;
+    stage.appendChild(app.canvas);
+
+    model=await PIXI.live2d.Live2DModel.from(MODEL_URL,{autoInteract:false});
+    app.stage.addChild(model);
+    fit();
+    observer=new ResizeObserver(fit);
+    observer.observe(stage);
+    applyState(currentState);
+    if(loading)loading.remove();
+    send("ready");
+
+    window.setInterval(()=>{
+      if(model&&currentState==="idle")motion("Idle",0);
+    },8500);
+
+    document.addEventListener("visibilitychange",()=>{
+      if(!app)return;
+      if(document.hidden)app.stop();else app.start();
+    });
+  }catch(error){
+    const message=error instanceof Error?error.message:String(error);
+    console.error("[ONI Meet] Ren Foster init failed",error);
+    if(loading)loading.textContent="REN LIVE2D OFFLINE · "+message;
+    send("failed",message);
+  }
+})();
 </script>
 </body>
 </html>`,
@@ -171,7 +194,15 @@ try{
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(255,65,85,0.16),transparent_56%)]" />
       <div className="pointer-events-none absolute inset-x-4 top-3 z-10 flex items-center justify-between gap-3 text-[0.56rem] font-semibold tracking-[0.18em] text-white/55">
         <span>REN FOSTER / MEET HOST</span>
-        <span className={runtime === "ready" ? "text-emerald-300/80" : runtime === "failed" ? "text-crimson" : "text-white/40"}>
+        <span
+          className={
+            runtime === "ready"
+              ? "text-emerald-300/80"
+              : runtime === "failed"
+                ? "text-crimson"
+                : "text-white/40"
+          }
+        >
           {runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC"}
         </span>
       </div>
@@ -180,7 +211,7 @@ try{
         ref={frameRef}
         title="Ren Foster Live2D Meet host"
         srcDoc={srcDoc}
-        className="absolute inset-0 h-full w-full border-0"
+        className="pointer-events-none absolute inset-0 h-full w-full border-0 lg:pointer-events-auto"
         onLoad={() =>
           frameRef.current?.contentWindow?.postMessage(
             { source: "oni-meet-parent", type: "state", state: hostState },
@@ -193,7 +224,10 @@ try{
         <p className="text-[0.7rem] leading-relaxed text-white/90">{hostCopy(hostState, nickname)}</p>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[0.54rem] tracking-[0.14em] text-white/40">
           <span>ALWAYS-ON HOST</span>
-          <span>{participants}{capacity !== null ? ` / ${capacity}` : ""} RIDERS</span>
+          <span>
+            {participants}
+            {capacity !== null ? ` / ${capacity}` : ""} RIDERS
+          </span>
         </div>
       </div>
     </div>
