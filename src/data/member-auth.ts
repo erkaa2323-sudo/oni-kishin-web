@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
@@ -17,6 +18,8 @@ import {
   setDoc,
   updateDoc,
   where,
+  type QueryDocumentSnapshot,
+  type DocumentData,
 } from "firebase/firestore";
 
 import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
@@ -43,7 +46,10 @@ const accountFrom = (uid: string, row: Record<string, unknown>): MemberAccount =
   memberId: String(row["memberId"] ?? ""),
   nickname: String(row["nickname"] ?? ""),
   cpmId: String(row["cpmId"] ?? ""),
-  status: row["status"] === "approved" || row["status"] === "rejected" ? row["status"] : "pending",
+  status:
+    row["status"] === "approved" || row["status"] === "rejected"
+      ? row["status"]
+      : "pending",
 });
 
 export async function fetchMemberAccount(uid: string): Promise<MemberAccount | null> {
@@ -88,12 +94,17 @@ export function watchMemberAuth(
   };
 }
 
-async function findCrewMember(nickname: string, cpmId: string) {
+async function findCrewMember(
+  nickname: string,
+  cpmId: string,
+): Promise<QueryDocumentSnapshot<DocumentData> | undefined> {
+  const cleanNickname = nickname.trim();
+  const cleanCpmId = cpmId.trim();
   const snapshots = await Promise.all([
-    getDocs(query(collection(firebaseDb, "members"), where("cpmid", "==", cpmId), limit(2))),
-    getDocs(query(collection(firebaseDb, "members"), where("cpmId", "==", cpmId), limit(2))),
+    getDocs(query(collection(firebaseDb, "members"), where("cpmid", "==", cleanCpmId), limit(2))),
+    getDocs(query(collection(firebaseDb, "members"), where("cpmId", "==", cleanCpmId), limit(2))),
   ]);
-  const normalized = nickname.trim().toLocaleLowerCase("mn-MN");
+  const normalized = cleanNickname.toLocaleLowerCase("mn-MN");
   return snapshots
     .flatMap((snapshot) => snapshot.docs)
     .find((entry) => {
@@ -105,18 +116,16 @@ async function findCrewMember(nickname: string, cpmId: string) {
     });
 }
 
-export async function requestMemberAccount(
+async function writePendingMemberAccount(
   user: User,
-  nickname: string,
-  cpmId: string,
+  member: QueryDocumentSnapshot<DocumentData>,
 ): Promise<MemberAccount> {
-  const member = await findCrewMember(nickname.trim(), cpmId.trim());
-  if (!member) throw new Error("crew_not_found");
   const row = member.data();
   const canonicalNickname = String(row["nick"] || row["nickname"] || row["name"] || "").trim();
   const canonicalCpmId = String(row["cpmid"] || row["cpmId"] || "").trim();
   const email = user.email?.trim().toLowerCase() ?? "";
   if (!email) throw new Error("email_required");
+
   await setDoc(doc(firebaseDb, "memberAccounts", user.uid), {
     email,
     memberId: member.id,
@@ -126,6 +135,7 @@ export async function requestMemberAccount(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+
   return {
     uid: user.uid,
     email,
@@ -136,14 +146,36 @@ export async function requestMemberAccount(
   };
 }
 
+export async function requestMemberAccount(
+  user: User,
+  nickname: string,
+  cpmId: string,
+): Promise<MemberAccount> {
+  const member = await findCrewMember(nickname, cpmId);
+  if (!member) throw new Error("crew_not_found");
+  return writePendingMemberAccount(user, member);
+}
+
 export async function registerMemberAccount(
   email: string,
   password: string,
   nickname: string,
   cpmId: string,
 ): Promise<MemberAccount> {
+  // Verify clan membership before creating a Firebase Auth user. This prevents
+  // typo/invalid CPM data from leaving an unusable orphan auth account behind.
+  const member = await findCrewMember(nickname, cpmId);
+  if (!member) throw new Error("crew_not_found");
+
   const credential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password);
-  return requestMemberAccount(credential.user, nickname, cpmId);
+  try {
+    return await writePendingMemberAccount(credential.user, member);
+  } catch (error) {
+    // If Firestore rejects the profile write, roll back the newly created auth
+    // identity so the same email can be retried cleanly.
+    await deleteUser(credential.user).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function signInMember(email: string, password: string): Promise<void> {
