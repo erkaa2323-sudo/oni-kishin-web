@@ -1,6 +1,7 @@
 import { OniAuthProvider } from "@/hooks/useOniAuth";
 import { OniAdminCopilot } from "./OniAdminCopilot";
 import { OniAdminGate } from "./OniAdminGate";
+import { OniCreatorReviewDock } from "./OniCreatorReviewDock";
 
 export function OniAdminPage() {
   return (
@@ -9,6 +10,7 @@ export function OniAdminPage() {
       <OniAuthProvider>
         <OniAdminCopilot />
       </OniAuthProvider>
+      <OniCreatorReviewDock />
     </div>
   );
 }
