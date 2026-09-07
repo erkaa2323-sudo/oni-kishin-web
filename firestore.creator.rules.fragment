@@ -1,0 +1,28 @@
+    match /creatorPublishRequests/{requestId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create: if isApprovedMember()
+        && hasOnlyKeys(request.resource.data, ["uid", "nickname", "cpmId", "preset", "title", "image", "status", "createdAt"])
+        && hasAllKeys(request.resource.data, ["uid", "nickname", "cpmId", "preset", "title", "image", "status", "createdAt"])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == "pending"
+        && requiredText(request.resource.data.nickname, 60)
+        && optionalText(request.resource.data, "cpmId", 60)
+        && request.resource.data.preset in ["profile", "garage", "instagram", "meet", "crew"]
+        && requiredText(request.resource.data.title, 100)
+        && request.resource.data.image is string
+        && request.resource.data.image.matches('^data:image/jpeg;base64,.*')
+        && request.resource.data.image.size() <= 900000
+        && request.resource.data.createdAt is timestamp;
+      allow update: if isAdmin()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname
+        && request.resource.data.cpmId == resource.data.cpmId
+        && request.resource.data.preset == resource.data.preset
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.image == resource.data.image
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ["approved", "rejected"]
+        && request.resource.data.reviewedAt is timestamp
+        && requiredText(request.resource.data.reviewedBy, 120);
+      allow delete: if isAdmin();
+    }
