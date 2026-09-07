@@ -4,7 +4,7 @@ import { OniAiChamber } from "@/components/oni/OniAiChamber";
 import { OniRigBridge } from "@/components/oni/OniRigBridge";
 import "@/components/oni/OniCharacterAlive.css";
 
-const description = "ONI Brain туслах ба кланы хөгжмийн систем нэгдсэн команд танхим.";
+const description = "Oni Shizuki туслах ба кланы хөгжмийн систем нэгдсэн команд танхим.";
 
 function OniAiRoute() {
   return (
