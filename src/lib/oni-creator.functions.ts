@@ -54,7 +54,7 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
       ? { ok: false, code: "UNAUTHENTICATED", message: "Creator ашиглахын тулд эхлээд нэвтэрнэ үү." }
       : { ok: false, code: "NOT_APPROVED", message: "Creator нь зөвшөөрөгдсөн ONI member-д нээлттэй." };
 
-    const token = process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+    const token = process.env["AI_GATEWAY_API_KEY"] || process.env["VERCEL_OIDC_TOKEN"];
     if (!token) return { ok: false, code: "CONFIG_REQUIRED", message: "AI Gateway credential production орчинд тохируулагдаагүй байна." };
 
     const prompt = `Edit the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. Preserve the exact car identity, body proportions, paint colors, decals and wheel design from the source image. Do not invent sponsor logos. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, mobile-first social design. ${data.note || "Keep the car as the hero and make the result feel official, cinematic and premium."}`;
