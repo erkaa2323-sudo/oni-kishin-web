@@ -37,48 +37,66 @@
     import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-live2d@0.2.0/+esm";
 
     const MODEL_URL="https://raw.githubusercontent.com/Live2D/CubismWebSamples/b1de66b0b1f1cb881d95fb6158622aeb6a2827bd/Samples/Resources/Ren/Ren.model3.json";
-    const stage=document.getElementById("stage");
+    const stageEl=document.getElementById("stage");
     const status=document.getElementById("status");
     const loading=document.getElementById("loading");
     const diag=document.getElementById("diag");
-    let app=null,model=null,observer=null;
+    let renderer=null,root=null,model=null,observer=null,renderTicker=null;
 
     function setDiag(text){diag.textContent=text}
-    function renderNow(){
-      if(!app)return;
-      app.renderer.render({container:app.stage});
-    }
+    function renderNow(){if(renderer&&root)renderer.render(root)}
     function fit(){
-      if(!app||!model)return;
-      const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
-      app.renderer.resize(w,h);
+      if(!renderer||!root||!model)return;
+      const w=Math.max(stageEl.clientWidth,1),h=Math.max(stageEl.clientHeight,1);
+      renderer.resize(w,h);
       model.anchor?.set?.(.5,.5);
       const scale=window.innerWidth<640?Math.max(.115,Math.min(.22,h/4200)):Math.max(.16,Math.min(.30,h/3300));
       model.scale.set(scale);
       model.position.set(w*.5,h*.54);
       model.visible=true;model.renderable=true;model.alpha=1;
       renderNow();
-      setDiag(`ONLINE · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · CORE=${String(window.Live2DCubismCore?.Version?.csmGetVersion?.() ?? "?")}`);
+      setDiag(`ONLINE · DIRECT WEBGL · VIEW=${Math.round(w)}x${Math.round(h)} · SCALE=${scale.toFixed(3)} · CORE=${String(window.Live2DCubismCore?.Version?.csmGetVersion?.() ?? "?")}`);
     }
 
     try{
       if(!window.Live2DCubismCore)throw new Error("Cubism Core unavailable");
+      if(!PIXI.WebGLRenderer)throw new Error("Pixi WebGLRenderer unavailable");
       window.Live2DCubismCore.Memory?.initializeAmountOfMemory?.(128*1024*1024);
       Live2DModel.registerTicker?.(PIXI.Ticker);
-      app=new PIXI.Application();
-      await app.init({backgroundAlpha:0,antialias:true,preference:"webgl",resolution:Math.min(devicePixelRatio||1,1.35),autoDensity:true,autoStart:true});
-      stage.appendChild(app.canvas);
+
+      const w=Math.max(stageEl.clientWidth,1),h=Math.max(stageEl.clientHeight,1);
+      renderer=new PIXI.WebGLRenderer();
+      await renderer.init({
+        width:w,
+        height:h,
+        backgroundAlpha:0,
+        antialias:true,
+        resolution:Math.min(devicePixelRatio||1,1.35),
+        autoDensity:true,
+        powerPreference:"high-performance"
+      });
+      root=new PIXI.Container();
+      stageEl.appendChild(renderer.canvas);
+
       model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
-      app.stage.addChild(model);
+      root.addChild(model);
       fit();
-      observer=new ResizeObserver(fit);observer.observe(stage);
-      app.start?.();PIXI.Ticker?.shared?.start?.();
+      observer=new ResizeObserver(fit);observer.observe(stageEl);
+
+      renderTicker=PIXI.Ticker.shared;
+      renderTicker.maxFPS=window.innerWidth<640?30:45;
+      renderTicker.add(renderNow);
+      renderTicker.start();
+
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
       fit();
       try{model.expression?.("exp_01");model.motion?.("Idle",0)}catch{}
       loading.remove();status.textContent="ONLINE";
-      stage.addEventListener("pointerdown",()=>{try{model.motion?.("TapBody",0);model.expression?.("exp_02")}catch{}},{passive:true});
-      document.addEventListener("visibilitychange",()=>{if(!document.hidden){app.start?.();requestAnimationFrame(fit)}});
+      stageEl.addEventListener("pointerdown",()=>{try{model.motion?.("TapBody",0);model.expression?.("exp_02")}catch{}},{passive:true});
+      document.addEventListener("visibilitychange",()=>{
+        if(document.hidden){renderTicker?.stop?.();return;}
+        renderTicker?.start?.();requestAnimationFrame(fit);
+      });
     }catch(error){
       console.error(error);status.textContent="OFFLINE";status.classList.add("bad");loading.textContent="REN LIVE2D OFFLINE";setDiag(error instanceof Error?error.message:String(error));
     }
