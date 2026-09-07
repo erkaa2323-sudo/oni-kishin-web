@@ -4,23 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#050506" />
-  <title>ONI HUB · Kei Live2D Meet Preview</title>
+  <title>ONI HUB · Kei Cinematic Meet Host</title>
   <style>
     :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;background:#050506;color:#f5f5f7}body{min-height:100svh;overflow:hidden}
-    body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 52% 58%,rgba(190,15,38,.28),transparent 44%),linear-gradient(180deg,#070708,#020203);pointer-events:none}
-    .shell{position:relative;min-height:100svh;padding:max(env(safe-area-inset-top),8px) 12px max(env(safe-area-inset-bottom),8px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
-    .top{display:flex;align-items:center;justify-content:space-between;padding:11px 10px;border-bottom:1px solid rgba(255,45,65,.28);letter-spacing:.18em;font-size:9px;font-weight:700}.brand{font-size:15px;letter-spacing:.23em}.sub{color:rgba(255,255,255,.42);font-size:7px;margin-top:4px}.status{display:flex;align-items:center;gap:6px;color:#8ef0ba}.status:before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;box-shadow:0 0 12px currentColor}.status.bad{color:#ff4458}
-    .frame{position:relative;min-height:0;border:1px solid rgba(255,45,65,.22);overflow:hidden;background:rgba(0,0,0,.42);box-shadow:0 26px 80px rgba(0,0,0,.58)}
-    .frame:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(96,0,14,.20),transparent 34%,rgba(0,0,0,.12) 58%,rgba(96,0,14,.12)),radial-gradient(ellipse at 52% 64%,rgba(210,26,48,.24),rgba(70,5,14,.08) 35%,transparent 68%);pointer-events:none}
-    .frame:after{content:"";position:absolute;left:10%;right:10%;bottom:63px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,65,.55),transparent);pointer-events:none}
-    #stage{position:absolute;inset:26px 0 58px;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-    .label{position:absolute;left:12px;top:11px;z-index:5;display:flex;align-items:center;gap:7px;border-left:2px solid rgba(255,45,65,.72);padding-left:7px;font-size:8px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.68);pointer-events:none}.chip{border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.40);padding:3px 5px;font-size:6px;letter-spacing:.13em;color:rgba(255,255,255,.35)}
-    .hud{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:40px 12px 10px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.73) 38%,rgba(0,0,0,.98));pointer-events:none}.hudrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.sector{font-size:6px;letter-spacing:.18em;color:rgba(255,62,82,.78);margin-bottom:5px}.mode{font-size:7px;letter-spacing:.18em;color:#8ef0ba;margin-bottom:4px}.copy{font-size:9px;line-height:1.42;color:rgba(255,255,255,.86);max-width:86%}.riders{font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:rgba(255,255,255,.82);text-align:right}.riders span{display:block;margin-top:4px;font:600 6px/1 Inter,system-ui;letter-spacing:.16em;color:rgba(255,255,255,.28)}
-    #loading{position:absolute;inset:0;z-index:3;display:grid;place-items:center;font-size:8px;font-weight:700;letter-spacing:.20em;color:rgba(255,255,255,.35);pointer-events:none}
-    .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.controls button{min-height:40px;border:1px solid rgba(255,45,65,.28);background:rgba(255,45,65,.08);color:rgba(255,255,255,.76);font:700 7px/1.15 system-ui;letter-spacing:.10em;padding:7px 4px}.controls button:active,.controls button.active{background:rgba(255,45,65,.22);border-color:rgba(255,62,82,.62);color:#fff}.foot{display:grid;gap:7px;padding:2px 0 0}.hint{color:rgba(255,255,255,.36);font-size:7px;line-height:1.35;letter-spacing:.10em;text-align:center}
-    .cornerA,.cornerB{position:absolute;z-index:6;width:24px;height:24px;pointer-events:none}.cornerA{left:0;top:0;border-left:1px solid rgba(255,45,65,.72);border-top:1px solid rgba(255,45,65,.72)}.cornerB{right:0;bottom:0;border-right:1px solid rgba(255,45,65,.45);border-bottom:1px solid rgba(255,45,65,.45)}
-    @media(min-width:800px){.shell{max-width:920px;margin:auto;padding-left:18px;padding-right:18px}.frame{min-height:700px}.brand{font-size:20px}#stage{inset:30px 0 70px}.copy{font-size:12px}.controls button{font-size:9px}}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;background:#050506;color:#f5f5f7}
+    body{min-height:100svh;overflow:hidden;background:radial-gradient(ellipse at 50% 60%,rgba(170,11,36,.24),transparent 48%),linear-gradient(180deg,#08080a,#020203)}
+    .shell{min-height:100svh;max-width:920px;margin:auto;padding:max(env(safe-area-inset-top),10px) 12px max(env(safe-area-inset-bottom),10px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:9px}
+    .top{display:flex;align-items:center;justify-content:space-between;padding:8px 2px}.brand{font-size:14px;font-weight:800;letter-spacing:.24em}.sub{font-size:7px;letter-spacing:.16em;color:rgba(255,255,255,.32);margin-top:4px}.status{display:flex;gap:6px;align-items:center;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 9px;font-size:7px;letter-spacing:.14em;color:rgba(255,255,255,.42);background:rgba(0,0,0,.28)}.dot{width:6px;height:6px;border-radius:50%;background:#78efb0;box-shadow:0 0 12px rgba(120,239,176,.75)}
+    .frame{position:relative;min-height:0;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.50);box-shadow:0 28px 90px rgba(0,0,0,.62)}
+    .frame:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 70%,rgba(200,20,48,.22),rgba(50,4,12,.08) 36%,transparent 70%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 24%,transparent 65%,rgba(0,0,0,.82));pointer-events:none}
+    .orb{position:absolute;left:50%;top:48%;width:72%;height:44%;transform:translate(-50%,-50%);border:1px solid rgba(225,29,72,.09);border-radius:50%;box-shadow:0 0 80px rgba(225,29,72,.10);opacity:0;transition:opacity .45s ease;pointer-events:none}.frame.hot .orb{opacity:1;animation:pulse 1.6s ease-in-out infinite}.frame.good .orb{opacity:1;border-color:rgba(110,231,183,.10);box-shadow:0 0 80px rgba(110,231,183,.08)}
+    @keyframes pulse{50%{transform:translate(-50%,-50%) scale(1.035);opacity:.55}}
+    #stage{position:absolute;inset:0;overflow:hidden}canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+    #loading{position:absolute;inset:0;display:grid;place-items:center;font-size:8px;letter-spacing:.22em;color:rgba(255,255,255,.25);pointer-events:none}
+    .hosttag{position:absolute;left:14px;top:14px;z-index:6}.eyebrow{font-size:6px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,.28)}.name{margin-top:4px;font-size:11px;font-weight:800;letter-spacing:.25em}.mode{display:inline-block;margin-left:7px;border:1px solid rgba(255,255,255,.09);border-radius:999px;padding:4px 7px;font-size:6px;letter-spacing:.13em;color:rgba(255,255,255,.42);vertical-align:2px;background:rgba(0,0,0,.3)}
+    .ghost{position:absolute;left:12px;top:58px;z-index:1;font-size:42px;font-weight:900;letter-spacing:-.08em;color:rgba(255,255,255,.025);pointer-events:none}
+    .hud{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(0,0,0,.60);backdrop-filter:blur(14px);padding:10px 11px}.signal{font-size:6px;font-weight:700;letter-spacing:.19em;color:rgba(255,255,255,.30);margin-bottom:5px}.frame.hot .signal{color:rgba(251,113,133,.82)}.frame.good .signal{color:rgba(110,231,183,.82)}.row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}.copy{font-size:9px;line-height:1.45;color:rgba(255,255,255,.83);max-width:82%}.riders{border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:7px 9px;text-align:right;font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace}.riders span{display:block;margin-top:4px;font:600 6px/1 system-ui;letter-spacing:.15em;color:rgba(255,255,255,.25)}
+    .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.controls button{min-height:42px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.025);color:rgba(255,255,255,.55);font:700 7px/1.15 system-ui;letter-spacing:.10em}.controls button.active{border-color:rgba(244,63,94,.36);background:rgba(244,63,94,.12);color:#fff}.hint{text-align:center;font-size:7px;letter-spacing:.09em;color:rgba(255,255,255,.27);padding-top:2px}
+    @media(min-width:800px){.shell{padding-left:18px;padding-right:18px}.frame{min-height:700px}.brand{font-size:18px}.copy{font-size:11px}.name{font-size:14px}.ghost{font-size:64px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
   <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
@@ -28,68 +30,65 @@
 </head>
 <body>
   <main class="shell">
-    <header class="top"><div><div class="brand">ONI HUB</div><div class="sub">KEI · LIVE2D MEET PREVIEW</div></div><div id="status" class="status">SYNC</div></header>
-    <section class="frame">
-      <i class="cornerA"></i><i class="cornerB"></i>
-      <div class="label">MEET HOST // KEI <span class="chip">CUBISM 5</span></div>
+    <header class="top">
+      <div><div class="brand">ONI HUB</div><div class="sub">KEI · CINEMATIC MEET HOST</div></div>
+      <div class="status"><span class="dot"></span><span id="status">SYNC</span></div>
+    </header>
+
+    <section id="frame" class="frame">
+      <div class="orb"></div>
+      <div class="hosttag"><div class="eyebrow">ONI // MEET HOST</div><div><span class="name">KEI</span><span id="mode" class="mode">STANDBY</span></div></div>
+      <div class="ghost">KEI</div>
       <div id="stage"></div>
-      <div id="loading">SUMMONING KEI…</div>
+      <div id="loading">LINKING KEI…</div>
       <div class="hud">
-        <div class="sector">ONI // SECTOR 05 · KEI LIVE2D</div>
-        <div id="mode" class="mode">STANDBY</div>
-        <div class="hudrow"><div id="copy" class="copy">Kei дараагийн ONI MEET-ийг хүлээж байна.</div><div class="riders">1/20<span>RIDERS</span></div></div>
+        <div id="signal" class="signal">HOST LINK STANDBY</div>
+        <div class="row"><div id="copy" class="copy">Kei дараагийн ONI MEET-ийг хүлээж байна.</div><div class="riders">1/20<span>RIDERS</span></div></div>
       </div>
     </section>
-    <footer class="foot">
+
+    <footer>
       <div class="controls">
         <button data-state="idle" class="active">IDLE</button>
         <button data-state="open">OPEN</button>
         <button data-state="registered">JOINED</button>
         <button data-state="access">ACCESS</button>
       </div>
-      <div class="hint">OPEN → JOINED → ACCESS дарж Kei-ийн Meet reaction-ийг шалгаарай. Sample voice autoplay хийхгүй.</div>
+      <div class="hint">OPEN → JOINED → ACCESS дарж Kei-ийн Meet төлөвүүдийг шалгаарай.</div>
     </footer>
   </main>
+
   <script>
     (async function(){
       const MODEL_URLS=[
         "https://raw.githubusercontent.com/zou-hong-run/ai-xiaoyou-web/39fe1a76517416c503a74caf8efb46e477dd95ce/public/model/kei_zh/kei_basic_free.model3.json",
         "https://raw.githubusercontent.com/NathanCavallier/alice_ai/628e96197bbcd02273f9af50d749df17c34c6137/web/public/assets/live2d_models/kei_basic_free/kei_basic_free.model3.json"
       ];
-      const COPY={
-        idle:["STANDBY","Kei дараагийн ONI MEET-ийг хүлээж байна."],
-        open:["REGISTRATION OPEN","Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй."],
-        registered:["RIDER VERIFIED","Бүртгэл баталгаажлаа. Kei таны Meet access-ийг хүлээж байна."],
-        access:["ACCESS READY","ROOM ID ба PASSWORD бэлэн боллоо. ONI MEET-д ороход бэлэн."]
+      const STATES={
+        idle:{mode:"STANDBY",signal:"HOST LINK STANDBY",copy:"Kei дараагийн ONI MEET-ийг хүлээж байна.",x:0,y:-.02,motion:0,cls:""},
+        open:{mode:"REGISTRATION OPEN",signal:"JOIN WINDOW ACTIVE",copy:"Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.",x:0,y:-.04,motion:3,cls:"hot"},
+        registered:{mode:"RIDER VERIFIED",signal:"IDENTITY VERIFIED",copy:"Бүртгэл баталгаажлаа. Kei таны Meet access-ийг хүлээж байна.",x:-.36,y:-.10,motion:1,cls:"good"},
+        access:{mode:"ACCESS READY",signal:"SECURE CHANNEL UNLOCKED",copy:"ROOM ID ба PASSWORD бэлэн боллоо. ONI MEET-д ороход бэлэн.",x:.62,y:-.20,motion:0,cls:"good hot"}
       };
-      const stage=document.getElementById("stage"),status=document.getElementById("status"),loading=document.getElementById("loading"),copy=document.getElementById("copy"),mode=document.getElementById("mode");
+      const stage=document.getElementById("stage"),frame=document.getElementById("frame"),status=document.getElementById("status"),loading=document.getElementById("loading"),copy=document.getElementById("copy"),mode=document.getElementById("mode"),signal=document.getElementById("signal");
       let app=null,model=null,observer=null,baseW=1,baseH=1,current="idle",idleTimer=0;
+      const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
       const motionCount=()=>{try{const list=model?.internalModel?.motionManager?.definitions?.[""];return Array.isArray(list)?list.length:0}catch{return 0}};
-      const safeMotion=(preferred)=>{if(!model||typeof model.motion!=="function"||matchMedia("(prefers-reduced-motion: reduce)").matches)return;const count=motionCount();if(!count)return;try{model.motion("",Math.abs(preferred||0)%count,3)}catch(e){console.warn(e)}};
-      const safeFocus=(x,y,instant=false)=>{if(!model||typeof model.focus!=="function")return;try{model.focus(x,y,instant)}catch{}};
-      const apply=(state)=>{
-        current=state||"idle";
-        document.querySelectorAll("[data-state]").forEach((b)=>b.classList.toggle("active",b.dataset.state===current));
-        const row=COPY[current]||COPY.idle;mode.textContent=row[0];copy.textContent=row[1];
-        if(current==="access"){safeFocus(.55,-.18,true);safeMotion(0)}
-        else if(current==="registered"){safeFocus(-.35,-.08,true);safeMotion(1)}
-        else if(current==="open"){safeFocus(0,-.05,false);safeMotion(3)}
-        else safeFocus(0,0,false);
-      };
-      document.querySelectorAll("[data-state]").forEach((button)=>button.addEventListener("click",()=>apply(button.dataset.state)));
-      const loadModel=async()=>{let lastError=null;for(const url of MODEL_URLS){try{return await PIXI.live2d.Live2DModel.from(url,{autoInteract:false})}catch(error){lastError=error;console.warn("Kei source failed",url,error)}}throw lastError||new Error("Kei model unavailable")};
+      const safeMotion=(preferred)=>{if(reduced||!model||typeof model.motion!=="function")return;const count=motionCount();if(!count)return;try{model.motion("",Math.abs(preferred||0)%count,3)}catch{}};
+      const focus=(x,y,instant=false)=>{if(!model||typeof model.focus!=="function")return;try{model.focus(x,y,instant)}catch{}};
+      const apply=(state)=>{current=state||"idle";const s=STATES[current]||STATES.idle;frame.className="frame "+s.cls;mode.textContent=s.mode;signal.textContent=s.signal;copy.textContent=s.copy;document.querySelectorAll("[data-state]").forEach((b)=>b.classList.toggle("active",b.dataset.state===current));focus(s.x,s.y,true);if(current!=="idle")safeMotion(s.motion)};
+      document.querySelectorAll("[data-state]").forEach((b)=>b.addEventListener("click",()=>apply(b.dataset.state)));
+      async function loadModel(){let last=null;for(const url of MODEL_URLS){try{return await PIXI.live2d.Live2DModel.from(url,{autoInteract:false})}catch(e){last=e;console.warn("Kei source failed",url,e)}}throw last||new Error("Kei unavailable")}
       try{
         if(!window.PIXI?.Application||!window.PIXI?.live2d?.Live2DModel)throw new Error("Cubism runtime unavailable");
         if(PIXI.live2d.config){PIXI.live2d.config.sound=false;PIXI.live2d.config.motionSync=false}
-        app=new PIXI.Application({transparent:true,antialias:true,autoStart:true,resolution:Math.min(devicePixelRatio||1,innerWidth<640?1.2:1.55),autoDensity:true});
-        stage.appendChild(app.view);
-        model=await loadModel();
-        model.anchor.set(.5,.5);model.scale.set(1);baseW=Math.max(model.width,1);baseH=Math.max(model.height,1);app.stage.addChild(model);
-        const fit=()=>{const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1),mobile=w<520;app.renderer.resize(w,h);model.scale.set(1);const scale=Math.min((w*(mobile?.98:.95))/baseW,(h*(mobile?.985:.96))/baseH);model.scale.set(scale);model.x=w*.5;model.y=h*(mobile?.51:.5)};
-        fit();observer=new ResizeObserver(fit);observer.observe(stage);apply("idle");loading.remove();status.textContent="ONLINE";
-        idleTimer=setInterval(()=>{if(current==="idle"&&!document.hidden)safeFocus(Math.sin(Date.now()/5000)*.12,-.02,false)},4000);
+        app=new PIXI.Application({transparent:true,antialias:true,autoStart:true,resolution:Math.min(devicePixelRatio||1,innerWidth<640?1.2:1.55),autoDensity:true});stage.appendChild(app.view);
+        model=await loadModel();model.anchor.set(.5,.5);model.scale.set(1);baseW=Math.max(model.width,1);baseH=Math.max(model.height,1);app.stage.addChild(model);
+        const fit=()=>{const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1),mobile=w<520;app.renderer.resize(w,h);model.scale.set(1);const scale=Math.min((w*(mobile?1.05:.98))/baseW,(h*(mobile?1.02:.98))/baseH);model.scale.set(scale);model.x=w*(mobile?.515:.505);model.y=h*(mobile?.535:.515)};
+        fit();observer=new ResizeObserver(fit);observer.observe(stage);apply("idle");loading.remove();status.textContent="LINKED";
+        idleTimer=setInterval(()=>{if(current==="idle"&&!document.hidden)focus(Math.sin(Date.now()/5200)*.14,-.035,false)},3600);
         document.addEventListener("visibilitychange",()=>{try{if(document.hidden)app.ticker.stop();else{app.ticker.start();requestAnimationFrame(fit)}}catch{}});
-      }catch(error){console.error(error);status.textContent="OFFLINE";status.classList.add("bad");loading.textContent="KEI VISUAL OFFLINE"}
+      }catch(error){console.error(error);status.textContent="OFFLINE";loading.textContent="KEI VISUAL OFFLINE"}
       window.addEventListener("beforeunload",()=>{if(idleTimer)clearInterval(idleTimer);if(observer)observer.disconnect();try{if(model)model.destroy({children:true,texture:true,baseTexture:true})}catch{}try{if(app)app.destroy(true,{children:true,texture:true,baseTexture:true})}catch{}});
     })();
   </script>
