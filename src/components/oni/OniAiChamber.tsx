@@ -158,7 +158,6 @@ export function OniAiChamber() {
       } catch {
         reply = { text: draftOniReply(text), state: "concerned" };
       }
-      // keep a short, visible thinking beat
       const wait = Math.max(0, 900 - (Date.now() - started));
       const t2 = window.setTimeout(() => {
         setConvState("speaking");
@@ -188,7 +187,6 @@ export function OniAiChamber() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
-  /* ------------------------------------------------------- shared pieces */
   const characterGlow = (
     <div
       className="pointer-events-none absolute inset-0 transition-opacity duration-700"
@@ -282,14 +280,8 @@ export function OniAiChamber() {
           <span className="hud-label block text-[0.5rem] text-crimson/85">ONI BRAIN</span>
           <span className="mt-1 flex gap-1.5" aria-label="Бодож байна">
             <span className="h-1.5 w-1.5 bg-crimson animate-pulse-soft" />
-            <span
-              className="h-1.5 w-1.5 bg-crimson animate-pulse-soft"
-              style={{ animationDelay: "0.25s" }}
-            />
-            <span
-              className="h-1.5 w-1.5 bg-crimson animate-pulse-soft"
-              style={{ animationDelay: "0.5s" }}
-            />
+            <span className="h-1.5 w-1.5 bg-crimson animate-pulse-soft" style={{ animationDelay: "0.25s" }} />
+            <span className="h-1.5 w-1.5 bg-crimson animate-pulse-soft" style={{ animationDelay: "0.5s" }} />
           </span>
         </div>
       )}
@@ -304,11 +296,9 @@ export function OniAiChamber() {
         send(input);
       }}
     >
-      <label htmlFor="oni-ai-input" className="sr-only">
-        ONI Brain-д асуулт бичих
-      </label>
+      <label className="sr-only">ONI Brain-д асуулт бичих</label>
       <input
-        id="oni-ai-input"
+        aria-label="ONI Brain-д асуулт бичих"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Асуултаа бичнэ үү…"
@@ -316,7 +306,6 @@ export function OniAiChamber() {
         autoCorrect="off"
         enterKeyHint="send"
         disabled={thinking}
-        /* text-base = 16px: prevents iOS Safari focus zoom. Never go below. */
         className="min-h-[44px] w-full min-w-0 border border-border bg-midnight/70 px-3.5 py-3 text-base text-foreground outline-none transition-colors clip-notch placeholder:text-muted-foreground focus:border-crimson/60 disabled:opacity-60 lg:text-sm"
       />
       <button
@@ -332,40 +321,17 @@ export function OniAiChamber() {
 
   const transport = (compact = false) => (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => goTo(trackIndex - 1)}
-        aria-label="Өмнөх"
-        disabled={!hasTracks}
-        className="grid h-11 w-11 shrink-0 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 disabled:opacity-40"
-      >
+      <button type="button" onClick={() => goTo(trackIndex - 1)} aria-label="Өмнөх" disabled={!hasTracks} className="grid h-11 w-11 shrink-0 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 disabled:opacity-40">
         <SkipBack className="h-4 w-4" />
       </button>
-      <button
-        type="button"
-        onClick={() => setPlaying((p) => !p)}
-        aria-label={playing ? "Түр зогсоох" : "Тоглуулах"}
-        disabled={!hasTracks}
-        className="grid h-11 w-11 shrink-0 place-items-center border border-crimson/55 bg-crimson/18 text-foreground transition-colors clip-notch hover:bg-crimson/32 disabled:opacity-40"
-      >
+      <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Түр зогсоох" : "Тоглуулах"} disabled={!hasTracks} className="grid h-11 w-11 shrink-0 place-items-center border border-crimson/55 bg-crimson/18 text-foreground transition-colors clip-notch hover:bg-crimson/32 disabled:opacity-40">
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
-      <button
-        type="button"
-        onClick={next}
-        aria-label="Дараах"
-        disabled={!hasTracks}
-        className="grid h-11 w-11 shrink-0 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 disabled:opacity-40"
-      >
+      <button type="button" onClick={next} aria-label="Дараах" disabled={!hasTracks} className="grid h-11 w-11 shrink-0 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 disabled:opacity-40">
         <SkipForward className="h-4 w-4" />
       </button>
       {compact && (
-        <button
-          type="button"
-          onClick={() => setDrawer(true)}
-          aria-label="Хөгжмийн тохиргоо ба ээлж"
-          className="grid h-11 w-11 shrink-0 place-items-center border border-border text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground"
-        >
+        <button type="button" onClick={() => setDrawer(true)} aria-label="Хөгжмийн тохиргоо ба ээлж" className="grid h-11 w-11 shrink-0 place-items-center border border-border text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground">
           <ListMusic className="h-4 w-4" />
         </button>
       )}
@@ -373,18 +339,8 @@ export function OniAiChamber() {
   );
 
   const progressBar = (
-    <div
-      role="progressbar"
-      aria-label="Тоглуулах явц"
-      aria-valuemin={0}
-      aria-valuemax={Math.max(track.duration, 1)}
-      aria-valuenow={Math.floor(position)}
-      className="h-1 w-full bg-border"
-    >
-      <div
-        className="h-full bg-crimson transition-[width] duration-500"
-        style={{ width: `${progress}%` }}
-      />
+    <div role="progressbar" aria-label="Тоглуулах явц" aria-valuemin={0} aria-valuemax={Math.max(track.duration, 1)} aria-valuenow={Math.floor(position)} className="h-1 w-full bg-border">
+      <div className="h-full bg-crimson transition-[width] duration-500" style={{ width: `${progress}%` }} />
     </div>
   );
 
@@ -405,18 +361,12 @@ export function OniAiChamber() {
               setPlaying(true);
             }}
             aria-current={i === trackIndex}
-            className={`flex min-h-[44px] w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-crimson/10 ${
-              i === trackIndex ? "bg-crimson/12" : ""
-            }`}
+            className={`flex min-h-[44px] w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-crimson/10 ${i === trackIndex ? "bg-crimson/12" : ""}`}
           >
-            <span className="hud-label w-6 shrink-0 text-crimson/80">
-              {String(i + 1).padStart(2, "0")}
-            </span>
+            <span className="hud-label w-6 shrink-0 text-crimson/80">{String(i + 1).padStart(2, "0")}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-foreground">{t.title}</span>
-              <span className="block truncate text-[0.65rem] text-muted-foreground">
-                {t.subtitle}
-              </span>
+              <span className="block truncate text-[0.65rem] text-muted-foreground">{t.subtitle}</span>
             </span>
             <span className="hud-label shrink-0">{t.tag}</span>
           </button>
@@ -427,34 +377,13 @@ export function OniAiChamber() {
 
   const toggles = (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setShuffle((s) => !s)}
-        aria-pressed={shuffle}
-        aria-label="Холих"
-        className={`grid h-11 w-11 place-items-center border transition-colors clip-notch ${
-          shuffle ? "border-crimson/60 text-crimson" : "border-border text-muted-foreground"
-        }`}
-      >
+      <button type="button" onClick={() => setShuffle((s) => !s)} aria-pressed={shuffle} aria-label="Холих" className={`grid h-11 w-11 place-items-center border transition-colors clip-notch ${shuffle ? "border-crimson/60 text-crimson" : "border-border text-muted-foreground"}`}>
         <Shuffle className="h-4 w-4" />
       </button>
-      <button
-        type="button"
-        onClick={() => setRepeat((r) => !r)}
-        aria-pressed={repeat}
-        aria-label="Давтах"
-        className={`grid h-11 w-11 place-items-center border transition-colors clip-notch ${
-          repeat ? "border-crimson/60 text-crimson" : "border-border text-muted-foreground"
-        }`}
-      >
+      <button type="button" onClick={() => setRepeat((r) => !r)} aria-pressed={repeat} aria-label="Давтах" className={`grid h-11 w-11 place-items-center border transition-colors clip-notch ${repeat ? "border-crimson/60 text-crimson" : "border-border text-muted-foreground"}`}>
         <Repeat className="h-4 w-4" />
       </button>
-      <button
-        type="button"
-        onClick={() => setMuted((m) => !m)}
-        aria-pressed={muted}
-        className="inline-flex min-h-[44px] items-center gap-2 border border-border px-3 text-[0.55rem] tracking-[0.22em] text-muted-foreground transition-colors clip-notch hover:text-foreground"
-      >
+      <button type="button" onClick={() => setMuted((m) => !m)} aria-pressed={muted} className="inline-flex min-h-[44px] items-center gap-2 border border-border px-3 text-[0.55rem] tracking-[0.22em] text-muted-foreground transition-colors clip-notch hover:text-foreground">
         {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         {muted ? "ЧИМЭЭГҮЙ" : "ДУУ"}
       </button>
@@ -470,9 +399,7 @@ export function OniAiChamber() {
         alt=""
         decoding="async"
         className={`oni-character-presence__body ${visual.motion}`}
-        style={{
-          filter: `drop-shadow(0 0 ${12 + visual.glow * 34}px oklch(0.55 0.215 25.5 / ${0.2 + visual.glow * 0.5}))`,
-        }}
+        style={{ filter: `drop-shadow(0 0 ${12 + visual.glow * 34}px oklch(0.55 0.215 25.5 / ${0.2 + visual.glow * 0.5}))` }}
       />
       <div className="oni-character-presence__focus" />
     </div>
@@ -481,88 +408,48 @@ export function OniAiChamber() {
   return (
     <div className="relative bg-ink">
       <OniHudNav />
-
-      {/* ============================================ MOBILE: one screen */}
-      <main
-        className="relative isolate flex h-[100svh] flex-col overflow-hidden lg:hidden"
-        aria-labelledby="oniai-title-m"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      <main className="relative isolate flex h-[100svh] flex-col overflow-hidden lg:hidden" aria-labelledby="oniai-title-m" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {backdrop}
-
         <div className="relative z-10 flex min-h-0 flex-1 flex-col px-3 pb-2 pt-[4.25rem]">
-          {/* character region */}
           <section className="relative min-h-0 flex-[1.05] overflow-hidden border border-border bg-midnight/40 clip-notch">
             {characterGlow}
             {character}
             <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
               <span className="min-w-0">
-                <h1 id="oniai-title-m" className="text-cinema text-xl text-foreground">
-                  ОНИ АЙ
-                </h1>
+                <h1 id="oniai-title-m" className="text-cinema text-xl text-foreground">ОНИ АЙ</h1>
                 <span className="hud-label block text-[0.5rem]">ONI BRAIN · MUSIC</span>
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 p-2.5">{stateBadge}</div>
           </section>
-
-          {/* chat region */}
           <section className="mt-2 flex min-h-0 flex-[1.25] flex-col border border-border bg-ink/80 p-2.5">
             {messageList}
             <ul className="mt-2 flex shrink-0 gap-2 overflow-x-auto pb-1">
               {ONI_SUGGESTIONS.map((s) => (
                 <li key={s}>
-                  <button
-                    type="button"
-                    onClick={() => send(s)}
-                    disabled={thinking}
-                    className="min-h-[38px] whitespace-nowrap disabled:opacity-50 border border-border px-3 text-[0.6rem] text-muted-foreground transition-colors clip-notch hover:border-crimson/60"
-                  >
-                    {s}
-                  </button>
+                  <button type="button" onClick={() => send(s)} disabled={thinking} className="min-h-[38px] whitespace-nowrap disabled:opacity-50 border border-border px-3 text-[0.6rem] text-muted-foreground transition-colors clip-notch hover:border-crimson/60">{s}</button>
                 </li>
               ))}
             </ul>
             <div className="mt-2 shrink-0">{composer}</div>
           </section>
-
-          {/* compact now-playing strip */}
           <section className="mt-2 shrink-0 border border-border bg-midnight/60">
             {progressBar}
             <div className="flex items-center gap-2 p-2">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[0.8rem] text-foreground">{track.title}</span>
-                <span className="hud-label block truncate text-[0.5rem]">
-                  {formatTime(position)} / {formatTime(track.duration)} · {track.artist}
-                </span>
+                <span className="hud-label block truncate text-[0.5rem]">{formatTime(position)} / {formatTime(track.duration)} · {track.artist}</span>
               </span>
               {transport(true)}
             </div>
           </section>
         </div>
-
-        {/* music drawer */}
-        <div
-          className={`absolute inset-0 z-20 transition-opacity duration-300 ${
-            drawer ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-          aria-hidden={!drawer}
-        >
-          <div
-            className="absolute inset-0 bg-ink/85 backdrop-blur-xl"
-            onClick={() => setDrawer(false)}
-          />
+        <div className={`absolute inset-0 z-20 transition-opacity duration-300 ${drawer ? "opacity-100" : "pointer-events-none opacity-0"}`} aria-hidden={!drawer}>
+          <div className="absolute inset-0 bg-ink/85 backdrop-blur-xl" onClick={() => setDrawer(false)} />
           <div className="absolute inset-x-0 bottom-0 flex max-h-[80svh] flex-col border-t border-crimson/35 bg-ink p-3">
             <div className="flex items-center justify-between">
               <span className="hud-label text-crimson/85">AUDIO / ХӨГЖИМ</span>
-              <button
-                type="button"
-                onClick={() => setDrawer(false)}
-                aria-label="Хаах"
-                className="grid h-11 w-11 place-items-center border border-border text-foreground clip-notch"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <button type="button" onClick={() => setDrawer(false)} aria-label="Хаах" className="grid h-11 w-11 place-items-center border border-border text-foreground clip-notch"><X className="h-4 w-4" /></button>
             </div>
             <div className="mt-3 shrink-0">{toggles}</div>
             <span className="hud-label mt-4 block">QUEUE / ЭЭЛЖ</span>
@@ -571,107 +458,65 @@ export function OniAiChamber() {
         </div>
       </main>
 
-      {/* =========================================== DESKTOP: cinematic */}
       <main className="relative hidden lg:block">
         <section className="relative isolate overflow-hidden" aria-labelledby="oniai-title">
           {backdrop}
-
           <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-[110rem] flex-col px-8 pb-10 pt-28">
             <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
               <div className="min-w-0">
-                <span className="hud-label hud-rule block pl-11 text-crimson/85">
-                  SECTOR 03 / ONI AI · MUSIC
-                </span>
-                <h1 id="oniai-title" className="mt-3 text-cinema text-6xl text-foreground">
-                  КОМАНД ТАНХИМ
-                </h1>
+                <span className="hud-label hud-rule block pl-11 text-crimson/85">SECTOR 03 / ONI AI · MUSIC</span>
+                <h1 id="oniai-title" className="mt-3 text-cinema text-6xl text-foreground">КОМАНД ТАНХИМ</h1>
               </div>
               <span className="hud-label shrink-0">BRAIN · PUBLIC DATA</span>
             </header>
-
             <div className="mt-8 grid flex-1 gap-px bg-border lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
-              {/* AI presence */}
               <div className="relative flex min-h-[26rem] flex-col justify-end overflow-hidden bg-midnight/50 p-6">
                 {characterGlow}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 top-6">
-                  {character}
-                </div>
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{ background: "var(--gradient-vignette)" }}
-                />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 top-6">{character}</div>
+                <div className="pointer-events-none absolute inset-0" style={{ background: "var(--gradient-vignette)" }} />
                 <div className="relative">
                   <span className="hud-label text-crimson/85">UNIT / ONI BRAIN</span>
                   <p className="mt-2 text-cinema text-3xl text-foreground">ОНИ АЙ</p>
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    Кланы хиймэл оюун туслах. Хөгжмийн систем энэ танхимд нэгдсэн байдлаар ажиллана.
-                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Кланы хиймэл оюун туслах. Хөгжмийн систем энэ танхимд нэгдсэн байдлаар ажиллана.</p>
                   <div className="mt-3">{stateBadge}</div>
                 </div>
               </div>
-
-              {/* chat */}
               <div className="flex min-h-[26rem] flex-col bg-ink/70 p-6">
                 <span className="hud-label shrink-0 text-crimson/85">DIALOGUE / ЯРИА</span>
                 <div className="mt-4 flex min-h-0 flex-1 flex-col">{messageList}</div>
                 <ul className="mt-4 flex shrink-0 gap-2 overflow-x-auto pb-1">
                   {ONI_SUGGESTIONS.map((s) => (
                     <li key={s}>
-                      <button
-                        type="button"
-                        onClick={() => send(s)}
-                        disabled={thinking}
-                        className="min-h-[44px] whitespace-nowrap border border-border px-3 text-[0.65rem] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground disabled:opacity-50"
-                      >
-                        {s}
-                      </button>
+                      <button type="button" onClick={() => send(s)} disabled={thinking} className="min-h-[44px] whitespace-nowrap border border-border px-3 text-[0.65rem] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground disabled:opacity-50">{s}</button>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-3 shrink-0">{composer}</div>
               </div>
-
-              {/* music */}
               <div className="flex min-h-[26rem] flex-col bg-midnight/40 p-6">
                 <div className="flex items-center justify-between gap-3">
                   <span className="hud-label text-crimson/85">AUDIO / ХӨГЖИМ</span>
                   <span className="hud-label">{tracks.length} ТРЭК</span>
                 </div>
-
                 <div className="mt-4 border border-border bg-ink/70 p-4 clip-notch">
                   <p className="truncate text-cinema text-2xl text-foreground">{track.title}</p>
-                  <p className="hud-label mt-1 truncate">
-                    {track.subtitle} · {track.artist}
-                  </p>
+                  <p className="hud-label mt-1 truncate">{track.subtitle} · {track.artist}</p>
                   <div className="mt-4">{progressBar}</div>
                   <div className="mt-2 flex justify-between text-[0.6rem] tracking-[0.2em] text-muted-foreground">
-                    <span>{formatTime(position)}</span>
-                    <span>{formatTime(track.duration)}</span>
+                    <span>{formatTime(position)}</span><span>{formatTime(track.duration)}</span>
                   </div>
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    {transport()}
-                    {toggles}
-                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-2">{transport()}{toggles}</div>
                 </div>
-
                 <span className="hud-label mt-5 block">QUEUE / ЭЭЛЖ</span>
                 <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden">{queueList}</div>
               </div>
             </div>
           </div>
         </section>
-
         <OniFooter />
       </main>
 
-      <audio
-        ref={audioRef}
-        src={track.src}
-        muted={muted}
-        onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
-        onEnded={() => (repeat ? setPosition(0) : next())}
-        className="hidden"
-      />
+      <audio ref={audioRef} src={track.src} muted={muted} onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)} onEnded={() => (repeat ? setPosition(0) : next())} className="hidden" />
     </div>
   );
 }
