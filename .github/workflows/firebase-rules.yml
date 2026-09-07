@@ -7,6 +7,7 @@ on:
       - firestore.rules
       - firestore.creator.rules.fragment
       - firestore.nexus.rules.fragment
+      - firestore.progression.rules.fragment
       - firebase.json
       - .github/workflows/firebase-rules.yml
   workflow_dispatch:
@@ -27,12 +28,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Load Google Cloud credentials
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-
       - name: Mint OAuth access token
         run: |
           python -m pip install --quiet google-auth requests
@@ -40,151 +39,65 @@ jobs:
           import os
           from google.auth.transport.requests import Request
           from google.oauth2 import service_account
-
-          credentials = service_account.Credentials.from_service_account_file(
-              os.environ["GOOGLE_APPLICATION_CREDENTIALS"],
-              scopes=["https://www.googleapis.com/auth/cloud-platform"],
-          )
+          credentials = service_account.Credentials.from_service_account_file(os.environ["GOOGLE_APPLICATION_CREDENTIALS"], scopes=["https://www.googleapis.com/auth/cloud-platform"])
           credentials.refresh(Request())
           print(credentials.token)
           PY
           )"
           echo "::add-mask::${ACCESS_TOKEN}"
           echo "ACCESS_TOKEN=${ACCESS_TOKEN}" >> "$GITHUB_ENV"
-
       - name: Ensure ONI NEXUS VAPID keypair
         run: |
           python -m pip install --quiet cryptography
           python - <<'PY'
-          import base64
-          import datetime as dt
-          import os
-          import requests
+          import base64, datetime as dt, os, requests
           from cryptography.hazmat.primitives.asymmetric import ec
-
-          project = os.environ["FIREBASE_PROJECT"]
-          token = os.environ["ACCESS_TOKEN"]
-          root = f"https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents"
-          headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-
-          def b64url(raw: bytes) -> str:
-              return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
-
-          config_url = f"{root}/pushConfig/vapid"
-          current = requests.get(config_url, headers=headers, timeout=20)
-          if current.status_code == 200:
-              fields = current.json().get("fields", {})
-              public_key = fields.get("publicKey", {}).get("stringValue", "")
-              private_key = fields.get("privateKey", {}).get("stringValue", "")
-              if not public_key or not private_key:
-                  raise SystemExit("Existing VAPID document is incomplete; refusing to rotate subscriptions")
-              print("Existing VAPID keypair preserved.")
-          elif current.status_code == 404:
-              private = ec.generate_private_key(ec.SECP256R1())
-              numbers = private.private_numbers()
-              public = numbers.public_numbers
-              d = numbers.private_value.to_bytes(32, "big")
-              x = public.x.to_bytes(32, "big")
-              y = public.y.to_bytes(32, "big")
-              public_key = b64url(b"\x04" + x + y)
-              private_key = b64url(d)
-              now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
-              payload = {"fields": {
-                  "enabled": {"booleanValue": True},
-                  "publicKey": {"stringValue": public_key},
-                  "privateKey": {"stringValue": private_key},
-                  "subject": {"stringValue": "mailto:erkaa2323@gmail.com"},
-                  "createdAt": {"timestampValue": now},
-                  "updatedAt": {"timestampValue": now},
-              }}
-              created = requests.patch(config_url, headers=headers, json=payload, timeout=20)
-              created.raise_for_status()
-              print("Created ONI NEXUS VAPID keypair.")
-          else:
-              raise SystemExit(f"Unable to read VAPID config: HTTP {current.status_code} {current.text[:300]}")
-
-          now = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
-          public_payload = {"fields": {
-              "enabled": {"booleanValue": True},
-              "publicKey": {"stringValue": public_key},
-              "updatedAt": {"timestampValue": now},
-          }}
-          public_doc = requests.patch(f"{root}/site/nexusPush", headers=headers, json=public_payload, timeout=20)
-          public_doc.raise_for_status()
-          print("Published VAPID public key to site/nexusPush.")
+          project=os.environ["FIREBASE_PROJECT"]; token=os.environ["ACCESS_TOKEN"]
+          root=f"https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents"
+          headers={"Authorization":f"Bearer {token}","Content-Type":"application/json"}
+          def b64url(raw): return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+          config_url=f"{root}/pushConfig/vapid"; current=requests.get(config_url,headers=headers,timeout=20)
+          if current.status_code==200:
+            fields=current.json().get("fields",{}); public_key=fields.get("publicKey",{}).get("stringValue",""); private_key=fields.get("privateKey",{}).get("stringValue","")
+            if not public_key or not private_key: raise SystemExit("Existing VAPID document incomplete; refusing rotation")
+          elif current.status_code==404:
+            private=ec.generate_private_key(ec.SECP256R1()); numbers=private.private_numbers(); public=numbers.public_numbers
+            public_key=b64url(b"\x04"+public.x.to_bytes(32,"big")+public.y.to_bytes(32,"big")); private_key=b64url(numbers.private_value.to_bytes(32,"big")); now=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z")
+            payload={"fields":{"enabled":{"booleanValue":True},"publicKey":{"stringValue":public_key},"privateKey":{"stringValue":private_key},"subject":{"stringValue":"mailto:erkaa2323@gmail.com"},"createdAt":{"timestampValue":now},"updatedAt":{"timestampValue":now}}}
+            requests.patch(config_url,headers=headers,json=payload,timeout=20).raise_for_status()
+          else: raise SystemExit(f"Unable to read VAPID config: HTTP {current.status_code}")
+          now=dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00","Z")
+          requests.patch(f"{root}/site/nexusPush",headers=headers,json={"fields":{"enabled":{"booleanValue":True},"publicKey":{"stringValue":public_key},"updatedAt":{"timestampValue":now}}},timeout=20).raise_for_status()
           PY
-
       - name: Compose and create Firebase Rules ruleset
         run: |
           python - <<'PY'
           from pathlib import Path
-          base = Path("firestore.rules").read_text(encoding="utf-8")
-          creator = Path("firestore.creator.rules.fragment").read_text(encoding="utf-8")
-          nexus = Path("firestore.nexus.rules.fragment").read_text(encoding="utf-8")
-          marker = "    match /{document=**} { allow read, write: if false; }"
-          if marker not in base:
-              raise SystemExit("Firestore deny-all marker not found; refusing unsafe composition")
-          combined = base
-          if "match /creatorPublishRequests/" not in combined:
-              combined = combined.replace(marker, creator.rstrip() + "\n\n" + marker, 1)
-          if "match /pushSubscriptions/" not in combined:
-              combined = combined.replace(marker, nexus.rstrip() + "\n\n" + marker, 1)
-          Path("/tmp/firestore.combined.rules").write_text(combined, encoding="utf-8")
+          base=Path("firestore.rules").read_text(encoding="utf-8"); marker="    match /{document=**} { allow read, write: if false; }"
+          if marker not in base: raise SystemExit("Firestore deny-all marker not found; refusing unsafe composition")
+          fragments=[("firestore.creator.rules.fragment","match /creatorPublishRequests/"),("firestore.nexus.rules.fragment","match /pushSubscriptions/"),("firestore.progression.rules.fragment","match /progressionProfiles/")]
+          combined=base
+          for path,needle in fragments:
+            if needle not in combined: combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
+          Path("/tmp/firestore.combined.rules").write_text(combined,encoding="utf-8")
           PY
-
           python - <<'PY' > /tmp/ruleset.json
           import json
           from pathlib import Path
-          print(json.dumps({
-              "source": {
-                  "files": [{
-                      "name": "firestore.rules",
-                      "content": Path("/tmp/firestore.combined.rules").read_text(encoding="utf-8"),
-                  }]
-              }
-          }))
+          print(json.dumps({"source":{"files":[{"name":"firestore.rules","content":Path("/tmp/firestore.combined.rules").read_text(encoding="utf-8")}]}}))
           PY
-
-          curl --fail-with-body --silent --show-error \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -X POST \
-            --data-binary @/tmp/ruleset.json \
-            "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/rulesets" \
-            > /tmp/ruleset-response.json
-
+          curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "Content-Type: application/json" -X POST --data-binary @/tmp/ruleset.json "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/rulesets" > /tmp/ruleset-response.json
           RULESET_NAME="$(python - <<'PY'
           import json
-          print(json.load(open('/tmp/ruleset-response.json', encoding='utf-8'))['name'])
+          print(json.load(open('/tmp/ruleset-response.json',encoding='utf-8'))['name'])
           PY
           )"
           echo "RULESET_NAME=${RULESET_NAME}" >> "$GITHUB_ENV"
-
       - name: Release Firestore ruleset
         run: |
           python - <<'PY' > /tmp/release.json
-          import json, os
-          project = os.environ['FIREBASE_PROJECT']
-          print(json.dumps({
-              "release": {
-                  "name": f"projects/{project}/releases/cloud.firestore",
-                  "rulesetName": os.environ['RULESET_NAME'],
-              },
-              "updateMask": "rulesetName",
-          }))
+          import json,os
+          project=os.environ['FIREBASE_PROJECT']
+          print(json.dumps({"release":{"name":f"projects/{project}/releases/cloud.firestore","rulesetName":os.environ['RULESET_NAME']},"updateMask":"rulesetName"}))
           PY
-
-          curl --fail-with-body --silent --show-error \
-            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -X PATCH \
-            --data-binary @/tmp/release.json \
-            "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/releases/cloud.firestore" \
-            > /tmp/release-response.json
-
-          python - <<'PY'
-          import json
-          response = json.load(open('/tmp/release-response.json', encoding='utf-8'))
-          print('Released:', response.get('name'))
-          print('Ruleset:', response.get('rulesetName'))
-          PY
+          curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "Content-Type: application/json" -X PATCH --data-binary @/tmp/release.json "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/releases/cloud.firestore"
