@@ -1,8 +1,10 @@
 import { collection, doc, getDoc, getDocs, orderBy, query, runTransaction, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 import { ONI_VAULT, type OniProgressionProfile } from "@/lib/oni-progression";
+import { ONI_REWARDS, type ProgressionLedgerEntry } from "@/lib/progression-rewards";
 
 const DEFAULT_EQUIPPED: Record<string, string> = {};
+const number = (value: unknown) => Math.max(0, Number(value ?? 0));
 
 function parseProfile(uid: string, data: Record<string, unknown>): OniProgressionProfile {
   const unlocked = data["unlocked"];
@@ -10,15 +12,20 @@ function parseProfile(uid: string, data: Record<string, unknown>): OniProgressio
   return {
     uid,
     nickname: String(data["nickname"] ?? "ONI"),
-    xp: Math.max(0, Number(data["xp"] ?? 0)),
-    coin: Math.max(0, Number(data["coin"] ?? 0)),
-    lifetimeXp: Math.max(0, Number(data["lifetimeXp"] ?? data["xp"] ?? 0)),
-    seasonXp: Math.max(0, Number(data["seasonXp"] ?? data["xp"] ?? 0)),
-    prestige: Math.max(0, Number(data["prestige"] ?? 0)),
+    xp: number(data["xp"]),
+    coin: number(data["coin"]),
+    lifetimeXp: number(data["lifetimeXp"] ?? data["xp"]),
+    seasonXp: number(data["seasonXp"] ?? data["xp"]),
+    prestige: number(data["prestige"]),
+    meetCount: number(data["meetCount"]),
+    creatorCount: number(data["creatorCount"]),
+    eventCount: number(data["eventCount"]),
     unlocked: Array.isArray(unlocked) ? unlocked.map(String) : [],
     equipped: equipped && typeof equipped === "object" ? equipped as Record<string, string> : DEFAULT_EQUIPPED,
   };
 }
+
+const blankProfile = (uid: string, nickname: string) => ({ uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, meetCount: 0, creatorCount: 0, eventCount: 0, unlocked: [], equipped: {} });
 
 export async function ensureMyProgression(): Promise<OniProgressionProfile | null> {
   const user = firebaseAuth.currentUser;
@@ -29,8 +36,9 @@ export async function ensureMyProgression(): Promise<OniProgressionProfile | nul
   const existing = await getDoc(ref);
   if (existing.exists()) return parseProfile(user.uid, existing.data());
   const nickname = String(account.data()["nickname"] ?? "ONI");
-  await setDoc(ref, { uid: user.uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, unlocked: [], equipped: {}, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  return { uid: user.uid, nickname, xp: 0, coin: 0, lifetimeXp: 0, seasonXp: 0, prestige: 0, unlocked: [], equipped: {} };
+  const profile = blankProfile(user.uid, nickname);
+  await setDoc(ref, { ...profile, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  return profile;
 }
 
 export async function getMyProgression() {
@@ -72,14 +80,43 @@ export async function equipVaultItem(itemId: string) {
   });
 }
 
+export async function claimMeetAttendanceReward(): Promise<"claimed" | "already" | "not_ready" | "unavailable"> {
+  const user = firebaseAuth.currentUser;
+  if (!user) return "unavailable";
+  const profile = await ensureMyProgression();
+  if (!profile) return "unavailable";
+  const meetRef = doc(firebaseDb, "meets", "current");
+  const participantRef = doc(firebaseDb, "meetParticipants", user.uid);
+  const claimRef = doc(firebaseDb, "progressionMeetClaims", user.uid);
+  const profileRef = doc(firebaseDb, "progressionProfiles", user.uid);
+  return runTransaction(firebaseDb, async (tx) => {
+    const [meetSnap, participantSnap, claimSnap, profileSnap] = await Promise.all([tx.get(meetRef), tx.get(participantRef), tx.get(claimRef), tx.get(profileRef)]);
+    if (!meetSnap.exists() || !participantSnap.exists() || !profileSnap.exists()) return "unavailable" as const;
+    const meet = meetSnap.data(); const participant = participantSnap.data(); const start = meet["startAt"];
+    if (!start || participant["meetStartAt"]?.toMillis?.() !== start.toMillis?.()) return "unavailable" as const;
+    if (start.toMillis() > Date.now() || meet["status"] === "ended" || meet["status"] === "closed") return "not_ready" as const;
+    if (claimSnap.exists() && claimSnap.data()["meetStartAt"]?.toMillis?.() === start.toMillis()) return "already" as const;
+    const p = parseProfile(user.uid, profileSnap.data());
+    const nonce = crypto.randomUUID().replace(/-/g, "");
+    const reward = ONI_REWARDS.meetAttendance;
+    tx.set(claimRef, { uid: user.uid, meetStartAt: start, claimNonce: nonce, updatedAt: serverTimestamp() });
+    tx.set(doc(firebaseDb, "progressionLedger", `${user.uid}_${nonce}`), { uid: user.uid, sourceType: "meet_attendance", sourceKey: nonce, xp: reward.xp, coin: reward.coin, meetStartAt: start, createdAt: serverTimestamp() });
+    tx.update(profileRef, { xp: p.xp + reward.xp, coin: p.coin + reward.coin, lifetimeXp: p.lifetimeXp + reward.xp, seasonXp: p.seasonXp + reward.xp, meetCount: p.meetCount + 1, updatedAt: serverTimestamp() });
+    return "claimed" as const;
+  });
+}
+
+export async function getMyProgressionLedger(): Promise<ProgressionLedgerEntry[]> {
+  const user = firebaseAuth.currentUser;
+  if (!user) return [];
+  const snap = await getDocs(query(collection(firebaseDb, "progressionLedger"), where("uid", "==", user.uid)));
+  return snap.docs.map((entry) => {
+    const row = entry.data(); const created = row["createdAt"];
+    return { id: entry.id, uid: String(row["uid"] ?? ""), sourceType: String(row["sourceType"] ?? ""), sourceKey: String(row["sourceKey"] ?? ""), xp: number(row["xp"]), coin: number(row["coin"]), createdAt: created && typeof created.toDate === "function" ? created.toDate().toISOString() : null };
+  });
+}
+
 export async function getProgressionLeaderboard() {
   const snap = await getDocs(query(collection(firebaseDb, "progressionProfiles"), orderBy("seasonXp", "desc")));
   return snap.docs.slice(0, 20).map((entry) => parseProfile(entry.id, entry.data()));
-}
-
-export async function hasRewardLedger(sourceType: string, sourceId: string) {
-  const user = firebaseAuth.currentUser;
-  if (!user) return true;
-  const snap = await getDocs(query(collection(firebaseDb, "progressionLedger"), where("uid", "==", user.uid), where("sourceKey", "==", `${sourceType}:${sourceId}`)));
-  return !snap.empty;
 }
