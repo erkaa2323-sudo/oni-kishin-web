@@ -21,7 +21,7 @@ jobs:
           bun run typecheck 2>&1 | tee /tmp/typecheck.log
           status=${PIPESTATUS[0]}
           set -e
-          if grep -E 'src/(lib/(pwa|nexus-push|nexus-push\.functions|nexus-push-admin|oni-progression)|components/oni/(OniNexusDock|NexusMeetPushBridge|OniProgressionStage)|routes/(progression|__root)|data/(admin|progression))\.tsx?\(' /tmp/typecheck.log; then
+          if grep -E 'src/(lib/(pwa|nexus-push|nexus-push\.functions|nexus-push-admin|oni-progression|progression-rewards)|components/oni/(OniNexusDock|NexusMeetPushBridge|OniProgressionStage|OniProgressionRewardBridge|OniEventRewardDock)|routes/(progression|admin|__root)|data/(admin|progression|progression-admin|creator-publish))\.tsx?\(' /tmp/typecheck.log; then
             echo "ONI NEXUS-specific TypeScript errors found."
             exit 1
           fi
@@ -35,9 +35,10 @@ jobs:
           combined=base
           for path,needle in [("firestore.creator.rules.fragment","match /creatorPublishRequests/"),("firestore.nexus.rules.fragment","match /pushSubscriptions/"),("firestore.progression.rules.fragment","match /progressionProfiles/")]:
             if needle not in combined: combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
-          for needle in ["match /creatorPublishRequests/","match /pushSubscriptions/","match /progressionProfiles/","match /progressionLedger/",marker]:
+          for needle in ["match /creatorPublishRequests/","match /pushSubscriptions/","match /progressionProfiles/","match /progressionMeetClaims/","match /progressionLedger/",marker]:
             if needle not in combined: raise SystemExit(f"missing {needle}")
           if combined.count(marker)!=1: raise SystemExit("deny-all marker count changed")
+          print("Creator + Push + Progression reward rules composed.")
           PY
       - name: Check service worker syntax
         run: node --check public/sw.js
@@ -46,7 +47,11 @@ jobs:
       - name: Confirm Nexus systems
         run: |
           grep -q 'sendNexusMeetPush' src/components/oni/NexusMeetPushBridge.tsx
-          grep -q 'ONI_VAULT' src/lib/oni-progression.ts
-          grep -q 'runTransaction' src/data/progression.ts
+          grep -q 'claimMeetAttendanceReward' src/components/oni/OniProgressionRewardBridge.tsx
+          grep -q 'creator_approved' src/data/creator-publish.ts
+          grep -q 'grantEventReward' src/components/oni/OniEventRewardDock.tsx
+          grep -q 'ONI_ACHIEVEMENTS' src/lib/progression-rewards.ts
+          grep -q 'WEEKLY_MISSIONS' src/lib/progression-rewards.ts
+          grep -q 'validVaultUnlock' firestore.progression.rules.fragment
           grep -q '/progression' src/routeTree.gen.ts
-          echo "Push + ONI Progression assets present."
+          echo "Push + secure ONI Progression reward engine present."
