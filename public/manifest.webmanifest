@@ -1,24 +1,26 @@
 {
-  "name": "ONI AND KISHIN",
-  "short_name": "ONI HUB",
-  "description": "ONI HUB — Монголын CPM клан Oni And Kishin-ийн албан ёсны дижитал төв.",
+  "name": "ONI NEXUS",
+  "short_name": "ONI NEXUS",
+  "description": "ONI NEXUS — Oni And Kishin-ийн standalone app, Shizuki AI, Meet, Crew, Garage болон push notification төв.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/?source=nexus",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone"],
   "orientation": "portrait-primary",
   "theme_color": "#0a0a0d",
   "background_color": "#0a0a0d",
   "lang": "mn",
   "dir": "ltr",
+  "categories": ["social", "entertainment", "utilities"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    {
-      "src": "/icons/maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Shizuki", "short_name": "Shizuki", "url": "/oni-ai", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "ONI Meet", "short_name": "Meet", "url": "/meet", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Garage", "short_name": "Garage", "url": "/garage", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }
