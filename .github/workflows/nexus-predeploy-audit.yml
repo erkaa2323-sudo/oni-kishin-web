@@ -14,6 +14,8 @@ on:
       - src/components/oni/NexusMeetPushBridge.tsx
       - src/routes/__root.tsx
       - src/data/admin.ts
+      - firestore.rules
+      - firestore.creator.rules.fragment
       - firestore.nexus.rules.fragment
       - .github/workflows/firebase-rules.yml
       - .github/workflows/nexus-predeploy-audit.yml
@@ -45,6 +47,36 @@ jobs:
           if [ "$status" -ne 0 ]; then
             echo "Repository has pre-existing TypeScript errors outside ONI NEXUS scope; Nexus files are clean."
           fi
+      - name: Validate Firestore rule composition
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          base = Path("firestore.rules").read_text(encoding="utf-8")
+          creator = Path("firestore.creator.rules.fragment").read_text(encoding="utf-8")
+          nexus = Path("firestore.nexus.rules.fragment").read_text(encoding="utf-8")
+          marker = "    match /{document=**} { allow read, write: if false; }"
+          if marker not in base:
+              raise SystemExit("deny-all marker missing")
+          combined = base
+          if "match /creatorPublishRequests/" not in combined:
+              combined = combined.replace(marker, creator.rstrip() + "\n\n" + marker, 1)
+          if "match /pushSubscriptions/" not in combined:
+              combined = combined.replace(marker, nexus.rstrip() + "\n\n" + marker, 1)
+          checks = [
+              "match /creatorPublishRequests/",
+              "match /pushSubscriptions/",
+              "match /pushConfig/",
+              marker,
+          ]
+          missing = [item for item in checks if item not in combined]
+          if missing:
+              raise SystemExit(f"composed rules missing: {missing}")
+          if combined.count(marker) != 1:
+              raise SystemExit("deny-all marker count changed unexpectedly")
+          print("Firestore Creator + Nexus rule composition is structurally valid.")
+          PY
+      - name: Check service worker syntax
+        run: node --check public/sw.js
       - name: Production build only
         run: bun run build
       - name: Confirm push assets
