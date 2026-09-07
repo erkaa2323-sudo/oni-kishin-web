@@ -62,10 +62,14 @@ function loadScript(src: string) {
     script.async = true;
     script.crossOrigin = "anonymous";
     script.dataset.oniLive2dSrc = src;
-    script.addEventListener("load", () => {
-      script.dataset.loaded = "true";
-      resolve();
-    }, { once: true });
+    script.addEventListener(
+      "load",
+      () => {
+        script.dataset.loaded = "true";
+        resolve();
+      },
+      { once: true },
+    );
     script.addEventListener("error", () => reject(new Error(`Failed: ${src}`)), { once: true });
     document.head.appendChild(script);
   });
@@ -80,19 +84,35 @@ function setMouth(model: Model, value: number) {
 
 function setState(model: Model, state: OniState) {
   const expressions: Partial<Record<OniState, string>> = {
+    listening: "f03",
+    thinking: "f02",
+    speaking: "f03",
     concerned: "f01",
     serious: "f02",
     happy: "f03",
-    speaking: "f03",
     excited: "f04",
     surprised: "f04",
+    music: "f03",
   };
+
+  const motions: Partial<Record<OniState, { group: string; index: number }>> = {
+    idle: { group: "idle", index: 0 },
+    listening: { group: "pinch_in", index: 0 },
+    thinking: { group: "shake", index: 1 },
+    speaking: { group: "tap_body", index: 1 },
+    concerned: { group: "pinch_out", index: 1 },
+    serious: { group: "shake", index: 0 },
+    happy: { group: "tap_body", index: 2 },
+    excited: { group: "shake", index: 2 },
+    surprised: { group: "flick_head", index: 2 },
+    music: { group: "tap_body", index: 0 },
+  };
+
   const expression = expressions[state];
   if (expression) void model.expression?.(expression);
 
-  if (state === "excited" || state === "music") void model.motion?.("tap_body", 0);
-  if (state === "surprised") void model.motion?.("flick_head", 0);
-  if (state === "happy") void model.motion?.("idle", 1);
+  const motion = motions[state];
+  if (motion) void model.motion?.(motion.group, motion.index);
 }
 
 export function OniLive2D({ state, glow, speaking = false }: Props) {
@@ -154,8 +174,6 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
           const height = Math.max(1, currentHost.clientHeight);
           app.renderer.resize(width, height);
 
-          // Keep the entire character inside the slot. Use the original model
-          // dimensions so ResizeObserver callbacks never compound the scale.
           const safeWidth = width * 0.78;
           const safeHeight = height * 0.86;
           const scale = Math.min(safeWidth / baseSize.width, safeHeight / baseSize.height);
@@ -200,15 +218,33 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
     }
 
     let frame = 0;
+    let gesture = 0;
+
     const tick = () => {
       const current = modelRef.current;
       if (!current) return;
       setMouth(current, 0.12 + Math.abs(Math.sin(performance.now() / 95)) * 0.72);
       frame = window.requestAnimationFrame(tick);
     };
+
+    const gestureTimer = window.setInterval(() => {
+      const current = modelRef.current;
+      if (!current) return;
+      const motions = [
+        { group: "tap_body", index: 0 },
+        { group: "tap_body", index: 1 },
+        { group: "flick_head", index: 0 },
+      ];
+      const next = motions[gesture % motions.length];
+      gesture += 1;
+      void current.motion?.(next.group, next.index);
+    }, 1800);
+
     frame = window.requestAnimationFrame(tick);
+
     return () => {
       window.cancelAnimationFrame(frame);
+      window.clearInterval(gestureTimer);
       if (modelRef.current) setMouth(modelRef.current, 0);
     };
   }, [speaking, ready]);
