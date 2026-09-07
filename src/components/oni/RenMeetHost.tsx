@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MeetLifecycle } from "@/data/meet";
 
 type RegistrationState = "idle" | "sending" | "denied" | "registered";
+type CountdownPhase = "none" | "ten" | "five" | "one" | "final10" | "go";
 type HostState =
   | "idle"
   | "scheduled"
@@ -24,6 +25,8 @@ type Props = {
   nickname?: string;
   participants: number;
   capacity: number | null;
+  countdownPhase?: CountdownPhase;
+  countdownSeconds?: number;
 };
 
 type RuntimeState = "loading" | "ready" | "failed";
@@ -74,6 +77,15 @@ function hostCopy(state: HostState, nickname?: string, notice?: string) {
   return "Kei дараагийн ONI MEET-ийг хүлээж байна.";
 }
 
+function countdownCopy(phase: CountdownPhase, seconds: number) {
+  if (phase === "ten") return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
+  if (phase === "five") return "5 минут. Crew check дуусгаж, Meet-д ороход бэлэн байгаарай.";
+  if (phase === "one") return "1 минут. ONI MEET launch sequence эхэллээ.";
+  if (phase === "final10") return `${Math.max(1, seconds)}… ONI MEET эхлэх гэж байна.`;
+  if (phase === "go") return "GO LIVE — ONI MEET эхэллээ. Room access-аа шалгаарай.";
+  return "";
+}
+
 function hostModeLabel(state: HostState) {
   if (state === "access") return "ACCESS READY";
   if (state === "registered") return "RIDER VERIFIED";
@@ -86,6 +98,15 @@ function hostModeLabel(state: HostState) {
   if (state === "full") return "CAPACITY FULL";
   if (state === "closed") return "REGISTRATION CLOSED";
   return "STANDBY";
+}
+
+function countdownModeLabel(phase: CountdownPhase, seconds: number) {
+  if (phase === "ten") return "T-10 MIN";
+  if (phase === "five") return "T-5 MIN";
+  if (phase === "one") return "T-1 MIN";
+  if (phase === "final10") return `T-${String(Math.max(1, seconds)).padStart(2, "0")}`;
+  if (phase === "go") return "GO LIVE";
+  return "";
 }
 
 function hostSignal(state: HostState) {
@@ -102,6 +123,15 @@ function hostSignal(state: HostState) {
   return "HOST LINK STANDBY";
 }
 
+function countdownSignal(phase: CountdownPhase) {
+  if (phase === "ten") return "LAUNCH WINDOW // 10 MIN";
+  if (phase === "five") return "CREW READY CHECK // 5 MIN";
+  if (phase === "one") return "FINAL PREP // 1 MIN";
+  if (phase === "final10") return "FINAL COUNTDOWN";
+  if (phase === "go") return "ONI CHANNEL LIVE";
+  return "";
+}
+
 export function RenMeetHost({
   life,
   registrationState,
@@ -110,13 +140,27 @@ export function RenMeetHost({
   nickname,
   participants,
   capacity,
+  countdownPhase = "none",
+  countdownSeconds = 0,
 }: Props) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [runtime, setRuntime] = useState<RuntimeState>("loading");
   const hostState = resolveHostState(life, registrationState, accessReady);
-  const modeLabel = hostModeLabel(hostState);
-  const signalLabel = hostSignal(hostState);
-  const hot = hostState === "access" || hostState === "live" || hostState === "starting";
+  const countdownActive =
+    countdownPhase !== "none" &&
+    hostState !== "access" &&
+    hostState !== "loading" &&
+    hostState !== "denied";
+  const reactionState = countdownActive ? `countdown-${countdownPhase}` : hostState;
+  const modeLabel = countdownActive
+    ? countdownModeLabel(countdownPhase, countdownSeconds)
+    : hostModeLabel(hostState);
+  const signalLabel = countdownActive ? countdownSignal(countdownPhase) : hostSignal(hostState);
+  const copy = countdownActive
+    ? countdownCopy(countdownPhase, countdownSeconds)
+    : hostCopy(hostState, nickname, notice);
+  const hot =
+    countdownActive || hostState === "access" || hostState === "live" || hostState === "starting";
   const positive = hostState === "access" || hostState === "registered";
 
   const srcDoc = useMemo(
@@ -183,6 +227,31 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
     currentState=next||'idle';
     if(!model) return;
 
+    if(currentState==='countdown-ten'){
+      safeFocus(.08,-.08,false);
+      safeMotion(1);
+      return;
+    }
+    if(currentState==='countdown-five'){
+      safeFocus(.2,-.12,true);
+      safeMotion(2);
+      return;
+    }
+    if(currentState==='countdown-one'){
+      safeFocus(.34,-.16,true);
+      safeMotion(3);
+      return;
+    }
+    if(currentState==='countdown-final10'){
+      safeFocus(.48,-.2,true);
+      safeMotion(0);
+      return;
+    }
+    if(currentState==='countdown-go'){
+      safeFocus(.62,-.22,true);
+      safeMotion(2);
+      return;
+    }
     if(currentState==='access'){
       safeFocus(.62,-.2,true);
       safeMotion(0);
@@ -347,11 +416,11 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
       {
         source: "oni-kei-meet-parent",
         type: "state",
-        state: hostState,
+        state: reactionState,
       },
       "*",
     );
-  }, [hostState, runtime]);
+  }, [reactionState, runtime]);
 
   return (
     <div
@@ -427,11 +496,15 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
       <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}>
+            <div
+              className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${
+                positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"
+              }`}
+            >
               {signalLabel}
             </div>
             <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
-              {hostCopy(hostState, nickname, notice)}
+              {copy}
             </p>
           </div>
           <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
