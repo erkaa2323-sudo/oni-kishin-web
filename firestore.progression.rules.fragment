@@ -137,6 +137,85 @@
       allow update, delete: if isAdmin();
     }
 
+    function validSocialBase() {
+      return request.resource.data.uid is string
+        && requiredText(request.resource.data.nickname, 60)
+        && request.resource.data.type in ["rank_up", "cosmetic_unlock", "event_win", "creator_approved", "meet_attendance"]
+        && requiredText(request.resource.data.title, 120)
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 240
+        && requiredText(request.resource.data.targetUrl, 160)
+        && request.resource.data.targetUrl.matches("^/.*")
+        && request.resource.data.reactions == 0
+        && request.resource.data.createdAt == request.time;
+    }
+
+    match /socialEvents/{eventId} {
+      allow read: if true;
+      allow create: if isAdmin() || (isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && validSocialBase()
+        && ((request.resource.data.type == "cosmetic_unlock"
+          && requiredText(request.resource.data.itemId, 80)
+          && eventId == request.auth.uid + "_cosmetic_" + request.resource.data.itemId
+          && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.unlocked.toSet().hasAny([request.resource.data.itemId]))
+        || (request.resource.data.type == "meet_attendance"
+          && requiredText(request.resource.data.sourceKey, 80)
+          && eventId == request.auth.uid + "_meet_" + request.resource.data.sourceKey
+          && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.claimNonce == request.resource.data.sourceKey)));
+      allow update: if isAdmin() || (isApprovedMember()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.detail == resource.data.detail
+        && request.resource.data.targetUrl == resource.data.targetUrl
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.reactions == resource.data.reactions + 1
+        && requiredText(request.resource.data.lastReactionId, 220)
+        && requiredText(request.resource.data.lastReactionKey, 180)
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId))
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.targetType == "feed"
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.targetId == eventId
+        && existsAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey))
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.count <= 8
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.updatedAt == request.time);
+      allow delete: if isAdmin();
+    }
+
+    match /socialReactions/{reactionId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow create: if isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.targetType in ["feed", "profile", "gallery", "garage"]
+        && requiredText(request.resource.data.targetId, 100)
+        && request.resource.data.emoji in ["🔥", "🖤", "⚡", "👹"]
+        && requiredText(request.resource.data.day, 10)
+        && reactionId == request.auth.uid + "_" + request.resource.data.day + "_" + request.resource.data.targetType + "_" + request.resource.data.targetId
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /reactionDaily/{counterId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow create: if isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && requiredText(request.resource.data.day, 10)
+        && counterId == request.auth.uid + "_" + request.resource.data.day
+        && request.resource.data.count == 1
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isApprovedMember()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.day == resource.data.day
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.count <= 8
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
     match /progressionMissions/{missionId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
