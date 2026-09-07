@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import "@/services/application-workflow";
 import { OniAdminPage } from "@/components/oni/OniAdminPage";
 
 const description =
