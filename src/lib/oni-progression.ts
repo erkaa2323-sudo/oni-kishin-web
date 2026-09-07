@@ -18,6 +18,9 @@ export type OniProgressionProfile = {
   lifetimeXp: number;
   seasonXp: number;
   prestige: number;
+  meetCount: number;
+  creatorCount: number;
+  eventCount: number;
   unlocked: string[];
   equipped: Record<string, string>;
 };
