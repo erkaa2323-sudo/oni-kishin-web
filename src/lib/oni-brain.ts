@@ -1,4 +1,4 @@
-/** ONI BRAIN — public-safe, live-data-first assistant core. */
+/** ONI SHIZUKI — public-safe, live-data-first assistant core. */
 import { CREDENTIAL_REFUSAL, isCredentialRequest } from "@/data/oni-ai";
 import { deriveLifecycle, fetchActiveMeet, LIFECYCLE_LABEL, type MeetSession } from "@/data/meet";
 import { inferReplyState, type OniState } from "@/lib/oni-emotion";
@@ -79,7 +79,7 @@ async function statsAnswer(): Promise<BrainReply> {
 }
 
 function classify(n: NormalizedInput): Intent | null {
-  if (hasStem(n, "чи хэн", "вхо аре йоу", "они ай", "они браин", "чамайг хэн", "зан чанар")) return "identity";
+  if (hasStem(n, "чи хэн", "вхо аре йоу", "они ай", "они браин", "они шизүки", "они шизуки", "oni shizuki", "oni shizuki", "чамайг хэн", "зан чанар")) return "identity";
   if (hasStem(n, "сайн уу", "саин уу", "саинуу", "сайн байна уу", "саин баина", "сайнуу", "хэлло", "хело", "хай", "мэнд", "йо ", "йоу")) return "greet";
   if (hasStem(n, "уулзалт", "меет", "цуглаан", "хэзээ", "цоунтдовн", "бүртгэл", "багтаамж")) return "meet";
   if (hasStem(n, "гишүү", "мембер", "црэв", "крю", "бүрэлдэхүүн", "хэн хэн")) return "members";
@@ -97,14 +97,14 @@ function isFollowUp(n: NormalizedInput): boolean {
 }
 
 const REPLIES: Record<Intent, () => Promise<BrainReply>> = {
-  greet: async () => ({ text: "Сайн уу. ONI BRAIN онлайн байна. Гишүүд, гараж, хөгжим, уулзалтын мэдээллээс юуг мэдмээр байна?", state: "happy" }),
+  greet: async () => ({ text: "Хөөе~ ♡ Би Они Шизүки байна. Чамайг хүлээж байлаа шүү! Юуны талаар ярилцах вэ? ✨", state: "happy" }),
   meet: meetAnswer,
   members: membersAnswer,
   garage: garageAnswer,
   music: musicAnswer,
   stats: statsAnswer,
   join: async () => ({ text: "Элсэхийн тулд ЭЛСЭЛТ хэсгээс анкетаа бөглөнө: CPM nickname, CPM ID, холбоо барих суваг. Хүсэлтийг админ баг хянаж хариу өгнө. Би шийдвэр гаргах эрхгүй.", state: "serious" }),
-  identity: async () => ({ text: "Би ONI BRAIN — ONI & KISHIN-ийн дижитал хамтрагч. Шууд ярьдаг, баримтад хатуу, кланыхандаа дулаан; мэдэхгүй зүйлээ зохиохгүй. Нийтийн клан мэдээлэл, гараж, хөгжим, уулзалт дээр тусална, харин ROOM ID ба нууц үгийг хэзээ ч задруулахгүй.", state: "serious" }),
+  identity: async () => ({ text: "Би Они Шизүки ♡ — ONI & KISHIN-ийн дижитал хамтрагч. Кланыхандаа дулаахан, баримт дээр нягт; мэдэхгүй зүйлээ зохиохгүй. Нийтийн клан мэдээлэл, гараж, хөгжим, уулзалт дээр тусална, харин ROOM ID ба нууц үгийг хэзээ ч задруулахгүй.", state: "happy" }),
   help: async () => ({ text: HELP, state: "serious" }),
 };
 
@@ -130,6 +130,7 @@ async function generalFallback(raw: string, history: BrainTurn[]): Promise<Brain
     const music = musicLoad.status === "fulfilled" ? musicLoad.value : null;
     const meet = meetLoad.status === "fulfilled" ? meetLoad.value : null;
     const publicContext = JSON.stringify({
+      assistant: "Oni Shizuki",
       clan: "ONI AND KISHIN / CPM",
       members: members?.ok ? members.data.map((m) => ({ nickname: m.cpmNickname, role: m.role ?? "member" })) : "unavailable",
       garage: garage?.ok ? garage.data.map((v) => ({ model: v.model, owner: v.ownerName ?? null, build: v.build ?? null })) : "unavailable",
