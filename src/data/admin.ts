@@ -75,7 +75,7 @@ export type AdminApplicationRecord={id:string;cpmNickname:string;cpmId:string;co
 export type AdminMeetRecord={id:string;title:string;scheduledAt:string;endsAt:string;registrationClosesAt:string;capacity:number;status:"draft"|"scheduled"|"live"|"ended"|"closed"};
 export type AdminRegistrationRecord={id:string;cpmNickname:string;cpmId:string;createdAt:string};
 export type AdminTrackRecord={id:string;title:string;artist:string;source:string;sortOrder:number;durationSeconds:number;status:"published"|"draft"};
-export type AuditEvent={id:string;at:string;actor:string;action:string;target:string;severity:"info"|"warning"|"critical"};
+export type AuditEvent={id:string;at:string;actor:string;createdAt:string;actorRole:string;action:string;target:string;severity:"info"|"warning"|"critical";result:"success"|"failure"|"denied"};
 export type DataResult<T>={status:"ok";rows:T[]}|{status:"unavailable";reason:string};
 const UNAVAILABLE=(reason:string)=>({status:"unavailable" as const,reason});
 async function toResult<T,R>(load:()=>Promise<{ok:true;data:T[]}|{ok:false;error:{message:string}}>,map:(row:T)=>R):Promise<DataResult<R>>{const res=await load();if(!res.ok)return UNAVAILABLE(res.error.message);return{status:"ok",rows:res.data.map(map)}}
@@ -85,7 +85,7 @@ export async function getApplications():Promise<DataResult<AdminApplicationRecor
 export async function getMeets():Promise<DataResult<AdminMeetRecord>>{return toResult(meetService.list,m=>({id:m.id,title:m.title,scheduledAt:m.scheduledAt??"",endsAt:m.endsAt??"",registrationClosesAt:m.registrationClosesAt??"",capacity:m.capacity??0,status:m.status}))}
 export async function getRegistrations(meetId:string):Promise<DataResult<AdminRegistrationRecord>>{return toResult(()=>meetService.listRegistrations(meetId),r=>({id:r.id,cpmNickname:r.cpmNickname,cpmId:r.cpmId,createdAt:r.createdAt??""}))}
 export async function getTracks():Promise<DataResult<AdminTrackRecord>>{return toResult(musicService.list,t=>({id:t.id,title:t.title,artist:t.artist??"",source:t.sourceUrl??"",sortOrder:t.sortOrder,durationSeconds:t.durationSeconds??0,status:t.status==="archived"?"draft":t.status}))}
-export async function getAuditEvents():Promise<DataResult<AuditEvent>>{return toResult(()=>listAuditEvents(100),e=>({id:e.id,at:e.createdAt??"",actor:e.actorRole,action:e.action,target:e.target??"—",severity:e.severity}))}
+export async function getAuditEvents():Promise<DataResult<AuditEvent>>{return toResult(()=>listAuditEvents(100),e=>({id:e.id,at:e.createdAt??"",actor:e.actorRole,createdAt:e.createdAt??"",actorRole:e.actorRole,action:e.action,target:e.target??"—",severity:e.severity,result:e.result}))}
 
 export type AdminActionKind="member.create"|"member.update"|"member.archive"|"member.delete"|"member_account.approve"|"member_account.reject"|"vehicle.create"|"vehicle.update"|"vehicle.archive"|"vehicle.delete"|"application.accept"|"application.reject"|"application.promote"|"meet.create"|"meet.update"|"meet.start"|"meet.end"|"meet.close"|"meet.rotate_credentials"|"meet.registration_remove"|"track.create"|"track.update"|"track.delete"|"prompt.update";
 export type RiskLevel="low"|"medium"|"high";
