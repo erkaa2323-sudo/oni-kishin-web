@@ -131,9 +131,14 @@ export type MemberRecord = BaseRecord & {
   cpmNickname: string;
   cpmId: string;
   role?: string | undefined;
+  portraitUrl?: string | undefined;
   status: "active" | "inactive" | "archived";
   joinedAt?: string | undefined;
 };
+
+function memberPortrait(r: Row): string | undefined {
+  return opt(r["portraitUrl"] || r["portrait"] || r["image"] || r["imageUrl"] || r["photo"] || r["avatar"]);
+}
 
 export const membersService = {
   list: async (): Promise<ServiceResult<MemberRecord[]>> => {
@@ -147,20 +152,21 @@ export const membersService = {
     const res = await membersService.list();
     return res.ok ? ok(res.data.filter((member) => member.status === "active")) : res;
   },
-  /** Public projection: active members only, no admin-only columns. */
+  /** Public projection: active/non-archived members and public profile fields only. */
   listPublic: async (): Promise<ServiceResult<MemberRecord[]>> => {
     try {
       const rows = await firebaseRows("members");
       return ok(
         rows
-          .filter((r) => str(r["status"]) !== "archived")
+          .filter((r) => str(r["status"]) !== "archived" && str(r["status"]) !== "inactive")
           .map((r) => ({
             id: str(r["id"]),
-            cpmNickname: str(r["nick"] || r["name"]),
-            cpmId: str(r["cpmid"]),
+            cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
+            cpmId: str(r["cpmid"] || r["cpmId"]),
             role: opt(r["role"] || r["title"]),
-            status: "active",
-            joinedAt: firebaseDate(r["createdAt"]),
+            portraitUrl: memberPortrait(r),
+            status: "active" as const,
+            joinedAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
             createdAt: firebaseDate(r["createdAt"]),
             updatedAt: firebaseDate(r["updatedAt"]),
           })),
@@ -182,6 +188,7 @@ function mapFirebaseMember(r: Row): MemberRecord {
     cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
     cpmId: str(r["cpmid"] || r["cpmId"]),
     role: opt(r["role"] || r["title"]),
+    portraitUrl: memberPortrait(r),
     status: (str(r["status"]) || "active") as MemberRecord["status"],
     joinedAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
     createdAt: firebaseDate(r["createdAt"]),
@@ -194,6 +201,7 @@ function memberWrite(data: Record<string, unknown>): Record<string, unknown> {
     nick: data["cpm_nickname"] ?? data["nick"],
     cpmid: data["cpm_id"] ?? data["cpmid"],
     role: data["role"],
+    portraitUrl: data["portrait_url"] ?? data["portraitUrl"] ?? data["image"],
     status: data["status"],
     joinedAt: data["joined_at"] ?? data["joinedAt"],
     createdBy: data["created_by"] ?? data["createdBy"],
@@ -246,7 +254,7 @@ function mapFirebaseVehicle(r: Row): VehicleRecord {
     ownerMemberId: opt(r["ownerMemberId"]),
     category: opt(r["category"]),
     build: opt(r["build"] || r["description"] || r["anime"]),
-    imagePath: opt(r["image"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
+    imagePath: opt(r["image"] || r["imagePath"] || r["imageUrl"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
     status,
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
@@ -328,7 +336,6 @@ export const applicationsService = {
         status: "Зөвшөөрсөн",
         reviewedBy: actorId,
         reviewedAt: serverTimestamp(),
-        promotedMemberId: memberRef.id,
         updatedAt: serverTimestamp(),
       });
       await batch.commit();
@@ -338,6 +345,26 @@ export const applicationsService = {
     }
   },
 };
+
+function mapFirebaseApplication(r: Row): ApplicationRecord {
+  const raw = str(r["status"]);
+  const state: ApplicationRecord["state"] = /зөвшөөр|accept|approve/i.test(raw)
+    ? "accepted"
+    : /татгал|reject/i.test(raw)
+      ? "rejected"
+      : "pending";
+  return {
+    id: str(r["id"]),
+    cpmNickname: str(r["nick"] || r["cpmNickname"]),
+    cpmId: str(r["cpmid"] || r["cpmId"]),
+    contact: str(r["contact"]),
+    message: opt(r["message"]),
+    experience: opt(r["experience"]),
+    state,
+    createdAt: firebaseDate(r["createdAt"]),
+    updatedAt: firebaseDate(r["updatedAt"]),
+  };
+}
 
 async function submitFirebaseApplication(input: {
   last: string;
@@ -351,6 +378,7 @@ async function submitFirebaseApplication(input: {
   contact: string;
   message?: string | undefined;
   experience?: string | undefined;
+  interests?: string | undefined;
 }): Promise<ServiceResult<{ id: string }>> {
   try {
     const ref = await addDoc(collection(firebaseDb, "applications"), {
@@ -358,18 +386,13 @@ async function submitFirebaseApplication(input: {
       first: input.first,
       age: input.age,
       gender: input.gender,
-      nick: input.cpm_nickname,
       cpmid: input.cpm_id,
+      nick: input.cpm_nickname,
       direction: input.direction,
       contactType: input.contact_type,
       contact: input.contact,
-      experience:
-        input.experience === "rookie"
-          ? "6 сараас бага"
-          : input.experience === "veteran"
-            ? "2 жилээс дээш"
-            : "1 – 2 жил",
-      message: input.message ?? "",
+      experience: input.experience ?? "",
+      message: input.message ?? input.interests ?? "",
       status: "Шинэ",
       createdAt: serverTimestamp(),
     });
@@ -377,26 +400,6 @@ async function submitFirebaseApplication(input: {
   } catch (err) {
     return { ok: false, error: normalizeError(err) };
   }
-}
-
-function mapFirebaseApplication(r: Row): ApplicationRecord {
-  const status = str(r["state"] || r["status"]);
-  const state: ApplicationRecord["state"] = /зөвшөөр|accept/i.test(status)
-    ? "accepted"
-    : /татгалз|reject/i.test(status)
-      ? "rejected"
-      : "pending";
-  return {
-    id: str(r["id"]),
-    cpmNickname: str(r["nick"] || r["cpm_nickname"]),
-    cpmId: str(r["cpmid"] || r["cpm_id"]),
-    contact: str(r["contact"]),
-    message: opt(r["message"]),
-    experience: opt(r["experience"]),
-    state,
-    createdAt: firebaseDate(r["createdAt"]),
-    updatedAt: firebaseDate(r["updatedAt"]),
-  };
 }
 
 /* ── Meet ─────────────────────────────────────────────────────── */
@@ -410,266 +413,209 @@ export type MeetRecord = BaseRecord & {
   status: "draft" | "scheduled" | "live" | "ended" | "closed";
 };
 
-export type MeetCredentialsRecord = {
-  meetId: string;
-  roomId: string;
-  password: string;
-};
-
 export type MeetRegistrationRecord = BaseRecord & {
   meetId: string;
+  memberId?: string | undefined;
   cpmNickname: string;
   cpmId: string;
-  verified: boolean;
+  status: "registered" | "cancelled" | "removed";
 };
+
+export type MeetCredentials = { roomId: string; password: string };
 
 export const meetService = {
   list: async (): Promise<ServiceResult<MeetRecord[]>> => {
     try {
-      const snapshot = await getDocs(collection(firebaseDb, "meets"));
-      return ok(snapshot.docs.map((entry) => mapFirebaseMeet({ id: entry.id, ...entry.data() })));
+      return ok((await firebaseRows("meets")).map(mapFirebaseMeet));
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
   listPublic: async (): Promise<ServiceResult<MeetRecord[]>> => {
     const res = await meetService.list();
-    return res.ok
-      ? ok(res.data.filter((meet) => ["scheduled", "live"].includes(meet.status)))
-      : res;
+    return res.ok ? ok(res.data.filter((meet) => meet.status !== "draft")) : res;
   },
   create: async (data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
     try {
       const meetRef = doc(firebaseDb, "meets", "current");
-      const [previous, participants, roster, slots, previousCredentials] = await Promise.all([
-        getDoc(meetRef),
-        getDocs(query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current"))),
-        getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current"))),
-        getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
-        getDoc(doc(firebaseDb, "meetCredentials", "current")),
-      ]);
-      const batch = writeBatch(firebaseDb);
-      if (previous.exists()) {
-        const archiveRef = doc(collection(firebaseDb, "meetResults"));
-        const liveCount = participants.docs.filter((entry) => entry.id !== "__counter__").length;
-        const preservedCount = Number(previous.data()["participantCount"] ?? 0);
-        batch.set(archiveRef, {
-          ...previous.data(),
-          sourceMeetId: "current",
-          participantCount: liveCount > 0 ? liveCount : preservedCount,
-          archivedAt: serverTimestamp(),
+      const credentialsRef = doc(firebaseDb, "meetCredentials", "current");
+      const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
+      const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
+      const registrationClosesAt = firebaseTimestamp(
+        data["registration_closes_at"] ?? data["registrationClosesAt"],
+      );
+      const capacity = Number(data["capacity"] ?? 20);
+      const roomId = str(data["room_id"] ?? data["roomId"]);
+      const password = str(data["password"]);
+      await setDoc(meetRef, compact({
+        title: data["title"],
+        startAt: scheduledAt,
+        endsAt,
+        registrationClosesAt,
+        maxPlayers: Number.isFinite(capacity) ? capacity : 20,
+        status: data["status"] ?? "scheduled",
+        enabled: data["enabled"] ?? true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }));
+      if (roomId || password) {
+        await setDoc(credentialsRef, {
+          roomId,
+          password,
+          updatedAt: serverTimestamp(),
         });
       }
-      participants.docs.forEach((entry) => batch.delete(entry.ref));
-      roster.docs.forEach((entry) => batch.delete(entry.ref));
-      slots.docs.forEach((entry) => batch.delete(entry.ref));
-      if (previousCredentials.exists()) batch.delete(previousCredentials.ref);
-      batch.set(
-        meetRef,
-        compact({
-          ...meetWrite(data),
-          maxPlayers: Math.min(20, Math.max(1, Number(data["capacity"] ?? 20))),
-          enabled: true,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }),
+      return ok({ id: "current" });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  update: async (id: string, data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
+    try {
+      const meetRef = doc(firebaseDb, "meets", id);
+      const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
+      const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
+      const registrationClosesAt = firebaseTimestamp(
+        data["registration_closes_at"] ?? data["registrationClosesAt"],
       );
-      await batch.commit();
-      return ok({ id: "current" });
-    } catch (err) {
-      return { ok: false, error: normalizeError(err) };
-    }
-  },
-  update: (_id: string, data: Record<string, unknown>) =>
-    firebaseUpdate("meets", "current", meetWrite(data)),
-  setLifecycle: async (_id: string, status: MeetRecord["status"]) => {
-    if (status !== "ended" && status !== "closed") {
-      return firebaseUpdate("meets", "current", {
-        status,
-        enabled: status === "scheduled" || status === "live",
-      });
-    }
-
-    try {
-      const meetRef = doc(firebaseDb, "meets", "current");
-      const [participants, roster, slots, credentials] = await Promise.all([
-        getDocs(query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", "current"))),
-        getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", "current"))),
-        getDocs(query(collection(firebaseDb, "meetSlots"), where("meetId", "==", "current"))),
-        getDoc(doc(firebaseDb, "meetCredentials", "current")),
-      ]);
-      const participantCount = participants.docs.filter((entry) => entry.id !== "__counter__").length;
-      const batch = writeBatch(firebaseDb);
-      batch.update(meetRef, {
-        status,
-        enabled: false,
-        participantCount,
+      const capacity = Number(data["capacity"] ?? 20);
+      await updateDoc(meetRef, compact({
+        title: data["title"],
+        startAt: scheduledAt,
+        endsAt,
+        registrationClosesAt,
+        maxPlayers: Number.isFinite(capacity) ? capacity : 20,
+        status: data["status"],
+        enabled: data["enabled"],
         updatedAt: serverTimestamp(),
-      });
-      participants.docs.forEach((entry) => batch.delete(entry.ref));
-      roster.docs.forEach((entry) => batch.delete(entry.ref));
-      slots.docs.forEach((entry) => batch.delete(entry.ref));
-      if (credentials.exists()) batch.delete(credentials.ref);
-      await batch.commit();
-      return ok({ id: "current" });
+      }));
+      const roomId = str(data["room_id"] ?? data["roomId"]);
+      const password = str(data["password"]);
+      if (roomId || password) {
+        await setDoc(
+          doc(firebaseDb, "meetCredentials", id),
+          compact({ roomId: roomId || undefined, password: password || undefined, updatedAt: serverTimestamp() }),
+          { merge: true },
+        );
+      }
+      return ok({ id });
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  getCredentials: async (meetId: string): Promise<ServiceResult<MeetCredentialsRecord>> => {
-    try {
-      const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
-      if (!snapshot.exists()) return fail("not_found");
-      const r = snapshot.data() as Row;
-      return ok({ meetId, roomId: str(r["roomId"]), password: str(r["password"]) });
-    } catch (err) {
-      return { ok: false, error: normalizeError(err) };
-    }
-  },
+  remove: (id: string) => firebaseRemove("meets", id),
+  setStatus: (id: string, status: MeetRecord["status"]) => firebaseUpdate("meets", id, { status }),
   listRegistrations: async (meetId: string): Promise<ServiceResult<MeetRegistrationRecord[]>> => {
     try {
-      const snapshot = await getDocs(
-        query(collection(firebaseDb, "meetParticipants"), where("meetId", "==", meetId)),
-      );
+      const rows = await firebaseRows("meetParticipants");
       return ok(
-        snapshot.docs.map((entry) => {
-          const r = entry.data() as Row;
-          return {
-            id: entry.id,
+        rows
+          .filter((r) => str(r["meetId"]) === meetId)
+          .map((r) => ({
+            id: str(r["id"]),
             meetId: str(r["meetId"]),
-            cpmNickname: str(r["nick"] || r["name"]),
-            cpmId: str(r["cpmId"]),
-            verified: true,
-            createdAt: firebaseDate(r["joinedAt"]),
-          };
-        }),
+            memberId: opt(r["memberId"]),
+            cpmNickname: str(r["nick"] || r["cpmNickname"]),
+            cpmId: str(r["cpmId"] || r["cpmid"]),
+            status: "registered" as const,
+            createdAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
+          })),
       );
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  removeRegistration: async (id: string): Promise<ServiceResult<void>> => {
+  removeRegistration: async (id: string): Promise<ServiceResult<{ id: string }>> => {
     try {
-      await runTransaction(firebaseDb, async (tx) => {
-        const registrationRef = doc(firebaseDb, "meetParticipants", id);
-        const registration = await tx.get(registrationRef);
-        if (!registration.exists()) return;
-        const slotId = str(registration.data()["slotId"]);
-        if (slotId) tx.delete(doc(firebaseDb, "meetSlots", slotId));
-        tx.delete(doc(firebaseDb, "meetRoster", id));
-        tx.delete(registrationRef);
-      });
-      return ok(undefined);
+      const participantRef = doc(firebaseDb, "meetParticipants", id);
+      const participant = await getDoc(participantRef);
+      const slotId = participant.exists() ? str(participant.data()["slotId"]) : "";
+      const batch = writeBatch(firebaseDb);
+      batch.delete(participantRef);
+      batch.delete(doc(firebaseDb, "meetRoster", id));
+      if (slotId) batch.delete(doc(firebaseDb, "meetSlots", slotId));
+      await batch.commit();
+      return ok({ id });
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  setCredentials: async (
-    meetId: string,
-    roomId: string,
-    password: string,
-  ): Promise<ServiceResult<void>> => {
-    try {
-      await setDoc(doc(firebaseDb, "meetCredentials", meetId), {
-        roomId: roomId.trim(),
-        password,
-        updatedAt: serverTimestamp(),
-      });
-      return ok(undefined);
-    } catch (err) {
-      return { ok: false, error: normalizeError(err) };
-    }
+  credentials: {
+    reveal: async (meetId: string): Promise<ServiceResult<MeetCredentials>> => {
+      try {
+        const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
+        if (!snapshot.exists()) return fail("NOT_FOUND", "Уулзалтын нууц мэдээлэл олдсонгүй.");
+        return ok({
+          roomId: str(snapshot.data()["roomId"]),
+          password: str(snapshot.data()["password"]),
+        });
+      } catch (err) {
+        return { ok: false, error: normalizeError(err) };
+      }
+    },
   },
-  verifyAndJoin: async (_input: {
-    meetId: string;
-    cpmNickname: string;
-    cpmId: string;
-  }): Promise<ServiceResult<{ roomId: string; password: string }>> =>
-    fail("not_configured", "Уулзалтын баталгаажуулалтын сервер хараахан идэвхжээгүй."),
 };
 
 function mapFirebaseMeet(r: Row): MeetRecord {
-  const enabled = r["enabled"] !== false;
-  const rawStatus = str(r["status"] || r["state"]);
+  const raw = str(r["status"]);
+  const status: MeetRecord["status"] = /live|active|ongoing/i.test(raw)
+    ? "live"
+    : /ended|дуус/i.test(raw)
+      ? "ended"
+      : /closed|хаа/i.test(raw)
+        ? "closed"
+        : /draft|ноорог/i.test(raw)
+          ? "draft"
+          : "scheduled";
   return {
     id: str(r["id"]),
     title: str(r["title"] || r["name"] || "ONI MEET"),
-    scheduledAt: firebaseDate(r["scheduledAt"] || r["startAt"] || r["start"]),
+    scheduledAt: firebaseDate(r["startAt"] || r["scheduledAt"] || r["date"]),
     endsAt: firebaseDate(r["endsAt"] || r["endAt"]),
-    registrationClosesAt: firebaseDate(r["registrationClosesAt"] || r["registrationEndAt"]),
-    capacity:
-      typeof r["capacity"] === "number"
-        ? r["capacity"]
-        : typeof r["maxPlayers"] === "number"
-          ? r["maxPlayers"]
-          : 20,
-    status: (!enabled ? "closed" : rawStatus || "scheduled") as MeetRecord["status"],
+    registrationClosesAt: firebaseDate(r["registrationClosesAt"] || r["registrationCloseAt"]),
+    capacity: Number(r["maxPlayers"] ?? r["capacity"] ?? 20),
+    status,
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
   };
 }
 
-function meetWrite(data: Record<string, unknown>): Record<string, unknown> {
-  const status = str(data["status"]) || undefined;
-  return compact({
-    title: data["title"],
-    startAt: firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]),
-    endsAt: firebaseTimestamp(data["ends_at"] ?? data["endsAt"]),
-    registrationClosesAt: firebaseTimestamp(
-      data["registration_closes_at"] ?? data["registrationClosesAt"],
-    ),
-    maxPlayers: data["capacity"] ?? data["maxPlayers"],
-    status,
-    enabled: status ? status === "scheduled" || status === "live" : undefined,
-    updatedBy: data["updated_by"] ?? data["updatedBy"],
-  });
-}
-
 /* ── Music / AI config ────────────────────────────────────────── */
 
-export type TrackRecord = BaseRecord & {
+export type MusicTrackRecord = BaseRecord & {
   title: string;
   artist?: string | undefined;
-  sourceUrl?: string | undefined;
-  status: "published" | "draft";
-  sortOrder: number;
-  durationSeconds?: number | undefined;
+  audioPath?: string | undefined;
+  coverPath?: string | undefined;
+  status: "published" | "draft" | "archived";
 };
 
 export const musicService = {
-  list: async (): Promise<ServiceResult<TrackRecord[]>> => {
+  list: async (): Promise<ServiceResult<MusicTrackRecord[]>> => {
     try {
-      return ok(
-        (await firebaseRows("music"))
-          .map(mapFirebaseTrack)
-          .sort((a, b) => a.sortOrder - b.sortOrder),
-      );
+      return ok((await firebaseRows("music")).map(mapFirebaseTrack));
     } catch (err) {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  listPublished: async (): Promise<ServiceResult<TrackRecord[]>> => {
-    const res = await musicService.list();
-    return res.ok
-      ? ok(res.data.filter((track) => track.status === "published" && !!track.sourceUrl))
-      : res;
-  },
   create: (data: Record<string, unknown>) => firebaseCreate("music", trackWrite(data)),
-  update: (id: string, data: Record<string, unknown>) =>
-    firebaseUpdate("music", id, trackWrite(data)),
+  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("music", id, trackWrite(data)),
   remove: (id: string) => firebaseRemove("music", id),
 };
 
-function mapFirebaseTrack(r: Row): TrackRecord {
+function mapFirebaseTrack(r: Row): MusicTrackRecord {
   const rawStatus = str(r["status"]);
   return {
     id: str(r["id"]),
-    title: str(r["title"]),
+    title: str(r["title"] || r["name"]),
     artist: opt(r["artist"]),
-    sourceUrl: opt(r["file"] || r["source"] || r["sourceUrl"]),
-    sortOrder: typeof r["order"] === "number" ? r["order"] : 0,
-    durationSeconds: typeof r["duration"] === "number" ? r["duration"] : undefined,
-    status: (/hidden|draft/i.test(rawStatus) ? "draft" : "published") as TrackRecord["status"],
+    audioPath: opt(r["audioPath"] || r["audio"] || r["url"]),
+    coverPath: opt(r["coverPath"] || r["cover"] || r["image"]),
+    status: /archiv/i.test(rawStatus)
+      ? "archived"
+      : /draft|hidden/i.test(rawStatus)
+        ? "draft"
+        : "published",
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
   };
@@ -679,24 +625,39 @@ function trackWrite(data: Record<string, unknown>): Record<string, unknown> {
   return compact({
     title: data["title"],
     artist: data["artist"],
-    file: data["source_url"] ?? data["source"] ?? data["file"],
-    order: data["sort_order"] ?? data["sortOrder"] ?? data["order"],
-    duration: data["duration_seconds"] ?? data["durationSeconds"] ?? data["duration"],
-    status: data["status"] === "draft" ? "hidden" : (data["status"] ?? "published"),
+    audioPath: data["audio_path"] ?? data["audioPath"],
+    coverPath: data["cover_path"] ?? data["coverPath"],
+    status: data["status"],
     createdBy: data["created_by"] ?? data["createdBy"],
     updatedBy: data["updated_by"] ?? data["updatedBy"],
   });
 }
 
 export type AiConfigRecord = BaseRecord & {
-  key: string;
-  prompt?: string | undefined;
-  knowledge?: string | undefined;
+  provider?: string | undefined;
+  model?: string | undefined;
+  systemPrompt?: string | undefined;
   enabled: boolean;
 };
 
 export const aiConfigService = {
-  list: async (): Promise<ServiceResult<AiConfigRecord[]>> => ok([]),
-  update: async (_id: string, _data: Record<string, unknown>) =>
-    fail("not_configured", "ONI Brain-ийн тохиргоо Cloudflare Worker дээр хамгаалагдсан."),
+  get: async (): Promise<ServiceResult<AiConfigRecord | null>> => {
+    try {
+      const rows = await firebaseRows("aiConfig");
+      const first = rows[0];
+      if (!first) return ok(null);
+      return ok({
+        id: str(first["id"]),
+        provider: opt(first["provider"]),
+        model: opt(first["model"]),
+        systemPrompt: opt(first["systemPrompt"]),
+        enabled: first["enabled"] !== false,
+        createdAt: firebaseDate(first["createdAt"]),
+        updatedAt: firebaseDate(first["updatedAt"]),
+      });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
+  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("aiConfig", id, data),
 };
