@@ -5,6 +5,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { initPwa } from "../lib/pwa";
 import { OniOfflineBanner } from "../components/oni/OniOfflineBanner";
+import { OniWorldTransition } from "../components/oni/OniWorldTransition";
 
 const RECOVERY_KEY = "oni:last-hard-recovery";
 const isRecoverableClientLoadError = (error: Error) => /Failed to fetch dynamically imported module|Importing a module script failed|Load failed|ChunkLoadError|error loading dynamically imported module/i.test(`${error.name} ${error.message}`);
@@ -47,4 +48,4 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) { return <html lang="mn"><head><HeadContent /></head><body>{children}<Scripts /></body></html>; }
-function RootComponent() { const { queryClient } = Route.useRouteContext(); useEffect(() => { initPwa(); }, []); return <QueryClientProvider client={queryClient}><OniOfflineBanner /><Outlet /></QueryClientProvider>; }
+function RootComponent() { const { queryClient } = Route.useRouteContext(); useEffect(() => { initPwa(); }, []); return <QueryClientProvider client={queryClient}><OniOfflineBanner /><OniWorldTransition><Outlet /></OniWorldTransition></QueryClientProvider>; }
