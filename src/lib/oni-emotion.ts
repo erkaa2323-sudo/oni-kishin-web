@@ -2,13 +2,8 @@
  * ONI character state machine (frontend only).
  *
  * The chat UI never talks to the character directly — it emits a state name
- * and this module owns everything visual about that state. When the real ONI
- * Brain backend (or a Live2D / Rive / multi-expression asset set) arrives it
- * only has to emit the same `OniState` names; no chat logic changes.
- *
- * IMPORTANT: only ONE character image asset exists today, so states are
- * expressed through motion, framing, lighting and labels — never claim a
- * facial expression swap.
+ * and this module owns everything visual about that state. A Live2D renderer
+ * can consume the same states without coupling itself to the chat logic.
  */
 
 export type OniState =
@@ -24,128 +19,101 @@ export type OniState =
   | "music";
 
 export type OniStateVisual = {
-  /** Mongolian status line shown under the unit name. */
   label: string;
-  /** Decorative latin badge. */
   code: string;
-  /** Tailwind classes applied to the character image wrapper. */
   motion: string;
-  /** Rim/ambient light intensity 0..1 driving the crimson glow. */
   glow: number;
-  /** Priority — higher states are not overridden by ambient music state. */
   priority: number;
 };
 
 export const ONI_STATE_VISUALS: Record<OniState, OniStateVisual> = {
-  idle: {
-    label: "ХҮЛЭЭЛТИЙН ГОРИМ",
-    code: "IDLE",
-    motion: "oni-anim-idle",
-    glow: 0.25,
-    priority: 0,
-  },
-  music: {
-    label: "ХӨГЖИМ СОНСОЖ БАЙНА",
-    code: "MUSIC",
-    motion: "oni-anim-music",
-    glow: 0.45,
-    priority: 1,
-  },
-  listening: {
-    label: "СОНСОЖ БАЙНА",
-    code: "LISTENING",
-    motion: "oni-anim-listening",
-    glow: 0.4,
-    priority: 2,
-  },
-  thinking: {
-    label: "БОДОЖ БАЙНА",
-    code: "THINKING",
-    motion: "oni-anim-thinking",
-    glow: 0.55,
-    priority: 3,
-  },
-  speaking: {
-    label: "ХАРИУЛЖ БАЙНА",
-    code: "VOICE",
-    motion: "oni-anim-speaking",
-    glow: 0.68,
-    priority: 4,
-  },
-  happy: {
-    label: "БАЯРТАЙ БАЙНА",
-    code: "HAPPY",
-    motion: "oni-anim-happy",
-    glow: 0.6,
-    priority: 3,
-  },
-  excited: {
-    label: "СЭТГЭЛ ХӨДӨЛСӨН",
-    code: "EXCITED",
-    motion: "oni-anim-excited",
-    glow: 0.8,
-    priority: 4,
-  },
-  surprised: {
-    label: "ГЭНЭТ ГАЙХСАН",
-    code: "SURPRISED",
-    motion: "oni-anim-surprised",
-    glow: 0.7,
-    priority: 4,
-  },
-  concerned: {
-    label: "САНАА ЗОВНИЖ БАЙНА",
-    code: "CONCERNED",
-    motion: "oni-anim-concerned",
-    glow: 0.3,
-    priority: 3,
-  },
-  serious: {
-    label: "НОЦТОЙ ГОРИМ",
-    code: "SERIOUS",
-    motion: "oni-anim-serious",
-    glow: 0.5,
-    priority: 3,
-  },
+  idle: { label: "ХҮЛЭЭЛТИЙН ГОРИМ", code: "IDLE", motion: "oni-anim-idle", glow: 0.25, priority: 0 },
+  music: { label: "ХӨГЖИМ СОНСОЖ БАЙНА", code: "MUSIC", motion: "oni-anim-music", glow: 0.45, priority: 1 },
+  listening: { label: "СОНСОЖ БАЙНА", code: "LISTENING", motion: "oni-anim-listening", glow: 0.4, priority: 2 },
+  thinking: { label: "БОДОЖ БАЙНА", code: "THINKING", motion: "oni-anim-thinking", glow: 0.55, priority: 3 },
+  speaking: { label: "ХАРИУЛЖ БАЙНА", code: "VOICE", motion: "oni-anim-speaking", glow: 0.68, priority: 4 },
+  happy: { label: "БАЯРТАЙ БАЙНА", code: "HAPPY", motion: "oni-anim-happy", glow: 0.6, priority: 3 },
+  excited: { label: "СЭТГЭЛ ХӨДӨЛСӨН", code: "EXCITED", motion: "oni-anim-excited", glow: 0.8, priority: 4 },
+  surprised: { label: "ГЭНЭТ ГАЙХСАН", code: "SURPRISED", motion: "oni-anim-surprised", glow: 0.7, priority: 4 },
+  concerned: { label: "САНАА ЗОВНИЖ БАЙНА", code: "CONCERNED", motion: "oni-anim-concerned", glow: 0.3, priority: 3 },
+  serious: { label: "НОЦТОЙ ГОРИМ", code: "SERIOUS", motion: "oni-anim-serious", glow: 0.5, priority: 3 },
 };
 
-/**
- * Transparent local heuristic — NOT a language model.
- * Maps submitted text to a conversational state using simple keyword sets.
- */
-export function detectState(raw: string): OniState {
-  const t = raw.toLowerCase();
-  const has = (words: string[]) => words.some((w) => t.includes(w));
+function includesAny(text: string, words: string[]) {
+  return words.some((word) => text.includes(word));
+}
 
-  if (has(["хөгжим", "дуу", "трэк", "music", "play", "тавь"])) return "music";
-  if (has(["баяр", "гоё", "супер", "хаха", "инээ", "love", "❤", "😄", "😊"])) return "happy";
-  if (has(["!!", "вау", "гайхал", "wow", "яамай", "🔥"])) return "excited";
-  if (has(["гунигтай", "муу", "уучлаа", "асуудал", "тусла", "😢", "sorry"])) return "concerned";
-  if (has(["дүрэм", "хууль", "анхаар", "аюул", "хатуу", "сануулга"])) return "serious";
-  if (has(["үнэхээр", "яаж", "юу гэж", "really", "?!"])) return "surprised";
-  return "thinking";
+function scoreText(text: string) {
+  const t = text.toLowerCase();
+  const scores: Partial<Record<OniState, number>> = {};
+  const add = (state: OniState, weight: number) => {
+    scores[state] = (scores[state] ?? 0) + weight;
+  };
+
+  if (includesAny(t, ["хөгжим", "дуу", "трэк", "music", "play", "тавь", "сонсъё"])) add("music", 4);
+
+  if (includesAny(t, ["баярлалаа", "баяртай", "гоё", "сайхан", "хөөрхөн", "мундаг", "супер", "хаха", "хэхэ", "love", "😄", "😊", "❤️", "❤"])) add("happy", 4);
+  if (includesAny(t, ["вау", "wow", "гайхалтай", "тасархай", "аймар гоё", "яамай", "🔥", "!!", "ёстой гоё"])) add("excited", 5);
+  if (includesAny(t, ["гайхлаа", "үнэхээр", "нээрээ", "really", "?!", "яаж", "яагаад", "юу гэж", "ийм гэж үү"])) add("surprised", 3);
+
+  if (includesAny(t, ["гуниг", "гунигтай", "муу байна", "хэцүү", "асуудал", "санаа зов", "уучлаарай", "харамсалтай", "туслаач", "😢", "😭", "sorry"])) add("concerned", 5);
+  if (includesAny(t, ["аюул", "аюултай", "анхаар", "хатуу", "сануулга", "хориг", "зөвшөөрөхгүй", "болохгүй", "дүрэм", "хууль", "эрсдэл", "ноцтой", "яаралтай"])) add("serious", 5);
+
+  if (includesAny(t, ["бодъё", "бодож", "судлая", "шалгая", "нягтал", "дүгнэ", "тооцоол", "анализ", "analysis"])) add("thinking", 3);
+
+  return scores;
+}
+
+function bestScoredState(scores: Partial<Record<OniState, number>>, fallback: OniState) {
+  let best = fallback;
+  let bestScore = -1;
+  for (const [state, score] of Object.entries(scores) as Array<[OniState, number]>) {
+    if (score > bestScore) {
+      best = state;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+/** Transparent local heuristic — NOT a language model. */
+export function detectState(raw: string): OniState {
+  return bestScoredState(scoreText(raw), "thinking");
 }
 
 /**
  * Infer a visible reaction from BOTH the user's message and ONI's own reply.
- * Used for model-written answers so the character reflects tone instead of
- * freezing in a neutral pose. Uses existing states only; cheap and local.
+ * Reply wording has slightly more weight, while strong user emotion is kept as
+ * a tie-breaker so ONI visibly mirrors the conversation instead of defaulting
+ * to a smile after every answer.
  */
 export function inferReplyState(userRaw: string, replyText: string): OniState {
-  const user = detectState(userRaw);
-  const t = replyText.toLowerCase();
-  const has = (words: string[]) => words.some((w) => t.includes(w));
+  const userScores = scoreText(userRaw);
+  const replyScores = scoreText(replyText);
+  const combined: Partial<Record<OniState, number>> = {};
 
-  if (has(["хаха", "хехе", "😄", "😂", "зүгээр шүү", "гоё байна", "баяртай"])) return "happy";
-  if (has(["!!", "гайхалтай", "🔥", "гацууртай", "гоё"])) return "excited";
-  if (has(["?!", "юу гэж", "үхээр", "🤔"])) return "surprised";
-  if (has(["харамсалтай", "уучлаарай", "😢", "гунигтай"])) return "concerned";
-  if (has(["бүү ", "хэзээ ч", "татгалз", "анхаар", "зөвшөөрөхгүй"])) return "serious";
-  // Mirror strong user emotion when the reply itself is neutral.
-  if (user === "excited" || user === "surprised") return user;
-  if (user === "concerned") return "concerned";
-  if (user === "happy") return "happy";
-  return "happy";
+  const merge = (source: Partial<Record<OniState, number>>, multiplier: number) => {
+    for (const [state, score] of Object.entries(source) as Array<[OniState, number]>) {
+      combined[state] = (combined[state] ?? 0) + score * multiplier;
+    }
+  };
+
+  merge(userScores, 0.8);
+  merge(replyScores, 1.25);
+
+  const reply = replyText.toLowerCase();
+  if (reply.includes("анхаар") || reply.includes("эрсдэл") || reply.includes("болохгүй")) {
+    combined.serious = (combined.serious ?? 0) + 3;
+  }
+  if (reply.includes("уучлаарай") || reply.includes("харамсалтай")) {
+    combined.concerned = (combined.concerned ?? 0) + 3;
+  }
+  if (reply.includes("баяртай") || reply.includes("гоё байна")) {
+    combined.happy = (combined.happy ?? 0) + 2;
+  }
+
+  const best = bestScoredState(combined, "happy");
+  return best === "music" ? "happy" : best;
 }
 
 /** Resolve which state should be shown given conversation + music context. */
