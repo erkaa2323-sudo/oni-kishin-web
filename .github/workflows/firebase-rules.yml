@@ -26,17 +26,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        id: auth
+      - name: Load Google Cloud credentials
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
+      - name: Mint OAuth access token
+        run: |
+          python -m pip install --quiet google-auth requests
+          ACCESS_TOKEN="$(python - <<'PY'
+          import os
+          from google.auth.transport.requests import Request
+          from google.oauth2 import service_account
+
+          credentials = service_account.Credentials.from_service_account_file(
+              os.environ["GOOGLE_APPLICATION_CREDENTIALS"],
+              scopes=["https://www.googleapis.com/auth/cloud-platform"],
+          )
+          credentials.refresh(Request())
+          print(credentials.token)
+          PY
+          )"
+          echo "::add-mask::${ACCESS_TOKEN}"
+          echo "ACCESS_TOKEN=${ACCESS_TOKEN}" >> "$GITHUB_ENV"
 
       - name: Create Firebase Rules ruleset
-        env:
-          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           python - <<'PY' > /tmp/ruleset.json
           import json
@@ -67,8 +81,6 @@ jobs:
           echo "RULESET_NAME=${RULESET_NAME}" >> "$GITHUB_ENV"
 
       - name: Release Firestore ruleset
-        env:
-          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           python - <<'PY' > /tmp/release.json
           import json, os
