@@ -59,16 +59,16 @@ function resolveHostState(
 function hostCopy(state: HostState, nickname?: string, notice?: string) {
   const rider = nickname?.trim() || "Rider";
   if (state === "access")
-    return `${rider}, ROOM ID ба PASSWORD бэлэн боллоо. Доорх Meet access хэсгээс аваарай.`;
+    return `${rider}, ROOM ID ба PASSWORD бэлэн боллоо. Meet access хэсгээс аваарай.`;
   if (state === "registered")
-    return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Kei энд автоматаар мэдэгдэнэ.`;
+    return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Kei мэдэгдэнэ.`;
   if (state === "denied")
     return notice?.trim() || "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
   if (state === "loading") return "Crew мэдээлэл болон Meet slot-ийг шалгаж байна…";
   if (state === "live") return "ONI MEET эхэллээ. Бүртгүүлсэн Rider бол room access-аа шалгаарай.";
   if (state === "starting") return "ONI MEET удахгүй эхэлнэ. Бүртгэлээ одоо баталгаажуулаарай.";
   if (state === "open") return "Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.";
-  if (state === "scheduled") return "Дараагийн ONI MEET товлогдсон. Бүртгэл болон countdown-аа шалгаарай.";
+  if (state === "scheduled") return "Дараагийн ONI MEET товлогдсон. Countdown-аа шалгаарай.";
   if (state === "full") return "Meet дүүрсэн байна. Дараагийн мэдээллийг эндээс хүлээнэ үү.";
   if (state === "closed") return "Энэ Meet-ийн бүртгэл хаагдсан байна.";
   return "Kei дараагийн ONI MEET-ийг хүлээж байна.";
@@ -88,6 +88,20 @@ function hostModeLabel(state: HostState) {
   return "STANDBY";
 }
 
+function hostSignal(state: HostState) {
+  if (state === "access") return "SECURE CHANNEL UNLOCKED";
+  if (state === "live") return "LIVE CHANNEL ACTIVE";
+  if (state === "registered") return "IDENTITY VERIFIED";
+  if (state === "starting") return "COUNTDOWN ACTIVE";
+  if (state === "open") return "JOIN WINDOW ACTIVE";
+  if (state === "loading") return "AUTHENTICATING RIDER";
+  if (state === "denied") return "AUTHENTICATION REJECTED";
+  if (state === "full") return "CAPACITY LIMIT REACHED";
+  if (state === "closed") return "CHANNEL CLOSED";
+  if (state === "scheduled") return "CHANNEL RESERVED";
+  return "HOST LINK STANDBY";
+}
+
 export function RenMeetHost({
   life,
   registrationState,
@@ -101,6 +115,9 @@ export function RenMeetHost({
   const [runtime, setRuntime] = useState<RuntimeState>("loading");
   const hostState = resolveHostState(life, registrationState, accessReady);
   const modeLabel = hostModeLabel(hostState);
+  const signalLabel = hostSignal(hostState);
+  const hot = hostState === "access" || hostState === "live" || hostState === "starting";
+  const positive = hostState === "access" || hostState === "registered";
 
   const srcDoc = useMemo(
     () => `<!doctype html>
@@ -113,12 +130,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent
 body{touch-action:pan-y}
 #stage{position:absolute;inset:0;overflow:hidden}
 canvas{display:block;width:100%;height:100%;touch-action:pan-y}
-#loading{position:absolute;inset:0;display:grid;place-items:center;font:600 8px/1.2 system-ui;letter-spacing:.22em;color:rgba(255,255,255,.28)}
+#loading{position:absolute;inset:0;display:grid;place-items:center;font:600 8px/1.2 system-ui;letter-spacing:.22em;color:rgba(255,255,255,.26)}
 </style>
 </head>
 <body>
 <div id="stage"></div>
-<div id="loading">KEI // LIVE2D SYNC</div>
+<div id="loading">KEI // LINKING</div>
 <script src="https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js"></script>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
@@ -167,34 +184,39 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
     if(!model) return;
 
     if(currentState==='access'){
-      safeFocus(.55,-.18,true);
+      safeFocus(.62,-.2,true);
       safeMotion(0);
       return;
     }
     if(currentState==='registered'){
-      safeFocus(-.35,-.08,true);
+      safeFocus(-.36,-.1,true);
       safeMotion(1);
       return;
     }
     if(currentState==='live'){
-      safeFocus(.4,-.12,true);
+      safeFocus(.48,-.14,true);
       safeMotion(2);
       return;
     }
-    if(currentState==='open'||currentState==='starting'){
-      safeFocus(0,-.05,false);
+    if(currentState==='starting'){
+      safeFocus(.12,-.1,true);
+      safeMotion(3);
+      return;
+    }
+    if(currentState==='open'){
+      safeFocus(0,-.04,false);
       safeMotion(3);
       return;
     }
     if(currentState==='loading'){
-      safeFocus(.18,.08,false);
+      safeFocus(.22,.08,false);
       return;
     }
     if(currentState==='denied'||currentState==='full'||currentState==='closed'){
-      safeFocus(-.3,.16,false);
+      safeFocus(-.34,.18,false);
       return;
     }
-    safeFocus(0,0,false);
+    safeFocus(0,-.02,false);
   }
 
   function fit(){
@@ -207,11 +229,11 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
     var baseW=Math.max(model.width,1);
     var baseH=Math.max(model.height,1);
     var mobile=w<520;
-    var scale=Math.min((w*(mobile?.98:.94))/baseW,(h*(mobile?.98:.95))/baseH);
+    var scale=Math.min((w*(mobile?1.05:.98))/baseW,(h*(mobile?1.02:.98))/baseH);
 
     model.scale.set(scale);
-    model.x=w*.5;
-    model.y=h*(mobile?.51:.5);
+    model.x=w*(mobile?.515:.505);
+    model.y=h*(mobile?.535:.515);
   }
 
   function loadModelAt(index){
@@ -259,7 +281,7 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
       transparent:true,
       antialias:true,
       autoStart:true,
-      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.25:1.6),
+      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.2:1.55),
       autoDensity:true
     });
     stage.appendChild(app.view);
@@ -282,8 +304,10 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
 
       idleTimer=window.setInterval(function(){
         if(!model||document.visibilityState==='hidden') return;
-        if(currentState==='idle'||currentState==='scheduled') safeFocus(Math.sin(Date.now()/5000)*.12,-.02,false);
-      },4000);
+        if(currentState==='idle'||currentState==='scheduled'){
+          safeFocus(Math.sin(Date.now()/5200)*.14,-.035,false);
+        }
+      },3600);
     }).catch(fail);
   }catch(error){
     fail(error);
@@ -330,23 +354,38 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
   }, [hostState, runtime]);
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden border border-crimson/20 bg-black/48 shadow-[0_20px_70px_rgba(0,0,0,0.55)] clip-notch">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(90,0,12,0.18),transparent_34%,rgba(0,0,0,0.12)_58%,rgba(90,0,12,0.12))]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_52%_64%,rgba(210,26,48,0.24),rgba(70,5,14,0.08)_35%,transparent_68%)]" />
-      <div className="pointer-events-none absolute inset-x-[10%] bottom-[3.35rem] h-px bg-gradient-to-r from-transparent via-crimson/55 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-[20%] bottom-[3.05rem] h-7 bg-crimson/15 blur-2xl" />
-      <div className="pointer-events-none absolute -right-12 top-[20%] h-40 w-40 rotate-12 border border-crimson/10 bg-crimson/5 blur-sm" />
+    <div
+      className={`relative h-full min-h-0 overflow-hidden border bg-black/55 shadow-[0_24px_80px_rgba(0,0,0,0.62)] clip-notch transition-[border-color,box-shadow] duration-700 ${
+        positive
+          ? "border-emerald-400/25 shadow-[0_24px_80px_rgba(0,0,0,0.62),0_0_38px_rgba(52,211,153,0.08)]"
+          : hot
+            ? "border-crimson/35 shadow-[0_24px_80px_rgba(0,0,0,0.62),0_0_42px_rgba(225,29,72,0.12)]"
+            : "border-white/10"
+      }`}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(195,18,45,0.22),rgba(39,4,11,0.08)_35%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),transparent_22%,transparent_66%,rgba(0,0,0,0.8))]" />
+      <div className="pointer-events-none absolute left-1/2 top-[14%] h-[58%] w-[72%] -translate-x-1/2 rounded-full bg-crimson/5 blur-3xl" />
 
-      <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 sm:left-4">
-        <span className="border-l-2 border-crimson/70 pl-2 text-[0.5rem] font-semibold tracking-[0.2em] text-white/70 sm:text-[0.55rem]">
-          MEET HOST // KEI
-        </span>
-        <span className="hidden border border-white/10 bg-black/40 px-1.5 py-0.5 text-[0.4rem] tracking-[0.16em] text-white/35 sm:inline">
-          {modeLabel}
-        </span>
+      {hot ? (
+        <div className="pointer-events-none absolute left-1/2 top-[48%] h-[42%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-crimson/10 shadow-[0_0_80px_rgba(225,29,72,0.12)] animate-pulse" />
+      ) : null}
+
+      {positive ? (
+        <div className="pointer-events-none absolute inset-x-[18%] bottom-[14%] h-16 rounded-full bg-emerald-400/5 blur-3xl" />
+      ) : null}
+
+      <div className="pointer-events-none absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
+        <div className="text-[0.42rem] font-semibold tracking-[0.24em] text-white/35">ONI // MEET HOST</div>
+        <div className="mt-1 flex items-center gap-2">
+          <span className="text-[0.64rem] font-semibold tracking-[0.26em] text-white/85 sm:text-[0.72rem]">KEI</span>
+          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45">
+            {modeLabel}
+          </span>
+        </div>
       </div>
 
-      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 sm:right-4">
+      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/8 bg-black/30 px-2 py-1.5 sm:right-4 sm:top-4">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             runtime === "ready"
@@ -356,13 +395,13 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
                 : "bg-white/30"
           }`}
         />
-        <span
-          className={`text-[0.48rem] font-semibold tracking-[0.17em] ${
-            runtime === "ready" ? "text-emerald-300/90" : runtime === "failed" ? "text-crimson" : "text-white/35"
-          }`}
-        >
-          {runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC"}
+        <span className="text-[0.42rem] font-semibold tracking-[0.16em] text-white/45">
+          {runtime === "ready" ? "LINKED" : runtime === "failed" ? "OFFLINE" : "SYNC"}
         </span>
+      </div>
+
+      <div className="pointer-events-none absolute left-3 top-[4.2rem] z-10 text-[2.35rem] font-black tracking-[-0.08em] text-white/[0.025] sm:left-4 sm:text-[3.2rem]">
+        KEI
       </div>
 
       <iframe
@@ -370,49 +409,42 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
         title="Kei Live2D Meet host"
         srcDoc={srcDoc}
         sandbox="allow-scripts"
-        className="pointer-events-none absolute inset-x-0 bottom-1 top-6 h-[calc(100%_-_1.75rem)] w-full border-0 bg-transparent"
+        className="pointer-events-none absolute inset-0 h-full w-full border-0 bg-transparent"
         onLoad={() => setRuntime("loading")}
       />
 
       {runtime === "loading" ? (
-        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
-          SUMMONING KEI…
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/25">
+          LINKING KEI…
         </div>
       ) : null}
       {runtime === "failed" ? (
-        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.48rem] tracking-[0.22em] text-white/30">
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/30">
           KEI VISUAL OFFLINE
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black via-black/82 to-transparent px-3 pb-3 pt-12 sm:px-4">
-        <div className="flex items-end justify-between gap-4">
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2 text-[0.42rem] tracking-[0.2em] text-crimson/75 sm:text-[0.46rem]">
-              <span>ONI // SECTOR 05</span>
-              <span className="h-px w-8 bg-crimson/35" />
-              <span>{modeLabel}</span>
+            <div className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}>
+              {signalLabel}
             </div>
-            <p className="max-w-[84%] text-[0.61rem] leading-relaxed text-white/88 sm:text-[0.68rem]">
+            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
               {hostCopy(hostState, nickname, notice)}
             </p>
           </div>
-          <div className="shrink-0 text-right">
-            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.08em] text-white/80 sm:text-[0.78rem]">
+          <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
+            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">
               {participants}/{capacity ?? "∞"}
             </div>
-            <div className="mt-0.5 text-[0.4rem] tracking-[0.18em] text-white/30">RIDERS</div>
+            <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
           </div>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-1.5 top-1/2 z-20 -translate-y-1/2 rotate-90 text-[0.36rem] tracking-[0.28em] text-white/15">
-        ONI // ALWAYS-ON KEI
-      </div>
-      <span className="pointer-events-none absolute left-0 top-0 h-7 w-px bg-crimson/70" />
-      <span className="pointer-events-none absolute left-0 top-0 h-px w-7 bg-crimson/70" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-7 w-px bg-crimson/45" />
-      <span className="pointer-events-none absolute bottom-0 right-0 h-px w-7 bg-crimson/45" />
+      <span className="pointer-events-none absolute left-0 top-0 h-10 w-px bg-gradient-to-b from-crimson/70 to-transparent" />
+      <span className="pointer-events-none absolute left-0 top-0 h-px w-10 bg-gradient-to-r from-crimson/70 to-transparent" />
     </div>
   );
 }
