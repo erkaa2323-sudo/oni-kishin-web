@@ -40,10 +40,10 @@ export function OniWorldTransition({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const quality = detectAdaptiveFx();
-    document.documentElement.dataset.oniFx = quality;
+    document.documentElement.dataset["oniFx"] = quality;
 
     const refresh = () => {
-      document.documentElement.dataset.oniFx = detectAdaptiveFx();
+      document.documentElement.dataset["oniFx"] = detectAdaptiveFx();
     };
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     media.addEventListener?.("change", refresh);
@@ -61,7 +61,7 @@ export function OniWorldTransition({ children }: { children: ReactNode }) {
     setTransitioning(true);
 
     const frame = requestAnimationFrame(() => {
-      document.documentElement.dataset.oniWorld = currentWorld ?? "other";
+      document.documentElement.dataset["oniWorld"] = currentWorld ?? "other";
     });
     const timer = window.setTimeout(() => setTransitioning(false), 520);
     return () => {
