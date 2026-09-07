@@ -41,6 +41,8 @@ import { RenMeetHost } from "./RenMeetHost";
 const fieldClass =
   "w-full min-h-[48px] border border-border bg-ink/70 px-4 py-3 text-base tracking-wide text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-crimson/70 focus:outline-none sm:text-sm";
 
+type CountdownPhase = "none" | "ten" | "five" | "one" | "final10" | "go";
+
 function useTick(active: boolean) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -58,6 +60,18 @@ function countdownText(iso: string | null, now: number): string {
   const m = Math.floor((diff % 3_600_000) / 60_000);
   const s = Math.floor((diff % 60_000) / 1000);
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
+}
+
+function countdownPhase(iso: string | null, now: number): { phase: CountdownPhase; seconds: number } {
+  if (!iso) return { phase: "none", seconds: 0 };
+  const diff = new Date(iso).getTime() - now;
+  const seconds = Math.max(0, Math.ceil(diff / 1000));
+  if (diff <= 0) return diff > -8_000 ? { phase: "go", seconds: 0 } : { phase: "none", seconds: 0 };
+  if (diff <= 10_000) return { phase: "final10", seconds };
+  if (diff <= 60_000) return { phase: "one", seconds };
+  if (diff <= 5 * 60_000) return { phase: "five", seconds };
+  if (diff <= 10 * 60_000) return { phase: "ten", seconds };
+  return { phase: "none", seconds };
 }
 
 export function OniMeetAccess() {
@@ -92,6 +106,7 @@ export function OniMeetAccess() {
 
   const now = useTick(!!session);
   const life = useMemo(() => deriveLifecycle(session, now), [session, now]);
+  const countdown = useMemo(() => countdownPhase(session?.scheduledAt ?? null, now), [session?.scheduledAt, now]);
   const approved = memberAccount?.status === "approved";
   const open = canRegister(life) && state !== "registered" && approved;
   const sessionId = session?.id ?? null;
@@ -204,6 +219,8 @@ export function OniMeetAccess() {
               nickname={memberAccount?.nickname || values.cpmNickname}
               participants={participants.length}
               capacity={session?.capacity ?? null}
+              countdownPhase={countdown.phase}
+              countdownSeconds={countdown.seconds}
             />
           </aside>
 
