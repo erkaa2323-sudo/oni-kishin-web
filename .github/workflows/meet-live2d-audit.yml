@@ -1,12 +1,14 @@
-name: Meet Live2D Audit
+name: ONI Strict Build Audit
 
 on:
   push:
     branches: [main]
     paths:
-      - src/components/oni/RenMeetHost.tsx
-      - src/components/oni/OniMeetAccess.tsx
-      - src/data/meet.ts
+      - src/**
+      - tsconfig.json
+      - vite.config.ts
+      - package.json
+      - bun.lock
       - .github/workflows/meet-live2d-audit.yml
   workflow_dispatch:
 
@@ -22,19 +24,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --no-save
-      - name: Meet strict type audit
-        shell: bash
-        run: |
-          set +e
-          bun run typecheck 2>&1 | tee /tmp/typecheck.log
-          status=${PIPESTATUS[0]}
-          set -e
-          if grep -E 'src/(components/oni/(RenMeetHost|OniMeetAccess)|data/meet)\.tsx?\(' /tmp/typecheck.log; then
-            echo "Meet-specific TypeScript errors found."
-            exit 1
-          fi
-          if [ "$status" -ne 0 ]; then
-            echo "Repository has pre-existing TypeScript errors outside Meet scope; Meet files are clean."
-          fi
+      - name: Full TypeScript audit
+        run: bun run typecheck
       - name: Production build
         run: bun run build
