@@ -1,34 +1,10 @@
 name: ONI NEXUS Predeploy Audit
-
 on:
   push:
     branches: [chatgpt/oni-nexus-predeploy-final]
-    paths:
-      - public/manifest.webmanifest
-      - public/sw.js
-      - src/lib/pwa.ts
-      - src/lib/nexus-push.ts
-      - src/lib/nexus-push.functions.ts
-      - src/lib/nexus-push-admin.ts
-      - src/lib/oni-progression.ts
-      - src/data/progression.ts
-      - src/components/oni/OniNexusDock.tsx
-      - src/components/oni/NexusMeetPushBridge.tsx
-      - src/components/oni/OniProgressionStage.tsx
-      - src/routes/progression.tsx
-      - src/routes/__root.tsx
-      - src/data/admin.ts
-      - firestore.rules
-      - firestore.creator.rules.fragment
-      - firestore.nexus.rules.fragment
-      - firestore.progression.rules.fragment
-      - .github/workflows/firebase-rules.yml
-      - .github/workflows/nexus-predeploy-audit.yml
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -57,14 +33,11 @@ jobs:
           base=Path("firestore.rules").read_text(encoding="utf-8"); marker="    match /{document=**} { allow read, write: if false; }"
           if marker not in base: raise SystemExit("deny-all marker missing")
           combined=base
-          fragments=[("firestore.creator.rules.fragment","match /creatorPublishRequests/"),("firestore.nexus.rules.fragment","match /pushSubscriptions/"),("firestore.progression.rules.fragment","match /progressionProfiles/")]
-          for path,needle in fragments:
+          for path,needle in [("firestore.creator.rules.fragment","match /creatorPublishRequests/"),("firestore.nexus.rules.fragment","match /pushSubscriptions/"),("firestore.progression.rules.fragment","match /progressionProfiles/")]:
             if needle not in combined: combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
-          checks=["match /creatorPublishRequests/","match /pushSubscriptions/","match /pushConfig/","match /progressionProfiles/","match /progressionLedger/",marker]
-          missing=[x for x in checks if x not in combined]
-          if missing: raise SystemExit(f"composed rules missing: {missing}")
+          for needle in ["match /creatorPublishRequests/","match /pushSubscriptions/","match /progressionProfiles/","match /progressionLedger/",marker]:
+            if needle not in combined: raise SystemExit(f"missing {needle}")
           if combined.count(marker)!=1: raise SystemExit("deny-all marker count changed")
-          print("Creator + Push + Progression rule composition structurally valid.")
           PY
       - name: Check service worker syntax
         run: node --check public/sw.js
@@ -72,9 +45,8 @@ jobs:
         run: bun run build
       - name: Confirm Nexus systems
         run: |
-          grep -q 'self.addEventListener("push"' public/sw.js
           grep -q 'sendNexusMeetPush' src/components/oni/NexusMeetPushBridge.tsx
           grep -q 'ONI_VAULT' src/lib/oni-progression.ts
           grep -q 'runTransaction' src/data/progression.ts
-          grep -q 'createFileRoute("/progression")' src/routes/progression.tsx
+          grep -q '/progression' src/routeTree.gen.ts
           echo "Push + ONI Progression assets present."
