@@ -40,6 +40,7 @@ function hostCopy(state: HostState, nickname?: string) {
 export function RenMeetHost({ life, registrationState, nickname, participants, capacity }: Props) {
   const frameRef = useRef<HTMLIFrameElement | null>(null);
   const [runtime, setRuntime] = useState<"loading" | "ready" | "failed">("loading");
+  const [runtimeError, setRuntimeError] = useState("");
   const hostState = resolveHostState(life, registrationState);
 
   const srcDoc = useMemo(
@@ -52,23 +53,24 @@ export function RenMeetHost({ life, registrationState, nickname, participants, c
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;touch-action:pan-y}
 #stage{position:absolute;inset:0}
 canvas{display:block;width:100%;height:100%;touch-action:none}
-#loading{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 9px/1.2 system-ui;letter-spacing:.2em;color:rgba(255,255,255,.42)}
+#loading{position:absolute;left:12px;right:12px;top:50%;transform:translateY(-50%);text-align:center;font:600 9px/1.45 system-ui;letter-spacing:.18em;color:rgba(255,255,255,.48)}
 </style>
 <script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi.js@8.13.2/dist/pixi.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/untitled-pixi-live2d-engine@1.3.5/dist/cubism.js"></script>
 </head>
 <body>
-<div id="stage"></div><div id="loading">REN / LIVE2D INITIALIZING</div>
-<script>
+<div id="stage"></div><div id="loading">REN / CORE 6 · MOC3 V6</div>
+<script type="module">
+import * as PIXI from "https://cdn.jsdelivr.net/npm/pixi.js@8.13.2/+esm";
+import { Live2DModel } from "https://cdn.jsdelivr.net/npm/@laplace.live/pixijs-live2d@0.2.0/+esm";
+
 (async function(){
   const MODEL_URL=${JSON.stringify(REN_MODEL_URL)};
   const stage=document.getElementById("stage");
   const loading=document.getElementById("loading");
   let app=null,model=null,currentState="idle",tapCycle=0,observer=null;
   const send=(type,error)=>parent.postMessage({source:"oni-ren-meet",type,error:error||""},"*");
-  const expr=(name)=>{try{model&&model.expression&&model.expression(name)}catch(e){}};
-  const motion=(group,index)=>{try{model&&model.motion&&model.motion(group,index)}catch(e){}};
+  const expr=(name)=>{try{model?.expression?.(name)}catch{}};
+  const motion=(group,index)=>{try{model?.motion?.(group,index)}catch{}};
 
   function applyState(next){
     currentState=next||"idle";
@@ -86,22 +88,21 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
     const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);
     app.renderer.resize(w,h);
     model.scale.set(1);
-    const bounds=model.getLocalBounds ? model.getLocalBounds() : null;
-    const baseW=Math.max(bounds&&bounds.width?bounds.width:model.width||1,1);
-    const baseH=Math.max(bounds&&bounds.height?bounds.height:model.height||1,1);
-    const scale=Math.min((w*.90)/baseW,(h*.91)/baseH);
+    const bounds=model.getLocalBounds?.();
+    const baseW=Math.max(bounds?.width||model.width||1,1);
+    const baseH=Math.max(bounds?.height||model.height||1,1);
+    const scale=Math.min((w*.91)/baseW,(h*.92)/baseH);
     model.scale.set(scale);
-    if(model.anchor&&model.anchor.set)model.anchor.set(.5,.5);
-    if(model.position&&model.position.set)model.position.set(w*.5,h*.50);
-    else{model.x=w*.5;model.y=h*.50;}
+    model.anchor?.set?.(.5,.5);
+    model.position?.set?.(w*.5,h*.50);
   }
 
   function focusAt(clientX,clientY){
-    if(!model||!model.focus)return;
+    if(!model?.focus)return;
     const rect=stage.getBoundingClientRect();
     const x=((clientX-rect.left)/Math.max(rect.width,1))*2-1;
     const y=-(((clientY-rect.top)/Math.max(rect.height,1))*2-1);
-    try{model.focus(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))}catch(e){}
+    try{model.focus(Math.max(-1,Math.min(1,x)),Math.max(-1,Math.min(1,y)))}catch{}
   }
 
   window.addEventListener("message",(event)=>{
@@ -109,6 +110,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
     if(!data||data.source!=="oni-meet-parent"||data.type!=="state")return;
     applyState(data.state);
   });
+
   stage.addEventListener("pointermove",(e)=>focusAt(e.clientX,e.clientY),{passive:true});
   stage.addEventListener("pointerdown",(e)=>{
     focusAt(e.clientX,e.clientY);
@@ -119,35 +121,29 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   },{passive:true});
 
   try{
-    if(!window.Live2DCubismCore)throw new Error("Cubism Core unavailable");
-    if(!window.PIXI)throw new Error("PixiJS unavailable");
-    if(!PIXI.live2d||!PIXI.live2d.Live2DModel)throw new Error("Live2D engine unavailable");
+    if(!window.Live2DCubismCore)throw new Error("Cubism Core 6 unavailable");
+    if(!PIXI?.Application)throw new Error("PixiJS unavailable");
 
-    if(PIXI.live2d.Live2DPlugin&&PIXI.extensions){
-      try{PIXI.extensions.add(PIXI.live2d.Live2DPlugin)}catch(e){}
-    }
-    if(PIXI.live2d.configureCubismSDK){
-      try{PIXI.live2d.configureCubismSDK({memorySizeMB:32})}catch(e){}
-    }
-
+    Live2DModel.registerTicker?.(PIXI.Ticker);
     app=new PIXI.Application();
     await app.init({
       backgroundAlpha:0,
       antialias:true,
       preference:"webgl",
-      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.15:1.5),
+      preferWebGLVersion:2,
+      resolution:Math.min(window.devicePixelRatio||1,window.innerWidth<640?1.1:1.5),
       autoDensity:true
     });
     app.ticker.maxFPS=window.innerWidth<640?30:45;
     stage.appendChild(app.canvas);
 
-    model=await PIXI.live2d.Live2DModel.from(MODEL_URL,{autoInteract:false});
+    model=await Live2DModel.from(MODEL_URL,{autoInteract:false});
     app.stage.addChild(model);
     fit();
     observer=new ResizeObserver(fit);
     observer.observe(stage);
     applyState(currentState);
-    if(loading)loading.remove();
+    loading?.remove();
     send("ready");
 
     window.setInterval(()=>{
@@ -161,7 +157,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     console.error("[ONI Meet] Ren Foster init failed",error);
-    if(loading)loading.textContent="REN LIVE2D OFFLINE · "+message;
+    if(loading)loading.textContent="REN LIVE2D OFFLINE";
     send("failed",message);
   }
 })();
@@ -173,10 +169,16 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { source?: string; type?: string } | undefined;
+      const data = event.data as { source?: string; type?: string; error?: string } | undefined;
       if (!data || data.source !== "oni-ren-meet") return;
-      if (data.type === "ready") setRuntime("ready");
-      if (data.type === "failed") setRuntime("failed");
+      if (data.type === "ready") {
+        setRuntime("ready");
+        setRuntimeError("");
+      }
+      if (data.type === "failed") {
+        setRuntime("failed");
+        setRuntimeError((data.error || "Live2D runtime error").slice(0, 120));
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -219,6 +221,12 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
           )
         }
       />
+
+      {runtime === "failed" && runtimeError ? (
+        <div className="pointer-events-none absolute inset-x-4 top-10 z-10 truncate text-[0.52rem] tracking-[0.08em] text-crimson/70">
+          {runtimeError}
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 border border-white/10 bg-black/60 px-3 py-2.5 backdrop-blur-xl clip-notch">
         <p className="text-[0.7rem] leading-relaxed text-white/90">{hostCopy(hostState, nickname)}</p>
