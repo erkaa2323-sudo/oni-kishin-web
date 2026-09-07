@@ -5,6 +5,7 @@ import crewHall from "@/assets/crew/crew-hall.jpg";
 import {
   CREW_ROLES,
   CREW_STATUS_LABEL,
+  fallbackPortrait,
   fetchCrew,
   type CrewMember,
   type CrewRoleId,
@@ -59,6 +60,15 @@ export function OniCrewStage() {
     setActiveId(visible[nextIndex]!.id);
   };
 
+  const recoverPortrait = (
+    image: HTMLImageElement,
+    member: CrewMember,
+    rosterIndex: number,
+  ) => {
+    image.onerror = null;
+    image.src = fallbackPortrait(member.callsign, member.title, Math.max(0, rosterIndex));
+  };
+
   return (
     <div className="min-h-screen bg-ink">
       <OniHudNav />
@@ -80,6 +90,7 @@ export function OniCrewStage() {
               src={active.portrait}
               alt=""
               aria-hidden="true"
+              onError={(event) => recoverPortrait(event.currentTarget, active, roster.indexOf(active))}
             />
           ) : null}
           <div className="crew-select__atmosphere" aria-hidden="true" />
@@ -158,6 +169,7 @@ export function OniCrewStage() {
                     width={1024}
                     height={1536}
                     decoding="async"
+                    onError={(event) => recoverPortrait(event.currentTarget, active, roster.indexOf(active))}
                   />
                 ) : (
                   <span>ЗУРАГ БАЙХГҮЙ</span>
@@ -187,7 +199,15 @@ export function OniCrewStage() {
                     onClick={() => setActiveId(member.id)}
                   >
                     {member.portrait ? (
-                      <img src={member.portrait} alt="" aria-hidden="true" loading="lazy" />
+                      <img
+                        src={member.portrait}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        onError={(event) =>
+                          recoverPortrait(event.currentTarget, member, roster.indexOf(member))
+                        }
+                      />
                     ) : (
                       <span>?</span>
                     )}
