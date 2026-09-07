@@ -137,7 +137,16 @@ export type MemberRecord = BaseRecord & {
 };
 
 function memberPortrait(r: Row): string | undefined {
-  return opt(r["portraitUrl"] || r["portrait"] || r["image"] || r["imageUrl"] || r["photo"] || r["avatar"]);
+  return opt(
+    r["portraitUrl"] ||
+      r["portrait_url"] ||
+      r["portrait"] ||
+      r["image"] ||
+      r["imageUrl"] ||
+      r["image_url"] ||
+      r["photo"] ||
+      r["avatar"],
+  );
 }
 
 export const membersService = {
@@ -162,11 +171,11 @@ export const membersService = {
           .map((r) => ({
             id: str(r["id"]),
             cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
-            cpmId: str(r["cpmid"] || r["cpmId"]),
+            cpmId: str(r["cpmid"] || r["cpmId"] || r["cpm_id"]),
             role: opt(r["role"] || r["title"]),
             portraitUrl: memberPortrait(r),
             status: "active" as const,
-            joinedAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
+            joinedAt: firebaseDate(r["joinedAt"] || r["joined_at"] || r["createdAt"]),
             createdAt: firebaseDate(r["createdAt"]),
             updatedAt: firebaseDate(r["updatedAt"]),
           })),
@@ -186,24 +195,30 @@ function mapFirebaseMember(r: Row): MemberRecord {
   return {
     id: str(r["id"]),
     cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
-    cpmId: str(r["cpmid"] || r["cpmId"]),
+    cpmId: str(r["cpmid"] || r["cpmId"] || r["cpm_id"]),
     role: opt(r["role"] || r["title"]),
     portraitUrl: memberPortrait(r),
     status: (str(r["status"]) || "active") as MemberRecord["status"],
-    joinedAt: firebaseDate(r["joinedAt"] || r["createdAt"]),
+    joinedAt: firebaseDate(r["joinedAt"] || r["joined_at"] || r["createdAt"]),
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
   };
 }
 
 function memberWrite(data: Record<string, unknown>): Record<string, unknown> {
+  const portraitUrl = data["portrait_url"] ?? data["portraitUrl"] ?? data["image_url"] ?? data["imageUrl"] ?? data["image"];
+  const cpmId = data["cpm_id"] ?? data["cpmid"] ?? data["cpmId"];
+  const joinedAt = data["joined_at"] ?? data["joinedAt"];
   return compact({
-    nick: data["cpm_nickname"] ?? data["nick"],
-    cpmid: data["cpm_id"] ?? data["cpmid"],
+    nick: data["cpm_nickname"] ?? data["nick"] ?? data["nickname"] ?? data["name"],
+    cpmid: cpmId,
+    cpmId,
     role: data["role"],
-    portraitUrl: data["portrait_url"] ?? data["portraitUrl"] ?? data["image"],
+    portraitUrl,
+    portrait_url: portraitUrl,
     status: data["status"],
-    joinedAt: data["joined_at"] ?? data["joinedAt"],
+    joinedAt,
+    joined_at: joinedAt,
     createdBy: data["created_by"] ?? data["createdBy"],
     updatedBy: data["updated_by"] ?? data["updatedBy"],
   });
@@ -250,11 +265,18 @@ function mapFirebaseVehicle(r: Row): VehicleRecord {
   return {
     id: str(r["id"]),
     model: str(r["name"] || r["model"]),
-    ownerName: opt(r["owner"] || r["ownerName"]),
-    ownerMemberId: opt(r["ownerMemberId"]),
+    ownerName: opt(r["owner"] || r["ownerName"] || r["owner_name"]),
+    ownerMemberId: opt(r["ownerMemberId"] || r["owner_member_id"]),
     category: opt(r["category"]),
     build: opt(r["build"] || r["description"] || r["anime"]),
-    imagePath: opt(r["image"] || r["imagePath"] || r["imageUrl"] || (Array.isArray(r["images"]) ? r["images"][0] : undefined)),
+    imagePath: opt(
+      r["image"] ||
+        r["imagePath"] ||
+        r["image_path"] ||
+        r["imageUrl"] ||
+        r["image_url"] ||
+        (Array.isArray(r["images"]) ? r["images"][0] : undefined),
+    ),
     status,
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
@@ -262,13 +284,23 @@ function mapFirebaseVehicle(r: Row): VehicleRecord {
 }
 
 function vehicleWrite(data: Record<string, unknown>): Record<string, unknown> {
+  const owner = data["owner_name"] ?? data["ownerName"] ?? data["owner"];
+  const ownerMemberId = data["owner_member_id"] ?? data["ownerMemberId"];
+  const build = data["build"] ?? data["description"];
+  const imagePath = data["image_path"] ?? data["imagePath"] ?? data["image_url"] ?? data["imageUrl"] ?? data["image"];
   return compact({
     name: data["model"] ?? data["name"],
-    owner: data["owner_name"] ?? data["owner"],
-    ownerMemberId: data["owner_member_id"] ?? data["ownerMemberId"],
+    model: data["model"] ?? data["name"],
+    owner,
+    ownerName: owner,
+    ownerMemberId,
+    owner_member_id: ownerMemberId,
     category: data["category"],
-    description: data["build"] ?? data["description"],
-    image: data["image_path"] ?? data["image"],
+    description: build,
+    build,
+    image: imagePath,
+    imagePath,
+    image_path: imagePath,
     status: data["status"],
     createdBy: data["created_by"] ?? data["createdBy"],
     updatedBy: data["updated_by"] ?? data["updatedBy"],
