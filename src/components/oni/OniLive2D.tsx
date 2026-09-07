@@ -98,6 +98,7 @@ function setState(model: Model, state: OniState) {
 export function OniLive2D({ state, glow, speaking = false }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef<Model | null>(null);
+  const baseSizeRef = useRef<{ width: number; height: number } | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -135,20 +136,33 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
         const model = await Live2DModel.from(MODEL_URL, { autoInteract: true });
         if (cancelled) return;
         model.anchor.set(0.5, 0.5);
+        model.scale.set(1);
+        baseSizeRef.current = {
+          width: Math.max(model.width, 1),
+          height: Math.max(model.height, 1),
+        };
         modelRef.current = model;
         app.stage.addChild(model);
 
         const fit = () => {
           const currentHost = hostRef.current;
           const currentModel = modelRef.current;
-          if (!currentHost || !currentModel || !app) return;
+          const baseSize = baseSizeRef.current;
+          if (!currentHost || !currentModel || !baseSize || !app) return;
+
           const width = Math.max(1, currentHost.clientWidth);
           const height = Math.max(1, currentHost.clientHeight);
           app.renderer.resize(width, height);
-          const scale = Math.min(width / Math.max(currentModel.width, 1), height / Math.max(currentModel.height, 1)) * 1.12;
+
+          // Keep the entire character inside the slot. Use the original model
+          // dimensions so ResizeObserver callbacks never compound the scale.
+          const safeWidth = width * 0.78;
+          const safeHeight = height * 0.86;
+          const scale = Math.min(safeWidth / baseSize.width, safeHeight / baseSize.height);
+
           currentModel.scale.set(scale);
           currentModel.x = width * 0.5;
-          currentModel.y = height * 0.56;
+          currentModel.y = height * 0.51;
         };
 
         fit();
@@ -167,6 +181,7 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
       resizeObserver?.disconnect();
       modelRef.current?.destroy?.({ children: true, texture: true, baseTexture: true });
       modelRef.current = null;
+      baseSizeRef.current = null;
       app?.destroy(true, { children: true, texture: true, baseTexture: true });
     };
     // State is synchronized by the effect below.
