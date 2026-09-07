@@ -7,8 +7,6 @@ import car03 from "@/assets/garage/car-03.webp";
  *
  * Live source: the legacy ONI Firestore `garage` collection, read through the
  * public projection (published vehicles only).
- * No image URLs are invented — a record without an image renders the explicit
- * "no image" fallback.
  */
 
 export type VehicleCategoryId = "drift" | "street" | "track";
@@ -34,17 +32,13 @@ export const BUILD_STAGE_LABEL: Record<BuildStage, string> = {
 };
 
 export type Vehicle = {
-  /** Database row id */
   id: string;
   name: string;
   kana?: string;
-  /** Owner callsign as stored on the record (may be unknown) */
   ownerCallsign: string;
   categoryId: VehicleCategoryId;
-  /** Undefined when the record does not declare a build stage. */
   buildStage?: BuildStage;
   summary: string;
-  /** Image URL from the record. Absent → explicit fallback in the UI. */
   image?: string;
   specs: { label: string; value: string }[];
 };
@@ -64,30 +58,30 @@ export function parseBuildStage(value: string | undefined | null): BuildStage | 
   return undefined;
 }
 
-/** Allow remote images and legacy Firebase raster data URLs; SVG stays blocked. */
+/** Allow remote, same-origin relative and legacy raster data URLs; SVG stays blocked. */
 export function safeImageUrl(value: string | undefined | null): string | undefined {
   const v = (value ?? "").trim();
   if (/^https?:\/\/\S+$/i.test(v)) return v;
+  if (/^\/(?!\/)[^\s]+$/.test(v)) return v;
   if (/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(v)) return v;
   return undefined;
 }
 
 export type GarageLoad = { status: "ok"; rows: Vehicle[] } | { status: "error"; reason: string };
 
-/**
- * A dependable visual fallback for records whose image is missing or invalid.
- * The database remains authoritative for every vehicle field; these files are
- * presentation artwork only, matched deterministically so the image never
- * changes between renders.
- */
 const GARAGE_ART = [car01, car02, car03];
+
+export function fallbackGarageArt(key: string): string {
+  const hash = Array.from(key).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return GARAGE_ART[Math.abs(hash) % GARAGE_ART.length]!;
+}
 
 export async function fetchVehicles(): Promise<GarageLoad> {
   const { garageService } = await import("@/services/domains");
   const res = await garageService.listPublished();
   if (!res.ok) return { status: "error", reason: res.error.message };
 
-  const rows: Vehicle[] = res.data.map((v, index) => {
+  const rows: Vehicle[] = res.data.map((v) => {
     const categoryId = parseCategory(v.category);
     const buildStage = parseBuildStage(v.build);
     const specs: { label: string; value: string }[] = [
@@ -103,7 +97,7 @@ export async function fetchVehicles(): Promise<GarageLoad> {
       categoryId,
       ...(buildStage ? { buildStage } : {}),
       summary: v.build ?? "",
-      image: safeImageUrl(v.imagePath) ?? GARAGE_ART[index % GARAGE_ART.length]!,
+      image: safeImageUrl(v.imagePath) ?? fallbackGarageArt(`${v.id}:${v.model}`),
       specs,
     };
   });
