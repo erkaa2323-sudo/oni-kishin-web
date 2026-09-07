@@ -41,3 +41,5 @@ jobs:
           fi
       - name: Production build
         run: bun run build
+
+# redeploy-marker: latest-main-production
