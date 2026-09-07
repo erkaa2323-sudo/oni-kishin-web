@@ -46,6 +46,7 @@ export function OniAiChamber() {
   const [trackIndex, setTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -54,11 +55,13 @@ export function OniAiChamber() {
 
   const track = tracks[trackIndex] ?? EMPTY_TRACK;
   const hasTracks = tracks.length > 0;
+  const effectiveDuration = audioDuration > 0 ? audioDuration : track.duration;
 
   const goTo = (i: number) => {
     if (!tracks.length) return;
     setTrackIndex(((i % tracks.length) + tracks.length) % tracks.length);
     setPosition(0);
+    setAudioDuration(0);
   };
 
   const next = () => {
@@ -72,12 +75,13 @@ export function OniAiChamber() {
   };
 
   useEffect(() => {
-    if (!playing || !hasTracks || track.duration <= 0) return;
+    if (!playing || !hasTracks) return;
     const el = audioRef.current;
     if (track.src && el) {
       void el.play().catch(() => setPlaying(false));
       return () => el.pause();
     }
+    if (track.duration <= 0) return;
     const id = window.setInterval(() => {
       setPosition((p) => {
         if (p + 1 >= track.duration) {
@@ -92,7 +96,7 @@ export function OniAiChamber() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, trackIndex, repeat, shuffle]);
 
-  const progress = track.duration > 0 ? Math.min(100, (position / track.duration) * 100) : 0;
+  const progress = effectiveDuration > 0 ? Math.min(100, (position / effectiveDuration) * 100) : 0;
 
   /* -------------------------------------------------- character state fsm */
   const [convState, setConvState] = useState<OniState | null>(null);
@@ -339,7 +343,7 @@ export function OniAiChamber() {
   );
 
   const progressBar = (
-    <div role="progressbar" aria-label="Тоглуулах явц" aria-valuemin={0} aria-valuemax={Math.max(track.duration, 1)} aria-valuenow={Math.floor(position)} className="h-1 w-full bg-border">
+    <div role="progressbar" aria-label="Тоглуулах явц" aria-valuemin={0} aria-valuemax={Math.max(effectiveDuration, 1)} aria-valuenow={Math.floor(position)} className="h-1 w-full bg-border">
       <div className="h-full bg-crimson transition-[width] duration-500" style={{ width: `${progress}%` }} />
     </div>
   );
@@ -438,7 +442,7 @@ export function OniAiChamber() {
             <div className="flex items-center gap-2 p-2">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[0.8rem] text-foreground">{track.title}</span>
-                <span className="hud-label block truncate text-[0.5rem]">{formatTime(position)} / {formatTime(track.duration)} · {track.artist}</span>
+                <span className="hud-label block truncate text-[0.5rem]">{formatTime(position)} / {formatTime(effectiveDuration)} · {track.artist}</span>
               </span>
               {transport(true)}
             </div>
@@ -503,7 +507,7 @@ export function OniAiChamber() {
                   <p className="hud-label mt-1 truncate">{track.subtitle} · {track.artist}</p>
                   <div className="mt-4">{progressBar}</div>
                   <div className="mt-2 flex justify-between text-[0.6rem] tracking-[0.2em] text-muted-foreground">
-                    <span>{formatTime(position)}</span><span>{formatTime(track.duration)}</span>
+                    <span>{formatTime(position)}</span><span>{formatTime(effectiveDuration)}</span>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-2">{transport()}{toggles}</div>
                 </div>
@@ -516,7 +520,21 @@ export function OniAiChamber() {
         <OniFooter />
       </main>
 
-      <audio ref={audioRef} src={track.src} muted={muted} onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)} onEnded={() => (repeat ? setPosition(0) : next())} className="hidden" />
+      <audio
+        ref={audioRef}
+        src={track.src}
+        muted={muted}
+        loop={repeat}
+        onLoadedMetadata={(e) => {
+          const duration = e.currentTarget.duration;
+          setAudioDuration(Number.isFinite(duration) && duration > 0 ? duration : 0);
+        }}
+        onTimeUpdate={(e) => setPosition(e.currentTarget.currentTime)}
+        onEnded={() => {
+          if (!repeat) next();
+        }}
+        className="hidden"
+      />
     </div>
   );
 }
