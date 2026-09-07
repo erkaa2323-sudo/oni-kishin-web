@@ -587,6 +587,10 @@ export type MusicTrackRecord = BaseRecord & {
   artist?: string | undefined;
   audioPath?: string | undefined;
   coverPath?: string | undefined;
+  /** Compatibility alias used by the ONI player/admin UI. */
+  sourceUrl?: string | undefined;
+  sortOrder: number;
+  durationSeconds?: number | undefined;
   status: "published" | "draft" | "archived";
 };
 
@@ -598,6 +602,16 @@ export const musicService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
+  listPublished: async (): Promise<ServiceResult<MusicTrackRecord[]>> => {
+    const res = await musicService.list();
+    return res.ok
+      ? ok(
+          res.data
+            .filter((track) => track.status === "published")
+            .sort((a, b) => a.sortOrder - b.sortOrder),
+        )
+      : res;
+  },
   create: (data: Record<string, unknown>) => firebaseCreate("music", trackWrite(data)),
   update: (id: string, data: Record<string, unknown>) => firebaseUpdate("music", id, trackWrite(data)),
   remove: (id: string) => firebaseRemove("music", id),
@@ -605,12 +619,18 @@ export const musicService = {
 
 function mapFirebaseTrack(r: Row): MusicTrackRecord {
   const rawStatus = str(r["status"]);
+  const audioPath = opt(r["audioPath"] || r["sourceUrl"] || r["audio"] || r["url"]);
+  const sortOrder = Number(r["sortOrder"] ?? r["sort_order"] ?? 0);
+  const durationSeconds = Number(r["durationSeconds"] ?? r["duration_seconds"] ?? 0);
   return {
     id: str(r["id"]),
     title: str(r["title"] || r["name"]),
     artist: opt(r["artist"]),
-    audioPath: opt(r["audioPath"] || r["audio"] || r["url"]),
+    audioPath,
+    sourceUrl: audioPath,
     coverPath: opt(r["coverPath"] || r["cover"] || r["image"]),
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+    durationSeconds: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : undefined,
     status: /archiv/i.test(rawStatus)
       ? "archived"
       : /draft|hidden/i.test(rawStatus)
@@ -622,11 +642,17 @@ function mapFirebaseTrack(r: Row): MusicTrackRecord {
 }
 
 function trackWrite(data: Record<string, unknown>): Record<string, unknown> {
+  const audioPath = data["source_url"] ?? data["sourceUrl"] ?? data["audio_path"] ?? data["audioPath"];
+  const duration = Number(data["duration_seconds"] ?? data["durationSeconds"] ?? 0);
+  const sortOrder = Number(data["sort_order"] ?? data["sortOrder"] ?? 0);
   return compact({
     title: data["title"],
     artist: data["artist"],
-    audioPath: data["audio_path"] ?? data["audioPath"],
+    audioPath,
+    sourceUrl: audioPath,
     coverPath: data["cover_path"] ?? data["coverPath"],
+    durationSeconds: Number.isFinite(duration) && duration > 0 ? duration : undefined,
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     status: data["status"],
     createdBy: data["created_by"] ?? data["createdBy"],
     updatedBy: data["updated_by"] ?? data["updatedBy"],
