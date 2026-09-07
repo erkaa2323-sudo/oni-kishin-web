@@ -45,8 +45,8 @@ function latestOniReply() {
     const rows = Array.from(logs[logIndex].children) as HTMLElement[];
     for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex -= 1) {
       const text = rows[rowIndex].innerText?.trim() ?? "";
-      if (!text.includes("ONI BRAIN")) continue;
-      const clean = text.replace(/^ONI BRAIN\s*/i, "").trim();
+      if (!text.includes("ONI SHIZUKI")) continue;
+      const clean = text.replace(/^ONI SHIZUKI\s*/i, "").trim();
       if (clean && !clean.includes("Бодож байна")) return clean;
     }
   }
