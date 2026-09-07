@@ -275,7 +275,7 @@ canvas{display:block;width:100%;height:100%;touch-action:pan-y}
         title="Miara Live2D Meet guide"
         srcDoc={srcDoc}
         sandbox="allow-scripts"
-        className="pointer-events-none absolute inset-x-0 bottom-1 top-6 h-[calc(100%-1.75rem)] w-full border-0 bg-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-1 top-6 h-[calc(100%_-_1.75rem)] w-full border-0 bg-transparent"
         onLoad={() => setRuntime("loading")}
       />
 
