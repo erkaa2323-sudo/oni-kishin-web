@@ -1,4 +1,4 @@
-name: GitHub Pages Gantzert Host
+name: GitHub Pages Kei Host
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Vercel-independent Gantzert page
+      - name: Build Vercel-independent Kei page
         shell: bash
         run: |
           set -euo pipefail
@@ -38,7 +38,7 @@ jobs:
           touch _site/.nojekyll
           cat > _site/index.html <<'HTML'
           <!doctype html>
-          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / GANTZERT + FELIXANDER</a></body></html>
+          <html lang="mn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./meet/"><title>ONI HUB · GitHub Host</title></head><body style="margin:0;background:#050506;color:#fff;font-family:system-ui;display:grid;place-items:center;min-height:100vh"><a href="./meet/" style="color:#fff">ONI MEET / KEI LIVE2D</a></body></html>
           HTML
 
       - name: Configure GitHub Pages
