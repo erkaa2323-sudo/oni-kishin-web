@@ -114,6 +114,7 @@ export async function reviewCreatorPublishRequest(id: string, decision: "approve
         const reward = ONI_REWARDS.creatorApproved;
         const profileRef = doc(firebaseDb, "progressionProfiles", row.uid);
         const ledgerRef = doc(firebaseDb, "progressionLedger", `creator_${row.uid}_${row.id}`);
+        const socialRef = doc(firebaseDb, "socialEvents", `creator_${row.uid}_${row.id}`);
         const [profileSnap, ledgerSnap] = await Promise.all([tx.get(profileRef), tx.get(ledgerRef)]);
         if (!ledgerSnap.exists()) {
           tx.set(ledgerRef, {
@@ -152,6 +153,16 @@ export async function reviewCreatorPublishRequest(id: string, decision: "approve
               updatedAt: Timestamp.now(),
             });
           }
+          tx.set(socialRef, {
+            uid: row.uid,
+            nickname: row.nickname || "ONI MEMBER",
+            type: "creator_approved",
+            title: `${row.nickname || "ONI MEMBER"} шинэ content батлууллаа`,
+            detail: `${row.title} · +${reward.xp} XP · +${reward.coin} ONI`,
+            targetUrl: "/gallery",
+            reactions: 0,
+            createdAt: Timestamp.now(),
+          });
         }
       }
     }
