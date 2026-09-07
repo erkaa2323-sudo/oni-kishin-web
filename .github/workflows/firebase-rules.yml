@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - firestore.rules
+      - firestore.creator.rules.fragment
       - firebase.json
       - .github/workflows/firebase-rules.yml
   workflow_dispatch:
@@ -50,8 +51,22 @@ jobs:
           echo "::add-mask::${ACCESS_TOKEN}"
           echo "ACCESS_TOKEN=${ACCESS_TOKEN}" >> "$GITHUB_ENV"
 
-      - name: Create Firebase Rules ruleset
+      - name: Compose and create Firebase Rules ruleset
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          base = Path("firestore.rules").read_text(encoding="utf-8")
+          fragment = Path("firestore.creator.rules.fragment").read_text(encoding="utf-8")
+          marker = "    match /{document=**} { allow read, write: if false; }"
+          if marker not in base:
+              raise SystemExit("Firestore deny-all marker not found; refusing unsafe composition")
+          if "match /creatorPublishRequests/" in base:
+              combined = base
+          else:
+              combined = base.replace(marker, fragment.rstrip() + "\n\n" + marker, 1)
+          Path("/tmp/firestore.combined.rules").write_text(combined, encoding="utf-8")
+          PY
+
           python - <<'PY' > /tmp/ruleset.json
           import json
           from pathlib import Path
@@ -59,7 +74,7 @@ jobs:
               "source": {
                   "files": [{
                       "name": "firestore.rules",
-                      "content": Path("firestore.rules").read_text(encoding="utf-8"),
+                      "content": Path("/tmp/firestore.combined.rules").read_text(encoding="utf-8"),
                   }]
               }
           }))
