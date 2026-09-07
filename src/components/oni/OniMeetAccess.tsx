@@ -22,9 +22,10 @@ import {
   canRegister,
   deriveLifecycle,
   fetchActiveMeet,
-  fetchMeetCredentialsForMember,
+  fetchCurrentMeetRegistration,
   fetchParticipants,
   registerForMeet,
+  subscribeMeetCredentialsForMember,
   validateVerification,
   type MeetFieldErrors,
   type MeetCredentials,
@@ -80,6 +81,7 @@ export function OniMeetAccess() {
       return;
     }
     setLoadState("ok");
+    setLoadError("");
     setSession(res.session);
     setParticipants(res.session ? await fetchParticipants(res.session.id) : []);
   }, []);
@@ -101,48 +103,43 @@ export function OniMeetAccess() {
       setErrors({});
     } else {
       setCredentials(null);
+      setState((current) => (current === "sending" ? current : "idle"));
     }
   }, []);
 
+  // Refresh/reopen safe: restore the signed-in rider's existing registration
+  // from Firestore instead of forcing a second JOIN attempt.
   useEffect(() => {
-    if (!sessionId || state !== "registered" || credentials) return;
-
+    if (!approved || !sessionId) return;
     let cancelled = false;
-    let timer = 0;
 
-    const syncCredentials = async () => {
-      window.clearTimeout(timer);
+    void fetchCurrentMeetRegistration(sessionId).then((registered) => {
       if (cancelled) return;
-      if (document.visibilityState === "hidden") {
-        timer = window.setTimeout(() => void syncCredentials(), 8_000);
-        return;
+      setState((current) => {
+        if (current === "sending") return current;
+        return registered ? "registered" : "idle";
+      });
+      if (registered) {
+        setNotice("Таны Meet бүртгэл баталгаажсан байна.");
+      } else {
+        setCredentials(null);
       }
-
-      const next = await fetchMeetCredentialsForMember(sessionId);
-      if (cancelled) return;
-      if (next) {
-        setCredentials(next);
-        return;
-      }
-      timer = window.setTimeout(() => void syncCredentials(), 8_000);
-    };
-
-    const onFocus = () => void syncCredentials();
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") void syncCredentials();
-    };
-
-    void syncCredentials();
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibility);
+    });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [credentials, sessionId, state]);
+  }, [approved, sessionId]);
+
+  // Credentials are intentionally unreadable before Meet start. Once lifecycle
+  // becomes active, switch to a realtime listener so Admin changes appear at once.
+  useEffect(() => {
+    if (!sessionId || state !== "registered" || life !== "active") {
+      setCredentials(null);
+      return;
+    }
+    return subscribeMeetCredentialsForMember(sessionId, setCredentials);
+  }, [life, sessionId, state]);
 
   const set = <K extends keyof VerificationInput>(k: K, v: string) => {
     setValues((p) => ({ ...p, [k]: v }));
@@ -158,15 +155,26 @@ export function OniMeetAccess() {
     setState("sending");
     setNotice("");
     const outcome = await registerForMeet(session.id, values);
-    setNotice(REGISTRATION_MESSAGE[outcome]);
+
     if (outcome === "registered") {
       setState("registered");
-      setCredentials(await fetchMeetCredentialsForMember(session.id));
+      setNotice(REGISTRATION_MESSAGE.registered);
       await load();
-    } else {
-      setState("denied");
-      if (outcome === "meet_full" || outcome === "registration_closed") await load();
+      return;
     }
+
+    // A duplicate can be the same signed-in rider returning after another tab
+    // registered first. Confirm ownership before treating it as a failure.
+    if (outcome === "duplicate" && (await fetchCurrentMeetRegistration(session.id))) {
+      setState("registered");
+      setNotice("Таны Meet бүртгэл аль хэдийн баталгаажсан байна.");
+      await load();
+      return;
+    }
+
+    setNotice(REGISTRATION_MESSAGE[outcome]);
+    setState("denied");
+    if (outcome === "meet_full" || outcome === "registration_closed") await load();
   };
 
   return (
@@ -319,7 +327,9 @@ export function OniMeetAccess() {
                   </div>
                 ) : (
                   <p className="mt-4 text-xs text-amber-300">
-                    Бүртгэл амжилттай. Admin өрөөний мэдээлэл оруулмагц энд автоматаар нээгдэнэ.
+                    {life === "active"
+                      ? "Бүртгэл баталгаажсан. Admin өрөөний мэдээлэл оруулмагц энд шууд нээгдэнэ."
+                      : "Бүртгэл баталгаажсан. Room access Meet эхлэх үед автоматаар нээгдэнэ."}
                   </p>
                 )
               ) : null}
