@@ -1,9 +1,8 @@
 /**
  * JOIN — recruitment application configuration + data boundary.
  *
- * `submitApplication` writes to the legacy ONI Firestore `applications`
- * collection. Public users may create a validated application but cannot
- * read applications back from the client.
+ * Public applicants can submit an application and later read only a tiny
+ * bearer-token status projection. Private application documents stay admin-only.
  */
 
 export type ExperienceLevel = "rookie" | "regular" | "veteran";
@@ -58,12 +57,15 @@ export type JoinMembershipWatch = {
   cpmNickname: string;
   cpmId: string;
   savedAt: number;
+  statusToken?: string;
   accepted?: boolean;
+  rejected?: boolean;
   memberId?: string;
 };
 
 export type JoinMembershipStatus =
   | { state: "pending" }
+  | { state: "rejected" }
   | { state: "accepted"; memberId: string; nickname: string };
 
 export type JoinFieldErrors = Partial<Record<keyof JoinApplication, string>>;
@@ -118,7 +120,7 @@ export function readJoinMembershipWatch(): JoinMembershipWatch | null {
     if (!reference || !cpmNickname || !cpmId || !Number.isFinite(savedAt)) return null;
 
     const ninetyDays = 90 * 24 * 60 * 60 * 1000;
-    if (!parsed.accepted && Date.now() - savedAt > ninetyDays) {
+    if (!parsed.accepted && !parsed.rejected && Date.now() - savedAt > ninetyDays) {
       window.localStorage.removeItem(JOIN_MEMBERSHIP_WATCH_KEY);
       return null;
     }
@@ -128,7 +130,9 @@ export function readJoinMembershipWatch(): JoinMembershipWatch | null {
       cpmNickname,
       cpmId,
       savedAt,
+      ...(cleanText(parsed.statusToken) ? { statusToken: cleanText(parsed.statusToken) } : {}),
       ...(parsed.accepted ? { accepted: true } : {}),
+      ...(parsed.rejected ? { rejected: true } : {}),
       ...(cleanText(parsed.memberId) ? { memberId: cleanText(parsed.memberId) } : {}),
     };
   } catch {
@@ -147,14 +151,28 @@ export function saveJoinMembershipWatch(watch: JoinMembershipWatch) {
 }
 
 /**
- * Approval is detected without exposing private application documents.
- * Admin approval already promotes the applicant into the public `members`
- * collection, so an exact CPM ID + nickname lookup confirms membership.
+ * New applications use the anonymous status projection. Historical pending
+ * applications fall back to the public Crew list, so existing users are not lost.
  */
 export async function checkJoinMembershipStatus(
   watch: JoinMembershipWatch,
 ): Promise<JoinMembershipStatus> {
   try {
+    if (watch.statusToken) {
+      const { readPublicApplicationStatus } = await import("@/services/application-workflow");
+      const publicStatus = await readPublicApplicationStatus(watch.statusToken);
+      if (publicStatus.ok) {
+        if (publicStatus.data.state === "rejected") return { state: "rejected" };
+        if (publicStatus.data.state === "accepted" && publicStatus.data.memberId) {
+          return {
+            state: "accepted",
+            memberId: publicStatus.data.memberId,
+            nickname: watch.cpmNickname,
+          };
+        }
+      }
+    }
+
     const [{ collection, getDocs, limit, query, where }, { firebaseDb }] = await Promise.all([
       import("firebase/firestore"),
       import("@/integrations/firebase/client"),
@@ -188,7 +206,7 @@ export async function checkJoinMembershipStatus(
         cleanText(data.nick) || cleanText(data.nickname) || cleanText(data.name) || watch.cpmNickname,
     };
   } catch {
-    // Network/rules failures must never turn a pending application into a false rejection.
+    // Network/rules failures must never invent an acceptance or rejection.
     return { state: "pending" };
   }
 }
@@ -199,9 +217,9 @@ export async function submitApplication(application: JoinApplication): Promise<S
     return { ok: false, error: "Мэдээлэл дутуу эсвэл буруу байна." };
   }
 
-  const { applicationsService } = await import("@/services/domains");
+  const { submitSecureApplication } = await import("@/services/application-workflow");
   const interests = application.interests.join(",");
-  const res = await applicationsService.submit({
+  const res = await submitSecureApplication({
     last: application.lastName.trim(),
     first: application.firstName.trim(),
     age: Number(application.age),
@@ -224,6 +242,7 @@ export async function submitApplication(application: JoinApplication): Promise<S
     cpmNickname: application.cpmNickname.trim(),
     cpmId: application.cpmId.trim(),
     savedAt: Date.now(),
+    statusToken: res.data.statusToken,
   });
 
   return { ok: true, reference };
