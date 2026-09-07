@@ -5,14 +5,23 @@ import { ONI_STATE_VISUALS, inferReplyState, type OniState } from "@/lib/oni-emo
 import { OniLive2D } from "./OniLive2D";
 
 const STATES: OniState[] = [
-  "idle", "listening", "thinking", "speaking", "happy", "excited",
-  "concerned", "serious", "surprised", "music",
+  "idle",
+  "listening",
+  "thinking",
+  "speaking",
+  "happy",
+  "excited",
+  "concerned",
+  "serious",
+  "surprised",
+  "music",
 ];
 
 type RigTarget = { element: HTMLElement; state: OniState };
 
 function stateFromElement(element: HTMLElement): OniState {
-  for (const state of STATES) if (element.classList.contains(`oni-character-presence--${state}`)) return state;
+  for (const state of STATES)
+    if (element.classList.contains(`oni-character-presence--${state}`)) return state;
   return "idle";
 }
 
@@ -22,17 +31,24 @@ function isVisible(element: HTMLElement) {
 }
 
 function sameTargets(current: RigTarget[], next: RigTarget[]) {
-  return current.length === next.length && current.every(
-    (item, index) => item.element === next[index]?.element && item.state === next[index]?.state,
+  return (
+    current.length === next.length &&
+    current.every(
+      (item, index) => item.element === next[index]?.element && item.state === next[index]?.state,
+    )
   );
 }
 
 function latestOniReply() {
   const logs = Array.from(document.querySelectorAll<HTMLElement>('[role="log"]')).filter(isVisible);
   for (let logIndex = logs.length - 1; logIndex >= 0; logIndex -= 1) {
-    const rows = Array.from(logs[logIndex].children) as HTMLElement[];
+    const log = logs[logIndex];
+    if (!log) continue;
+    const rows = Array.from(log.children) as HTMLElement[];
     for (let rowIndex = rows.length - 1; rowIndex >= 0; rowIndex -= 1) {
-      const text = rows[rowIndex].innerText?.trim() ?? "";
+      const row = rows[rowIndex];
+      if (!row) continue;
+      const text = row.innerText?.trim() ?? "";
       if (!text.includes("ONI SHIZUKI")) continue;
       const clean = text.replace(/^ONI SHIZUKI\s*/i, "").trim();
       if (clean && !clean.includes("Бодож байна")) return clean;
@@ -42,11 +58,15 @@ function latestOniReply() {
 }
 
 function replySegments(text: string) {
-  const pieces = text.split(/(?<=[.!?。！？])\s+|\n+/u).map((piece) => piece.trim()).filter(Boolean);
+  const pieces = text
+    .split(/(?<=[.!?。！？])\s+|\n+/u)
+    .map((piece) => piece.trim())
+    .filter(Boolean);
   if (pieces.length <= 4) return pieces;
   const grouped: string[] = [];
   const size = Math.ceil(pieces.length / 4);
-  for (let index = 0; index < pieces.length; index += size) grouped.push(pieces.slice(index, index + size).join(" "));
+  for (let index = 0; index < pieces.length; index += size)
+    grouped.push(pieces.slice(index, index + size).join(" "));
   return grouped;
 }
 
@@ -111,7 +131,8 @@ export function OniRigBridge() {
     const logs = Array.from(document.querySelectorAll<HTMLElement>('[role="log"]'));
     const scrollVisible = () => {
       const log = logs.find(isVisible);
-      if (log) requestAnimationFrame(() => log.scrollTo({ top: log.scrollHeight, behavior: "smooth" }));
+      if (log)
+        requestAnimationFrame(() => log.scrollTo({ top: log.scrollHeight, behavior: "smooth" }));
     };
     const observers = logs.map((log) => {
       const observer = new MutationObserver(scrollVisible);
@@ -130,13 +151,16 @@ export function OniRigBridge() {
     const all = Array.from(document.querySelectorAll<HTMLElement>(".oni-character-presence"));
     for (const element of all) {
       const oldBody = element.querySelector<HTMLElement>(".oni-character-presence__body");
-      if (oldBody) oldBody.style.opacity = targets.some((target) => target.element === element) ? "0" : "";
+      if (oldBody)
+        oldBody.style.opacity = targets.some((target) => target.element === element) ? "0" : "";
     }
   }, [targets]);
 
-  return <>{targets.map(({ element, state }) => createPortal(
-    <AdaptiveLive2D state={state} />,
-    element,
-    "oni-live2d-active",
-  ))}</>;
+  return (
+    <>
+      {targets.map(({ element, state }) =>
+        createPortal(<AdaptiveLive2D state={state} />, element, "oni-live2d-active"),
+      )}
+    </>
+  );
 }
