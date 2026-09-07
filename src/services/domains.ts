@@ -161,7 +161,6 @@ export const membersService = {
     const res = await membersService.list();
     return res.ok ? ok(res.data.filter((member) => member.status === "active")) : res;
   },
-  /** Public projection: active/non-archived members and public profile fields only. */
   listPublic: async (): Promise<ServiceResult<MemberRecord[]>> => {
     try {
       const rows = await firebaseRows("members");
@@ -185,8 +184,7 @@ export const membersService = {
     }
   },
   create: (data: Record<string, unknown>) => firebaseCreate("members", memberWrite(data)),
-  update: (id: string, data: Record<string, unknown>) =>
-    firebaseUpdate("members", id, memberWrite(data)),
+  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("members", id, memberWrite(data)),
   archive: (id: string) => firebaseUpdate("members", id, { status: "archived" }),
   remove: (id: string) => firebaseRemove("members", id),
 };
@@ -250,8 +248,7 @@ export const garageService = {
   },
   archive: (id: string) => firebaseUpdate("garage", id, { status: "archived" }),
   create: (data: Record<string, unknown>) => firebaseCreate("garage", vehicleWrite(data)),
-  update: (id: string, data: Record<string, unknown>) =>
-    firebaseUpdate("garage", id, vehicleWrite(data)),
+  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("garage", id, vehicleWrite(data)),
   remove: (id: string) => firebaseRemove("garage", id),
 };
 
@@ -473,9 +470,7 @@ export const meetService = {
       const credentialsRef = doc(firebaseDb, "meetCredentials", "current");
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
       const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
-      const registrationClosesAt = firebaseTimestamp(
-        data["registration_closes_at"] ?? data["registrationClosesAt"],
-      );
+      const registrationClosesAt = firebaseTimestamp(data["registration_closes_at"] ?? data["registrationClosesAt"]);
       const capacity = Number(data["capacity"] ?? 20);
       const roomId = str(data["room_id"] ?? data["roomId"]);
       const password = str(data["password"]);
@@ -491,11 +486,7 @@ export const meetService = {
         updatedAt: serverTimestamp(),
       }));
       if (roomId || password) {
-        await setDoc(credentialsRef, {
-          roomId,
-          password,
-          updatedAt: serverTimestamp(),
-        });
+        await setDoc(credentialsRef, { roomId, password, updatedAt: serverTimestamp() });
       }
       return ok({ id: "current" });
     } catch (err) {
@@ -507,9 +498,7 @@ export const meetService = {
       const meetRef = doc(firebaseDb, "meets", id);
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
       const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
-      const registrationClosesAt = firebaseTimestamp(
-        data["registration_closes_at"] ?? data["registrationClosesAt"],
-      );
+      const registrationClosesAt = firebaseTimestamp(data["registration_closes_at"] ?? data["registrationClosesAt"]);
       const capacity = Number(data["capacity"] ?? 20);
       await updateDoc(meetRef, compact({
         title: data["title"],
@@ -524,11 +513,7 @@ export const meetService = {
       const roomId = str(data["room_id"] ?? data["roomId"]);
       const password = str(data["password"]);
       if (roomId || password) {
-        await setDoc(
-          doc(firebaseDb, "meetCredentials", id),
-          compact({ roomId: roomId || undefined, password: password || undefined, updatedAt: serverTimestamp() }),
-          { merge: true },
-        );
+        await setDoc(doc(firebaseDb, "meetCredentials", id), compact({ roomId: roomId || undefined, password: password || undefined, updatedAt: serverTimestamp() }), { merge: true });
       }
       return ok({ id });
     } catch (err) {
@@ -537,6 +522,19 @@ export const meetService = {
   },
   remove: (id: string) => firebaseRemove("meets", id),
   setStatus: (id: string, status: MeetRecord["status"]) => firebaseUpdate("meets", id, { status }),
+  setLifecycle: (id: string, status: MeetRecord["status"]) => firebaseUpdate("meets", id, { status }),
+  setCredentials: async (id: string, roomId: string, password: string): Promise<ServiceResult<{ id: string }>> => {
+    try {
+      await setDoc(
+        doc(firebaseDb, "meetCredentials", id),
+        { roomId, password, updatedAt: serverTimestamp() },
+        { merge: true },
+      );
+      return ok({ id });
+    } catch (err) {
+      return { ok: false, error: normalizeError(err) };
+    }
+  },
   listRegistrations: async (meetId: string): Promise<ServiceResult<MeetRegistrationRecord[]>> => {
     try {
       const rows = await firebaseRows("meetParticipants");
@@ -577,10 +575,7 @@ export const meetService = {
       try {
         const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
         if (!snapshot.exists()) return fail("NOT_FOUND", "Уулзалтын нууц мэдээлэл олдсонгүй.");
-        return ok({
-          roomId: str(snapshot.data()["roomId"]),
-          password: str(snapshot.data()["password"]),
-        });
+        return ok({ roomId: str(snapshot.data()["roomId"]), password: str(snapshot.data()["password"]) });
       } catch (err) {
         return { ok: false, error: normalizeError(err) };
       }
@@ -619,7 +614,6 @@ export type MusicTrackRecord = BaseRecord & {
   artist?: string | undefined;
   audioPath?: string | undefined;
   coverPath?: string | undefined;
-  /** Compatibility alias used by the ONI player/admin UI. */
   sourceUrl?: string | undefined;
   sortOrder: number;
   durationSeconds?: number | undefined;
@@ -636,13 +630,7 @@ export const musicService = {
   },
   listPublished: async (): Promise<ServiceResult<MusicTrackRecord[]>> => {
     const res = await musicService.list();
-    return res.ok
-      ? ok(
-          res.data
-            .filter((track) => track.status === "published")
-            .sort((a, b) => a.sortOrder - b.sortOrder),
-        )
-      : res;
+    return res.ok ? ok(res.data.filter((track) => track.status === "published").sort((a, b) => a.sortOrder - b.sortOrder)) : res;
   },
   create: (data: Record<string, unknown>) => firebaseCreate("music", trackWrite(data)),
   update: (id: string, data: Record<string, unknown>) => firebaseUpdate("music", id, trackWrite(data)),
@@ -663,11 +651,7 @@ function mapFirebaseTrack(r: Row): MusicTrackRecord {
     coverPath: opt(r["coverPath"] || r["cover"] || r["image"]),
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
     durationSeconds: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : undefined,
-    status: /archiv/i.test(rawStatus)
-      ? "archived"
-      : /draft|hidden/i.test(rawStatus)
-        ? "draft"
-        : "published",
+    status: /archiv/i.test(rawStatus) ? "archived" : /draft|hidden/i.test(rawStatus) ? "draft" : "published",
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
   };
