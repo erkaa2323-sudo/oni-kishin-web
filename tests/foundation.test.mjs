@@ -66,7 +66,10 @@ test("custom push worker bounds cached assets and retains offline shell", async 
 test("admin permission bridge keeps reduced owner actors actionable and explicit emails verified", () => {
   const source = readFileSync("src/services/admin-profiles.ts", "utf8");
   assert.match(source, /if \(!profile\) return false;/);
-  assert.match(source, /if \(profile\.email\) \{\s*if \(!isAuthorizedAdmin\(profile\)\) return false;/);
+  assert.match(
+    source,
+    /if \(profile\.email\) \{\s*if \(!isAuthorizedAdmin\(profile\)\) return false;/,
+  );
   assert.match(source, /else if \(profile\.role !== "owner"\) \{\s*return false;/);
   assert.match(source, /profile\.role === "owner" && isAdminEmail\(profile\.email\)/);
 });
