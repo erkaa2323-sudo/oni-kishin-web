@@ -65,19 +65,24 @@
         && data.lastAction is map
         && data.lastAction.get("type", "") == typeName
         && requiredText(data.lastAction.get("key", ""), 120)
-        && data.lastAction.get("at", null) == request.time;
+        && request.resource.data.updatedAt == request.time
+        && data.lastAction != resource.data.get("lastAction", {});
     }
 
     function afterProfileActionV3(uid) {
       return getAfter(/databases/$(database)/documents/progressionProfiles/$(uid)).data.get("lastAction", {});
     }
 
+    function afterProfileFreshV3(uid) {
+      return getAfter(/databases/$(database)/documents/progressionProfiles/$(uid)).data.updatedAt == request.time;
+    }
+
     function afterActionMatchesV3(uid, typeName, key) {
       let action = afterProfileActionV3(uid);
-      return action is map
+      return afterProfileFreshV3(uid)
+        && action is map
         && action.get("type", "") == typeName
-        && action.get("key", "") == key
-        && action.get("at", null) == request.time;
+        && action.get("key", "") == key;
     }
 
     function profileIdentityV3(uid) {
@@ -292,7 +297,7 @@
       let actionKey = action.get("key", "");
       let sourceType = request.resource.data.get("sourceType", "");
       let weekId = action.get("weekId", "");
-      return action.get("at", null) == request.time
+      return afterProfileFreshV3(request.auth.uid)
         && request.resource.data.uid == request.auth.uid
         && requiredText(actionKey, 120)
         && request.resource.data.createdAt == request.time
@@ -325,7 +330,7 @@
       let action = afterProfileActionV3(uid);
       let claimPath = /databases/$(database)/documents/progressionMeetClaims/$(uid);
       return action.get("type", "") == "meet_reward"
-        && action.get("at", null) == request.time
+        && afterProfileFreshV3(uid)
         && currentWeekExistsV3()
         && currentMeetExists()
         && currentWeekV3().enabled == true
