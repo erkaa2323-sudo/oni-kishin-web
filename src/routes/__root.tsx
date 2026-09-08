@@ -2,11 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
+import mobileAppCss from "../mobile-app.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { initPwa } from "../lib/pwa";
 import { OniOfflineBanner } from "../components/oni/OniOfflineBanner";
 import { OniWorldTransition } from "../components/oni/OniWorldTransition";
 import { OniNexusDock } from "../components/oni/OniNexusDock";
+import { NexusMeetPushBridge } from "../components/oni/NexusMeetPushBridge";
+import { OniProgressionRewardBridge } from "../components/oni/OniProgressionRewardBridge";
 
 const RECOVERY_KEY = "oni:last-hard-recovery";
 const isRecoverableClientLoadError = (error: Error) => /Failed to fetch dynamically imported module|Importing a module script failed|Load failed|ChunkLoadError|error loading dynamically imported module/i.test(`${error.name} ${error.message}`);
@@ -44,9 +47,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({ meta: [{ charSet: "utf-8" }, { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" }, { name: "theme-color", content: "#0a0a0d" }, { title: "ONI NEXUS — Oni And Kishin" }, { name: "description", content: "ONI NEXUS — Oni And Kishin-ийн iPhone standalone app, Shizuki AI, Meet, Crew, Garage болон push notification төв." }, { property: "og:site_name", content: "ONI NEXUS" }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }, { name: "mobile-web-app-capable", content: "yes" }, { name: "apple-mobile-web-app-capable", content: "yes" }, { name: "apple-mobile-web-app-title", content: "ONI NEXUS" }, { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" }, { name: "application-name", content: "ONI NEXUS" }], links: [{ rel: "stylesheet", href: appCss }, { rel: "preconnect", href: "https://fonts.googleapis.com" }, { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" }, { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" }, { rel: "icon", type: "image/png", href: "/favicon.png" }, { rel: "manifest", href: "/manifest.webmanifest" }, { rel: "apple-touch-icon", href: "/icons/apple-touch-icon-v2.png", sizes: "180x180" }] }),
+  head: () => ({ meta: [{ charSet: "utf-8" }, { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" }, { name: "theme-color", content: "#0a0a0d" }, { title: "ONI NEXUS — Oni And Kishin" }, { name: "description", content: "ONI NEXUS — Oni And Kishin-ийн iPhone standalone app, Shizuki AI, Meet, Crew, Garage болон push notification төв." }, { property: "og:site_name", content: "ONI NEXUS" }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }, { name: "mobile-web-app-capable", content: "yes" }, { name: "apple-mobile-web-app-capable", content: "yes" }, { name: "apple-mobile-web-app-title", content: "ONI NEXUS" }, { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" }, { name: "application-name", content: "ONI NEXUS" }], links: [{ rel: "stylesheet", href: appCss }, { rel: "stylesheet", href: mobileAppCss }, { rel: "preconnect", href: "https://fonts.googleapis.com" }, { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" }, { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Rubik:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" }, { rel: "icon", type: "image/png", href: "/favicon.png" }, { rel: "manifest", href: "/manifest.webmanifest" }, { rel: "apple-touch-icon", href: "/icons/apple-touch-icon-v2.png", sizes: "180x180" }] }),
   shellComponent: RootShell, component: RootComponent, notFoundComponent: NotFoundComponent, errorComponent: ErrorComponent,
 });
 
 function RootShell({ children }: { children: ReactNode }) { return <html lang="mn"><head><HeadContent /></head><body>{children}<Scripts /></body></html>; }
-function RootComponent() { const { queryClient } = Route.useRouteContext(); useEffect(() => { initPwa(); }, []); return <QueryClientProvider client={queryClient}><OniOfflineBanner /><OniWorldTransition><Outlet /></OniWorldTransition><OniNexusDock /></QueryClientProvider>; }
+function RootComponent() { const { queryClient } = Route.useRouteContext(); useEffect(() => { initPwa(); }, []); return <QueryClientProvider client={queryClient}><NexusMeetPushBridge /><OniProgressionRewardBridge /><OniOfflineBanner /><OniWorldTransition><Outlet /></OniWorldTransition><OniNexusDock /></QueryClientProvider>; }

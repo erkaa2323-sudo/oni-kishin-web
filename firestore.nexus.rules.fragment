@@ -1,0 +1,36 @@
+    match /pushSubscriptions/{subscriptionId} {
+      allow read: if isAdmin()
+        || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create: if isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && hasOnlyKeys(request.resource.data, ["uid", "nickname", "cpmId", "endpoint", "p256dh", "auth", "platform", "enabled", "createdAt", "updatedAt"])
+        && hasAllKeys(request.resource.data, ["uid", "nickname", "cpmId", "endpoint", "p256dh", "auth", "platform", "enabled", "createdAt", "updatedAt"])
+        && requiredText(request.resource.data.nickname, 60)
+        && requiredText(request.resource.data.cpmId, 60)
+        && requiredText(request.resource.data.endpoint, 2500)
+        && requiredText(request.resource.data.p256dh, 400)
+        && requiredText(request.resource.data.auth, 200)
+        && request.resource.data.platform in ["ios", "web"]
+        && request.resource.data.enabled == true
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      allow update: if isApprovedMember()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.endpoint == resource.data.endpoint
+        && request.resource.data.p256dh == resource.data.p256dh
+        && request.resource.data.auth == resource.data.auth
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["nickname", "cpmId", "platform", "enabled", "updatedAt"])
+        && requiredText(request.resource.data.nickname, 60)
+        && requiredText(request.resource.data.cpmId, 60)
+        && request.resource.data.platform in ["ios", "web"]
+        && request.resource.data.enabled is bool
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if isAdmin()
+        || (request.auth != null && resource.data.uid == request.auth.uid);
+    }
+
+    match /pushConfig/{configId} {
+      allow read, create, update, delete: if isAdmin();
+    }

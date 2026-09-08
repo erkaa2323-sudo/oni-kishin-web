@@ -12,6 +12,7 @@ import {
 } from "@/data/crew";
 import { OniHudNav } from "./OniHudNav";
 import { OniFooter } from "./OniFooter";
+import { OniSocialHub } from "./OniSocialHub";
 
 type Filter = CrewRoleId | "all";
 
@@ -222,6 +223,7 @@ export function OniCrewStage() {
             </div>
           ) : null}
         </section>
+        <OniSocialHub activeNickname={active?.callsign ?? ""} />
       </main>
       <OniFooter />
     </div>

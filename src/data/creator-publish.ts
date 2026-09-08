@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
+import { ONI_REWARDS } from "@/lib/progression-rewards";
 
 export type CreatorPublishStatus = "pending" | "approved" | "rejected";
 export type CreatorPublishPreset = "profile" | "garage" | "instagram" | "meet" | "crew";
@@ -108,6 +109,62 @@ export async function reviewCreatorPublishRequest(id: string, decision: "approve
         image: row.image,
         createdAt: Timestamp.now(),
       });
+
+      if (row.uid) {
+        const reward = ONI_REWARDS.creatorApproved;
+        const profileRef = doc(firebaseDb, "progressionProfiles", row.uid);
+        const ledgerRef = doc(firebaseDb, "progressionLedger", `creator_${row.uid}_${row.id}`);
+        const socialRef = doc(firebaseDb, "socialEvents", `creator_${row.uid}_${row.id}`);
+        const [profileSnap, ledgerSnap] = await Promise.all([tx.get(profileRef), tx.get(ledgerRef)]);
+        if (!ledgerSnap.exists()) {
+          tx.set(ledgerRef, {
+            uid: row.uid,
+            sourceType: "creator_approved",
+            sourceKey: row.id,
+            xp: reward.xp,
+            coin: reward.coin,
+            createdAt: Timestamp.now(),
+          });
+          if (profileSnap.exists()) {
+            const p = profileSnap.data();
+            tx.update(profileRef, {
+              xp: Number(p["xp"] ?? 0) + reward.xp,
+              coin: Number(p["coin"] ?? 0) + reward.coin,
+              lifetimeXp: Number(p["lifetimeXp"] ?? p["xp"] ?? 0) + reward.xp,
+              seasonXp: Number(p["seasonXp"] ?? p["xp"] ?? 0) + reward.xp,
+              creatorCount: Number(p["creatorCount"] ?? 0) + 1,
+              updatedAt: Timestamp.now(),
+            });
+          } else {
+            tx.set(profileRef, {
+              uid: row.uid,
+              nickname: row.nickname || "ONI MEMBER",
+              xp: reward.xp,
+              coin: reward.coin,
+              lifetimeXp: reward.xp,
+              seasonXp: reward.xp,
+              prestige: 0,
+              meetCount: 0,
+              creatorCount: 1,
+              eventCount: 0,
+              unlocked: [],
+              equipped: {},
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+            });
+          }
+          tx.set(socialRef, {
+            uid: row.uid,
+            nickname: row.nickname || "ONI MEMBER",
+            type: "creator_approved",
+            title: `${row.nickname || "ONI MEMBER"} шинэ content батлууллаа`,
+            detail: `${row.title} · +${reward.xp} XP · +${reward.coin} ONI`,
+            targetUrl: "/gallery",
+            reactions: 0,
+            createdAt: Timestamp.now(),
+          });
+        }
+      }
     }
 
     tx.update(requestRef, {

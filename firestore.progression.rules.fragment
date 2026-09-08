@@ -1,0 +1,227 @@
+    function validEquippedCosmetics(data) {
+      let equipped = data.equipped;
+      let unlocked = data.unlocked.toSet();
+      return equipped is map
+        && (!equipped.keys().hasAny(["frame"]) || unlocked.hasAny([equipped.get("frame", "")]))
+        && (!equipped.keys().hasAny(["aura"]) || unlocked.hasAny([equipped.get("aura", "")]))
+        && (!equipped.keys().hasAny(["garage"]) || unlocked.hasAny([equipped.get("garage", "")]))
+        && (!equipped.keys().hasAny(["shizuki"]) || unlocked.hasAny([equipped.get("shizuki", "")]))
+        && (!equipped.keys().hasAny(["title"]) || unlocked.hasAny([equipped.get("title", "")]))
+        && (!equipped.keys().hasAny(["entrance"]) || unlocked.hasAny([equipped.get("entrance", "")]))
+        && (!equipped.keys().hasAny(["creator"]) || unlocked.hasAny([equipped.get("creator", "")]))
+        && (!equipped.keys().hasAny(["trophy"]) || unlocked.hasAny([equipped.get("trophy", "")]));
+    }
+
+    function validVaultUnlock(itemId, price, minXp) {
+      let before = resource.data.unlocked.toSet();
+      let after = request.resource.data.unlocked.toSet();
+      let added = after.difference(before);
+      return request.resource.data.xp >= minXp
+        && request.resource.data.coin == resource.data.coin - price
+        && request.resource.data.coin >= 0
+        && request.resource.data.unlocked.size() == resource.data.unlocked.size() + 1
+        && added.hasOnly([itemId]) && added.hasAny([itemId])
+        && validEquippedCosmetics(request.resource.data);
+    }
+
+    function validAnyVaultUnlock() {
+      return validVaultUnlock("frame-crimson", 700, 500)
+        || validVaultUnlock("aura-red-moon", 1800, 3000)
+        || validVaultUnlock("garage-neon", 2200, 3000)
+        || validVaultUnlock("shizuki-kitsune", 4500, 8500)
+        || validVaultUnlock("title-night-rider", 900, 1500)
+        || validVaultUnlock("entrance-kishin", 5000, 12500)
+        || validVaultUnlock("creator-red-moon", 2600, 5500)
+        || validVaultUnlock("trophy-vault", 1200, 1500);
+    }
+
+    function validEquipOnly() {
+      return request.resource.data.coin == resource.data.coin
+        && request.resource.data.unlocked == resource.data.unlocked
+        && validEquippedCosmetics(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"]);
+    }
+
+    function validMeetReward(uid) {
+      let claimPath = /databases/$(database)/documents/progressionMeetClaims/$(uid);
+      return currentMeetExists()
+        && currentMeet().keys().hasAll(["startAt"])
+        && currentMeet().startAt is timestamp
+        && request.time >= currentMeet().startAt
+        && existsAfter(claimPath)
+        && getAfter(claimPath).data.meetStartAt == currentMeet().startAt
+        && getAfter(claimPath).data.updatedAt == request.time
+        && request.resource.data.xp == resource.data.xp + 100
+        && request.resource.data.coin == resource.data.coin + 50
+        && request.resource.data.lifetimeXp == resource.data.lifetimeXp + 100
+        && request.resource.data.seasonXp == resource.data.seasonXp + 100
+        && request.resource.data.meetCount == resource.data.meetCount + 1
+        && request.resource.data.creatorCount == resource.data.creatorCount
+        && request.resource.data.eventCount == resource.data.eventCount
+        && request.resource.data.unlocked == resource.data.unlocked
+        && request.resource.data.equipped == resource.data.equipped
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["xp", "coin", "lifetimeXp", "seasonXp", "meetCount", "updatedAt"]);
+    }
+
+    match /progressionProfiles/{uid} {
+      allow read: if true;
+      allow create: if isAdmin() || (isApprovedMember()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.xp == 0
+        && request.resource.data.coin == 0
+        && request.resource.data.lifetimeXp == 0
+        && request.resource.data.seasonXp == 0
+        && request.resource.data.prestige == 0
+        && request.resource.data.meetCount == 0
+        && request.resource.data.creatorCount == 0
+        && request.resource.data.eventCount == 0
+        && request.resource.data.unlocked.size() == 0
+        && request.resource.data.equipped is map);
+      allow update: if isAdmin() || (isApprovedMember()
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname
+        && request.resource.data.prestige == resource.data.prestige
+        && ((request.resource.data.xp == resource.data.xp
+          && request.resource.data.lifetimeXp == resource.data.lifetimeXp
+          && request.resource.data.seasonXp == resource.data.seasonXp
+          && request.resource.data.meetCount == resource.data.meetCount
+          && request.resource.data.creatorCount == resource.data.creatorCount
+          && request.resource.data.eventCount == resource.data.eventCount
+          && (validAnyVaultUnlock() || validEquipOnly()))
+          || validMeetReward(uid)));
+      allow delete: if isAdmin();
+    }
+
+    match /progressionMeetClaims/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create: if isApprovedMember()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && currentMeetExists()
+        && currentMeet().keys().hasAll(["startAt"])
+        && currentMeet().startAt is timestamp
+        && request.time >= currentMeet().startAt
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && requiredText(request.resource.data.claimNonce, 80)
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/meetParticipants/$(uid))
+        && get(/databases/$(database)/documents/meetParticipants/$(uid)).data.meetStartAt == currentMeet().startAt;
+      allow update: if isApprovedMember()
+        && request.auth.uid == uid
+        && resource.data.meetStartAt != currentMeet().startAt
+        && request.resource.data.uid == uid
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && requiredText(request.resource.data.claimNonce, 80)
+        && request.resource.data.updatedAt == request.time
+        && exists(/databases/$(database)/documents/meetParticipants/$(uid))
+        && get(/databases/$(database)/documents/meetParticipants/$(uid)).data.meetStartAt == currentMeet().startAt;
+      allow delete: if isAdmin();
+    }
+
+    match /progressionLedger/{ledgerId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create: if isAdmin() || (isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.sourceType == "meet_attendance"
+        && request.resource.data.xp == 100
+        && request.resource.data.coin == 50
+        && requiredText(request.resource.data.sourceKey, 80)
+        && ledgerId == request.auth.uid + "_" + request.resource.data.sourceKey
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && request.resource.data.createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.claimNonce == request.resource.data.sourceKey
+        && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.updatedAt == request.time);
+      allow update, delete: if isAdmin();
+    }
+
+    function validSocialBase() {
+      return request.resource.data.uid is string
+        && requiredText(request.resource.data.nickname, 60)
+        && request.resource.data.type in ["rank_up", "cosmetic_unlock", "event_win", "creator_approved", "meet_attendance"]
+        && requiredText(request.resource.data.title, 120)
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 240
+        && requiredText(request.resource.data.targetUrl, 160)
+        && request.resource.data.targetUrl.matches("^/.*")
+        && request.resource.data.reactions == 0
+        && request.resource.data.createdAt == request.time;
+    }
+
+    match /socialEvents/{eventId} {
+      allow read: if true;
+      allow create: if isAdmin() || (isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && validSocialBase()
+        && ((request.resource.data.type == "cosmetic_unlock"
+          && requiredText(request.resource.data.itemId, 80)
+          && eventId == request.auth.uid + "_cosmetic_" + request.resource.data.itemId
+          && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.unlocked.toSet().hasAny([request.resource.data.itemId]))
+        || (request.resource.data.type == "meet_attendance"
+          && requiredText(request.resource.data.sourceKey, 80)
+          && eventId == request.auth.uid + "_meet_" + request.resource.data.sourceKey
+          && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.claimNonce == request.resource.data.sourceKey)));
+      allow update: if isAdmin() || (isApprovedMember()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.detail == resource.data.detail
+        && request.resource.data.targetUrl == resource.data.targetUrl
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.reactions == resource.data.reactions + 1
+        && requiredText(request.resource.data.lastReactionId, 220)
+        && requiredText(request.resource.data.lastReactionKey, 180)
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId))
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.targetType == "feed"
+        && getAfter(/databases/$(database)/documents/socialReactions/$(request.resource.data.lastReactionId)).data.targetId == eventId
+        && existsAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey))
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.count <= 8
+        && getAfter(/databases/$(database)/documents/reactionDaily/$(request.resource.data.lastReactionKey)).data.updatedAt == request.time);
+      allow delete: if isAdmin();
+    }
+
+    match /socialReactions/{reactionId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow create: if isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.targetType in ["feed", "profile", "gallery", "garage"]
+        && requiredText(request.resource.data.targetId, 100)
+        && request.resource.data.emoji in ["🔥", "🖤", "⚡", "👹"]
+        && requiredText(request.resource.data.day, 10)
+        && reactionId == request.auth.uid + "_" + request.resource.data.day + "_" + request.resource.data.targetType + "_" + request.resource.data.targetId
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /reactionDaily/{counterId} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow create: if isApprovedMember()
+        && request.resource.data.uid == request.auth.uid
+        && requiredText(request.resource.data.day, 10)
+        && counterId == request.auth.uid + "_" + request.resource.data.day
+        && request.resource.data.count == 1
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isApprovedMember()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.day == resource.data.day
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.count <= 8
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
+    match /progressionMissions/{missionId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /progressionAchievements/{achievementId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
