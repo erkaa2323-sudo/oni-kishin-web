@@ -38,15 +38,29 @@ await loadScript(['/vendor/live2d/cubism5-engine.min.js','https://cdn.jsdelivr.n
 PIXI.extensions.add(PIXI.live2d.Live2DPlugin);
 if(typeof PIXI.live2d.Live2DModel.registerTicker==='function')PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);
 app=new PIXI.Application();
-await app.init({width:Math.max(1,stage.clientWidth),height:Math.max(1,stage.clientHeight),backgroundAlpha:0,antialias:false,autoDensity:true,resolution:1,preference:'webgl',powerPreference:'low-power'});
+await app.init({width:Math.max(1,stage.clientWidth),height:Math.max(1,stage.clientHeight),backgroundAlpha:0,antialias:false,autoDensity:true,resolution:1,preference:'webgl',powerPreference:'low-power',preserveDrawingBuffer:true});
 if(app.ticker)app.ticker.maxFPS=30;
-const textureSystem=app.renderer.texture;
-if(textureSystem?.bind){const nativeBind=textureSystem.bind.bind(textureSystem);textureSystem.bind=function(texture,location){try{return nativeBind(texture,location)}catch(error){const source=texture?.source;console.error('[Kei] texture.bind root error',error,{resourceType:source?.resource?.constructor?.name,pixelWidth:source?.pixelWidth,pixelHeight:source?.pixelHeight,width:source?.width,height:source?.height,format:source?.format,alphaMode:source?.alphaMode,autoGenerateMipmaps:source?.autoGenerateMipmaps,gpuDataKeys:source?._gpuData?Object.keys(source._gpuData):[]});throw error}}}
 stage.appendChild(app.canvas);
 app.canvas.addEventListener('webglcontextlost',(event)=>{event.preventDefault();send('failed','webgl-context-lost')});
-model=await loadModel();app.stage.addChild(model);frameKei();apply(currentState,true);
+model=await loadModel();
+const t0=model?.textures?.[0];
+if(!t0) throw new Error('Kei model has no texture[0]');
+let directBindOk=false;
+try{
+  app.renderer.texture.resetState();
+  app.renderer.gl.pixelStorei(WebGLRenderingContext.UNPACK_FLIP_Y_WEBGL,!!model?.internalModel?.textureFlipY);
+  app.renderer.texture.bind(t0,0);
+  directBindOk=true;
+  console.log('[Kei] pre-render direct texture bind PASS',{resourceType:t0.source?.resource?.constructor?.name,pixelWidth:t0.source?.pixelWidth,pixelHeight:t0.source?.pixelHeight,flipY:model?.internalModel?.textureFlipY});
+}catch(error){
+  console.error('[Kei] pre-render direct texture bind FAIL',error,{resourceType:t0.source?.resource?.constructor?.name,pixelWidth:t0.source?.pixelWidth,pixelHeight:t0.source?.pixelHeight,flipY:model?.internalModel?.textureFlipY});
+  throw error;
+}
+window.__KEIDIAG__={directBindOk,resourceType:t0.source?.resource?.constructor?.name||'',pixelWidth:t0.source?.pixelWidth||0,pixelHeight:t0.source?.pixelHeight||0,flipY:!!model?.internalModel?.textureFlipY};
+app.stage.addChild(model);frameKei();apply(currentState,true);
 await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r))));
 frameKei();await new Promise(r=>setTimeout(r,260));
+app.renderer.render(app.stage);
 const pixels=alphaSamples();
 if(pixels===0)throw new Error('Canvas alpha is empty after Cubism 5 render');
 loading.remove();send('ready',pixels);
