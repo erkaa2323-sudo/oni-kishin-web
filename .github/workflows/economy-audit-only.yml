@@ -1,0 +1,88 @@
+name: ONI Economy Audit Only
+
+on:
+  push:
+    branches:
+      - audit/oni-economy-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oni-economy-audit-only
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout audit branch
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Full TypeScript audit
+        run: bun run typecheck
+
+      - name: Production build without deploy
+        run: bun run build
+
+      - name: Compose Firestore rules without deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          base=Path("firestore.rules").read_text(encoding="utf-8")
+          marker="    match /{document=**} { allow read, write: if false; }"
+          if marker not in base:
+              raise SystemExit("Firestore deny-all marker missing")
+          fragments=[
+              ("firestore.creator.rules.fragment","match /creatorPublishRequests/"),
+              ("firestore.nexus.rules.fragment","match /pushSubscriptions/"),
+              ("firestore.progression.rules.fragment","match /progressionProfiles/"),
+          ]
+          combined=base
+          for path, needle in fragments:
+              if needle not in combined:
+                  combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
+          Path("firestore.economy-audit.rules").write_text(combined,encoding="utf-8")
+          PY
+          grep -q 'match /progressionMissionClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionWeekly/' firestore.economy-audit.rules
+          grep -q 'sourceType == "vault_spend"' firestore.economy-audit.rules
+          grep -q 'sourceType == "weekly_mission"' firestore.economy-audit.rules
+
+      - name: Firestore rules emulator compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > firebase.economy-audit.json <<'JSON'
+          {
+            "firestore": { "rules": "firestore.economy-audit.rules" },
+            "emulators": { "firestore": { "port": 8089 }, "ui": { "enabled": false } }
+          }
+          JSON
+          bunx firebase-tools@14.16.0 emulators:exec --only firestore --project demo-oni-economy --config firebase.economy-audit.json "echo FIRESTORE_RULES_COMPILED"
+
+      - name: Economy invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'claimWeeklyMission' src/data/progression.ts
+          grep -q 'balanceAfter' src/data/progression.ts
+          grep -q 'OniCosmeticBridge' src/routes/__root.tsx
+          grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
+          if grep -R "deploy --only\|vercel deploy\|deploy-pages" .github/workflows/economy-audit-only.yml; then
+            echo "Audit workflow must never deploy"
+            exit 1
+          fi
+          echo "NO_DEPLOY_AUDIT_OK"
