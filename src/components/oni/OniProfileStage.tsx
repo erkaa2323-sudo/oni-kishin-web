@@ -70,7 +70,7 @@ export function OniProfileStage() {
             Crew account, XP, ONI Coin, Meet оролцоо болон achievement мэдээллээ нэг дороос харна.
           </p>
 
-          <OniMemberGate onAccount={onAccount} />
+          <OniMemberGate onAccount={onAccount} allowAccountActions />
         </section>
 
         {account?.status === "approved" ? (
