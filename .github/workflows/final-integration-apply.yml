@@ -52,6 +52,10 @@ jobs:
           grep -q '? validVaultProfileV3' firestore.progression.rules.fragment
           grep -q 'function isEconomyAdminV3' firestore.progression.rules.fragment
 
+      - name: Enforce one authorized admin render boundary
+        if: steps.merge.outputs.already_merged == 'false'
+        run: node scripts/final-admin-auth-patch.mjs
+
       - name: Confirm Vercel Git deployment remains disabled
         run: node -e 'const v=require("./vercel.json"); if(v?.git?.deploymentEnabled !== false) throw new Error("Vercel Git auto deploy must remain disabled"); console.log("VERCEL_GIT_DEPLOY_DISABLED")'
 
@@ -112,7 +116,12 @@ jobs:
           grep -q 'claimPrestige' src/data/progression.ts
           grep -q 'meetAttendance' src/data/progression.ts
           grep -q 'OniCosmeticBridge' src/routes/__root.tsx
-          grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
+          grep -q 'OniEconomyAdminDock' src/components/oni/OniAdminPage.tsx
+          grep -q '<OniAdminGate>' src/components/oni/OniAdminPage.tsx
+          if grep -qE 'Oni(EconomyAdminDock|EventRewardDock)' src/routes/admin.tsx; then
+            echo 'Admin-only dock escaped the authorization boundary'
+            exit 1
+          fi
           grep -q 'deploymentEnabled.*false' <(tr -d '\n ' < vercel.json)
           if grep -R -nE '^(<<<<<<<|=======|>>>>>>>)' src firestore.progression.rules.fragment; then
             echo 'Conflict markers remain'
