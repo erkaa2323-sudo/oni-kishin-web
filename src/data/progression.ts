@@ -191,7 +191,7 @@ export async function claimWeeklyMission(missionId: string): Promise<"claimed" |
       missionId: mission.id,
       createdAt: serverTimestamp(),
     });
-    tx.update(profileRef, { coin: balanceAfter, updatedAt: serverTimestamp() });
+    tx.update(profileRef, { coin: balanceAfter, lastAction: { type: "weekly_claim", key: mission.id, weekId }, updatedAt: serverTimestamp() });
     return "claimed" as const;
   });
 }
@@ -259,7 +259,7 @@ export async function claimPrestige(): Promise<"claimed" | "max" | "not_ready" |
       prestige: nextPrestige,
       createdAt: serverTimestamp(),
     });
-    tx.update(profileRef, { xp: 0, prestige: nextPrestige, updatedAt: serverTimestamp() });
+    tx.update(profileRef, { xp: 0, prestige: nextPrestige, lastAction: { type: "prestige", key: String(nextPrestige) }, updatedAt: serverTimestamp() });
     return "claimed" as const;
   });
 }
@@ -279,7 +279,7 @@ export async function unlockVaultItem(itemId: string) {
     if (p.xp < item.minXp) throw new Error("rank_required");
     if (p.coin < item.price) throw new Error("coin_required");
     const balanceAfter = p.coin - item.price;
-    tx.update(ref, { coin: balanceAfter, unlocked: [...p.unlocked, item.id], updatedAt: serverTimestamp() });
+    tx.update(ref, { coin: balanceAfter, unlocked: [...p.unlocked, item.id], lastAction: { type: "vault_unlock", key: item.id }, updatedAt: serverTimestamp() });
     tx.set(spendRef, { uid: user.uid, sourceType: "vault_spend", sourceKey: item.id, itemId: item.id, xp: 0, coin: -item.price, balanceAfter, createdAt: serverTimestamp() });
     tx.set(doc(firebaseDb, "socialEvents", `${user.uid}_cosmetic_${item.id}`), {
       uid: user.uid,
@@ -362,6 +362,7 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
       lifetimeXp: p.lifetimeXp + reward.xp,
       seasonXp: p.seasonXp + reward.xp,
       meetCount: p.meetCount + 1,
+      lastAction: { type: "meet_reward", key: nonce },
       updatedAt: serverTimestamp(),
     });
     if (configSnap.exists()) {
