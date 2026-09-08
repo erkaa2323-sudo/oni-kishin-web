@@ -129,6 +129,6 @@ jobs:
           check ternary_patch grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
           check coverage_report grep -q 'economy-rule-coverage-report.mjs' .github/workflows/economy-audit-only.yml
           check emulator_log_audit grep -q 'economy-emulator-log-audit.mjs' .github/workflows/economy-audit-only.yml
-          if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL deploy_pages_present'; exit 1; fi
-          if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL vercel_action_present'; exit 1; fi
+          if grep -Eq '^[[:space:]]*uses:[[:space:]]+actions/deploy-pages@' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL deploy_pages_present'; exit 1; fi
+          if grep -Eq '^[[:space:]]*uses:[[:space:]]+amondnet/vercel-action@' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL vercel_action_present'; exit 1; fi
           echo "NO_DEPLOY_AUDIT_OK"
