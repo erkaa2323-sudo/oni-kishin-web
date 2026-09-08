@@ -26,8 +26,49 @@ function motion(index){if(reduced||!model?.motion)return;try{model.motion('',ind
 function apply(state,force=false){if(!force&&state===currentState&&state!=='countdown-final10')return;currentState=state||'idle';if(!model)return;if(currentState==='countdown-ten'){focus(.08,-.08);motion(1);return}if(currentState==='countdown-five'){focus(.2,-.12);motion(2);return}if(currentState==='countdown-one'){focus(.34,-.16);motion(3);return}if(currentState==='countdown-final10'){focus(.48,-.2);return}if(currentState==='countdown-go'||currentState==='access'){focus(.62,-.2);motion(0);return}if(currentState==='registered'){focus(-.36,-.1);motion(1);return}if(currentState==='live'){focus(.48,-.14);motion(2);return}if(currentState==='starting'||currentState==='open'){focus(.12,-.08);motion(3);return}if(currentState==='denied'||currentState==='full'||currentState==='closed'){focus(-.34,.18);return}focus(0,-.02)}
 function frameKei(){raf=0;if(!app||!model||disposed)return;const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);app.renderer.resize(w,h);model.anchor.set(.5,.5);model.scale.set(.6);model.position.set(w*.5,h*.5);model.visible=true;model.renderable=true;model.alpha=1}
 function queueFrame(){if(!raf&&!disposed)raf=requestAnimationFrame(frameKei)}
-async function loadModel(){let last=null;for(const url of modelUrls){try{return await PIXI.live2d.Live2DModel.from(url)}catch(error){last=error;console.warn('[Kei] source failed',url,error)}}throw last||new Error('Kei model unavailable')}
+async function loadModel(){let last=null;const options={textureOptions:{preferCreateImageBitmap:false,lod:false},autoFocus:false,autoHitTest:false,autoUpdate:true};for(const url of modelUrls){try{return await PIXI.live2d.Live2DModel.from(url,options)}catch(error){last=error;console.warn('[Kei] source failed',url,error)}}throw last||new Error('Kei model unavailable')}
 function alphaSamples(){try{const gl=app?.renderer?.gl;if(!gl)return -1;const w=app.canvas.width,h=app.canvas.height;if(!w||!h)return 0;const data=new Uint8Array(w*h*4);gl.finish();gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,data);let count=0;for(let i=3;i<data.length;i+=64){if(data[i]>8)count++}return count}catch(error){console.warn('[Kei] pixel audit unavailable',error);return -1}}
+function shimLegacyGpuMetadata(textures){for(const texture of textures||[]){const source=texture?.source;if(source && !source._gpuData){Object.defineProperty(source,'_gpuData',{value:Object.create(null),writable:true,configurable:true});}}}
+function installCubismCoreCompat(m){
+  const core=m?.internalModel?.coreModel;
+  const low=core?.getModel?.();
+  if(!core||!low)return;
+  if(typeof low.getRenderOrders==='function'){
+    core.getDrawableRenderOrders=()=>low.getRenderOrders();
+  }
+  console.log('[Kei] Cubism 5-r.5 compatibility bridge installed',{hasGetRenderOrders:typeof low.getRenderOrders==='function'});
+}
+function cubismPreflight(m){
+  const internal=m?.internalModel;
+  const core=internal?.coreModel;
+  const low=core?.getModel?.();
+  const drawables=low?.drawables;
+  const count=core?.getDrawableCount?.();
+  const orders=core?.getDrawableRenderOrders?.();
+  const renderer=internal?.renderer;
+  const clipping=renderer?._clippingManager;
+  const diag={
+    count,
+    lowDrawableKeys:drawables?Object.keys(drawables):[],
+    hasLowGetRenderOrders:typeof low?.getRenderOrders==='function',
+    renderOrdersType:orders?.constructor?.name||typeof orders,
+    renderOrdersLength:orders?.length??-1,
+    renderOrdersHead:orders?Array.from(orders.slice?.(0,8)||[]):[],
+    lowRenderOrdersType:drawables?.renderOrders?.constructor?.name||typeof drawables?.renderOrders,
+    lowRenderOrdersLength:drawables?.renderOrders?.length??-1,
+    sortedSize:renderer?._sortedDrawableIndexList?.getSize?.()??-1,
+    usingMasking:core?.isUsingMasking?.()??null,
+    hasClippingManager:!!clipping,
+    clipDrawListSize:clipping?._clippingContextListForDraw?.getSize?.()??-1,
+    clipMaskListSize:clipping?._clippingContextListForMask?.getSize?.()??-1
+  };
+  console.log('[Kei] cubism preflight',diag);
+  window.__KEICUBISM__=diag;
+  if(!Number.isInteger(count)||count<=0)throw new Error('Cubism preflight: invalid drawableCount '+String(count));
+  if(!orders||typeof orders.length!=='number')throw new Error('Cubism preflight: drawable renderOrders missing');
+  if(orders.length<count)throw new Error('Cubism preflight: renderOrders too short '+orders.length+'/'+count);
+  return diag;
+}
 window.addEventListener('message',(event)=>{const d=event.data;if(!d||d.source!==PARENT)return;if(d.type==='state')apply(d.state);if(d.type==='interact'){focus((Math.random()-.5)*.7,-.1);motion(Math.floor(Math.random()*4))}});
 document.addEventListener('visibilitychange',()=>{try{if(!app?.ticker)return;if(document.hidden)app.ticker.stop();else{app.ticker.start();queueFrame();apply(currentState,true)}}catch{}});
 try{
@@ -38,13 +79,24 @@ await loadScript(['/vendor/live2d/cubism5-engine.min.js','https://cdn.jsdelivr.n
 PIXI.extensions.add(PIXI.live2d.Live2DPlugin);
 if(typeof PIXI.live2d.Live2DModel.registerTicker==='function')PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);
 app=new PIXI.Application();
-await app.init({width:Math.max(1,stage.clientWidth),height:Math.max(1,stage.clientHeight),backgroundAlpha:0,antialias:false,autoDensity:true,resolution:1,preference:'webgl',powerPreference:'low-power'});
+await app.init({width:Math.max(1,stage.clientWidth),height:Math.max(1,stage.clientHeight),backgroundAlpha:0,antialias:false,autoDensity:true,resolution:1,preference:'webgl',powerPreference:'low-power',preserveDrawingBuffer:true});
 if(app.ticker)app.ticker.maxFPS=30;
 stage.appendChild(app.canvas);
 app.canvas.addEventListener('webglcontextlost',(event)=>{event.preventDefault();send('failed','webgl-context-lost')});
-model=await loadModel();app.stage.addChild(model);frameKei();apply(currentState,true);
+model=await loadModel();
+shimLegacyGpuMetadata(model?.textures);
+installCubismCoreCompat(model);
+cubismPreflight(model);
+const t0=model?.textures?.[0];
+if(!t0) throw new Error('Kei model has no texture[0]');
+app.renderer.texture.resetState();
+app.renderer.gl.pixelStorei(WebGLRenderingContext.UNPACK_FLIP_Y_WEBGL,!!model?.internalModel?.textureFlipY);
+app.renderer.texture.bind(t0,0);
+window.__KEIDIAG__={directBindOk:true,legacyGpuDataReady:!!t0.source?._gpuData,resourceType:t0.source?.resource?.constructor?.name||'',pixelWidth:t0.source?.pixelWidth||0,pixelHeight:t0.source?.pixelHeight||0,flipY:!!model?.internalModel?.textureFlipY};
+app.stage.addChild(model);frameKei();apply(currentState,true);
 await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r))));
 frameKei();await new Promise(r=>setTimeout(r,260));
+app.renderer.render(app.stage);
 const pixels=alphaSamples();
 if(pixels===0)throw new Error('Canvas alpha is empty after Cubism 5 render');
 loading.remove();send('ready',pixels);
