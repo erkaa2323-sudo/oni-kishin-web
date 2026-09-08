@@ -45,6 +45,29 @@ section[aria-label="CREW ACCOUNT"] h2::after {
   line-height: 1.05;
 }
 
+/* The original fixed launchers still own their dialogs/actions, but their launch buttons live in the admin nav now. */
+button[data-admin-floating-source] {
+  display: none !important;
+}
+
+/* Collapsing ONI AI now returns it to the horizontal admin nav instead of leaving a bar over page content. */
+aside[aria-label="ONI админ туслах"][data-admin-ai-minimized="true"] {
+  display: none !important;
+}
+
+/* Clan application review actions stay explicit and readable. */
+section[aria-label="АНКЕТ"] button[data-admin-application-action="approve"] {
+  border-color: rgb(16 185 129 / 0.55) !important;
+  color: rgb(110 231 183) !important;
+  font-size: 0 !important;
+}
+
+section[aria-label="АНКЕТ"] button[data-admin-application-action="approve"]::after {
+  content: "ЗӨВШӨӨРӨХ";
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
 @media (max-width: 767px) {
   nav[aria-label="Удирдлагын хэсгүүд"] ul {
     gap: 0.4rem !important;
@@ -65,5 +88,36 @@ section[aria-label="CREW ACCOUNT"] h2::after {
 
   section[aria-label="CREW ACCOUNT"] h2::after {
     font-size: 1.25rem;
+  }
+
+  /* Keep ONI AI inside the phone viewport and leave enough room for the chat composer. */
+  aside[aria-label="ONI админ туслах"] {
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    max-width: calc(100vw - 2rem) !important;
+  }
+
+  aside[aria-label="ONI админ туслах"] > div:nth-child(2) {
+    max-height: 66svh !important;
+    grid-template-rows: 7.5rem minmax(6.5rem, 1fr) auto !important;
+  }
+
+  aside[aria-label="ONI админ туслах"] > div:nth-child(2) > div:nth-child(2),
+  aside[aria-label="ONI админ туслах"] textarea {
+    min-width: 0 !important;
+  }
+
+  section[aria-label="АНКЕТ"] div:has(> button[data-admin-application-action]) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem !important;
+    width: 100%;
+  }
+
+  section[aria-label="АНКЕТ"] button[data-admin-application-action] {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
   }
 }
