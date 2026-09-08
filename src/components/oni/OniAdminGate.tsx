@@ -1,10 +1,13 @@
-import { OniEventRewardDock } from "./OniEventRewardDock";
 import { useEffect, useState } from "react";
 import { KeyRound, Loader2, ShieldAlert, ShieldPlus } from "lucide-react";
 
 import { OniAuthProvider, useOniAuth } from "@/hooks/useOniAuth";
 import { claimFirstOwner, ownerExists, signUpFirstOwner } from "@/services/bootstrap";
+import { OniAdminCopilot } from "./OniAdminCopilot";
 import { OniControlCenter } from "./OniControlCenter";
+import { OniCreatorReviewDock } from "./OniCreatorReviewDock";
+import { OniEconomyAdminDock } from "./OniEconomyAdminDock";
+import { OniEventRewardDock } from "./OniEventRewardDock";
 import { OniHudNav } from "./OniHudNav";
 
 const fieldClass =
@@ -21,7 +24,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** true only while the backend confirms zero owner roles exist. */
+/** Өгөгдлийн санд эзэмшигч эрхтэй админ огт байхгүй үед true. */
 function useOwnerMissing(): boolean | null {
   const [missing, setMissing] = useState<boolean | null>(null);
   useEffect(() => {
@@ -52,18 +55,18 @@ function BootstrapPanel() {
     if (!res.hasSession) {
       setBusy(false);
       setNotice(
-        "Бүртгэл үүслээ. И-мэйл дэх баталгаажуулах холбоосыг дарж, дараа нь энд нэвтэрвэл OWNER эрх автоматаар олгогдоно.",
+        "Бүртгэл үүслээ. И-мэйл дэх баталгаажуулах холбоосыг дарж, дараа нь энд нэвтэрвэл эзэмшигчийн эрх автоматаар олгогдоно.",
       );
       return;
     }
     const claim = await claimFirstOwner();
     setBusy(false);
     if (claim === "granted") {
-      setNotice("OWNER эрх олгогдлоо. Самбар руу шилжиж байна…");
+      setNotice("Эзэмшигчийн эрх олгогдлоо. Самбар руу шилжиж байна…");
       return;
     }
     if (claim === "already_bootstrapped") {
-      setNotice("OWNER аль хэдийн үүссэн байна. Энгийн нэвтрэлтээр орно уу.");
+      setNotice("Эзэмшигчийн эрхтэй админ аль хэдийн үүссэн байна. Энгийн нэвтрэлтээр орно уу.");
       return;
     }
     setNotice("Эрх олгож чадсангүй. Нэвтэрсний дараа дахин оролдоно уу.");
@@ -72,12 +75,12 @@ function BootstrapPanel() {
   return (
     <section className="mt-5 border border-crimson/35 bg-crimson/8 p-5 sm:p-6">
       <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-        <ShieldPlus className="h-4 w-4" /> FIRST OWNER BOOTSTRAP
+        <ShieldPlus className="h-4 w-4" /> АНХНЫ ЭЗЭМШИГЧИЙН ТОХИРГОО
       </span>
-      <h2 className="mt-3 text-lg font-semibold tracking-[0.12em]">АНХНЫ OWNER ҮҮСГЭХ</h2>
+      <h2 className="mt-3 text-lg font-semibold tracking-[0.12em]">АНХНЫ АДМИН ҮҮСГЭХ</h2>
       <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        Системд OWNER эрх хараахан алга. Энэ нэг удаагийн бүртгэл зөвхөн одоо ажиллана — анхны OWNER
-        үүссэний дараа энэ хэсэг бүрмөсөн хаагдана.
+        Системд эзэмшигчийн эрхтэй админ хараахан алга. Энэ нэг удаагийн бүртгэл зөвхөн одоо
+        ажиллана. Анхны эзэмшигч үүссэний дараа энэ хэсэг автоматаар хаагдана.
       </p>
 
       <label className="mt-4 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
@@ -113,7 +116,7 @@ function BootstrapPanel() {
         onClick={() => void run()}
         className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-crimson/60 bg-crimson/15 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-foreground transition-colors clip-notch hover:bg-crimson/25 disabled:opacity-60"
       >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} АНХНЫ OWNER ҮҮСГЭХ
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} АНХНЫ АДМИН ҮҮСГЭХ
       </button>
     </section>
   );
@@ -136,14 +139,14 @@ function SignIn() {
         }}
       >
         <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <KeyRound className="h-4 w-4" /> ADMIN AUTHENTICATION
+          <KeyRound className="h-4 w-4" /> АДМИН НЭВТРЭЛТ
         </span>
         <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">УДИРДЛАГЫН НЭВТРЭЛТ</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Зөвхөн зөвшөөрөгдсөн админ профайлтай хэрэглэгч самбарт нэвтэрнэ.
+          Зөвхөн зөвшөөрөгдсөн админ профайлтай хэрэглэгч удирдлагын самбарт нэвтэрнэ.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
-          Зөвхөн зөвшөөрөгдсөн Firebase OWNER бүртгэл нэвтэрнэ.
+          Firebase нэвтрэлт болон админы эрх хоёул баталгаажсан үед мэдээлэл, удирдлага нээгдэнэ.
         </p>
 
         <label className="mt-5 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
@@ -203,7 +206,9 @@ function AccessDenied() {
       return;
     }
     setNotice(
-      res === "already_bootstrapped" ? "OWNER аль хэдийн үүссэн байна." : "Эрх олгож чадсангүй.",
+      res === "already_bootstrapped"
+        ? "Эзэмшигчийн эрхтэй админ аль хэдийн үүссэн байна."
+        : "Эрх олгож чадсангүй.",
     );
   };
 
@@ -211,7 +216,7 @@ function AccessDenied() {
     <Shell>
       <section className="border border-crimson/40 bg-crimson/8 p-5 sm:p-7">
         <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <ShieldAlert className="h-4 w-4" /> ACCESS DENIED
+          <ShieldAlert className="h-4 w-4" /> ХАНДАХ ЭРХ ХҮРЭЛЦЭХГҮЙ
         </span>
         <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">ХАНДАХ ЭРХГҮЙ</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -221,8 +226,8 @@ function AccessDenied() {
         {ownerMissing ? (
           <>
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-              Системд OWNER хараахан алга. Энэ бүртгэлээр анхны OWNER эрхийг нэг удаа авах
-              боломжтой.
+              Системд эзэмшигчийн эрхтэй админ хараахан алга. Энэ бүртгэлээр анхны эзэмшигчийн
+              эрхийг нэг удаа авах боломжтой.
             </p>
             {notice ? (
               <p role="status" className="mt-3 text-xs text-muted-foreground">
@@ -235,12 +240,12 @@ function AccessDenied() {
               onClick={() => void claim()}
               className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-crimson/60 bg-crimson/15 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-foreground clip-notch hover:bg-crimson/25 disabled:opacity-60"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} OWNER ЭРХ АВАХ
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} ЭЗЭМШИГЧИЙН ЭРХ АВАХ
             </button>
           </>
         ) : (
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-            Эрх олгох хүсэлтээ OWNER-т хандаж шийдвэрлүүлнэ үү.
+            Эрх олгох хүсэлтээ эзэмшигчийн эрхтэй админд хандаж шийдвэрлүүлнэ үү.
           </p>
         )}
 
@@ -271,11 +276,11 @@ function BackendUnavailable() {
     <Shell>
       <section className="border border-crimson/40 bg-crimson/8 p-5 sm:p-7">
         <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <ShieldAlert className="h-4 w-4" /> BACKEND CONFIGURATION
+          <ShieldAlert className="h-4 w-4" /> СЕРВЕРИЙН ХОЛБОЛТ
         </span>
         <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">ХОЛБОЛТ ТОХИРУУЛАГДААГҮЙ</h1>
         <p role="alert" className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Энэ deployment-д backend холболтын тохиргоо ирээгүй байна. Админ нэвтрэлт болон
+          Энэ хувилбарт серверийн холболтын тохиргоо ирээгүй байна. Админ нэвтрэлт болон
           хамгаалагдсан өгөгдөл аюулгүйгээр хаалттай хэвээр байна.
         </p>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
@@ -295,7 +300,10 @@ function GateBody() {
   return (
     <>
       <OniControlCenter />
+      <OniAdminCopilot />
+      <OniEconomyAdminDock />
       <OniEventRewardDock />
+      <OniCreatorReviewDock />
     </>
   );
 }
