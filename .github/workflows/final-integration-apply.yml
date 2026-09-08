@@ -64,6 +64,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Install browser engines for final gates
+        run: npx playwright install --with-deps chromium webkit
+
       - name: Normalize only merged integration source
         if: steps.merge.outputs.already_merged == 'false'
         shell: bash
