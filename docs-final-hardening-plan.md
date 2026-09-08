@@ -1,1 +1,0 @@
-Final hardening branch. No production deployment before full verification is green.

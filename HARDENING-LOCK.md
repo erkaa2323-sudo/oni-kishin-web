@@ -1,1 +1,0 @@
-No deploy before green.
