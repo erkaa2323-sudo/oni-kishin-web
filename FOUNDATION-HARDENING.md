@@ -17,23 +17,23 @@ State: local, uncommitted. No push, PR, merge, deployment, remote rules release,
 
 ## Tests
 
-| Gate | Result |
-| --- | --- |
-| Clean `npm ci` using final lock | PASS — 1193 packages; lock/manifest consistent |
-| Lint | PASS — 0 errors, 7 existing React refresh warnings |
-| TypeScript | PASS |
-| Default production `npm run build` | PASS — Cloudflare output; no deployment |
-| Additional Node-preset production build | PASS — local browser-test fallback |
-| Composed Firestore emulator tests | PASS — 13/13, demo-oni-hardening only |
-| Foundation tests | PASS — 2/2: concurrent cache bound/offline retention and deployment config guard |
-| Kei standalone Chromium | PASS — alpha count 9927; raw Pixi alpha 2571 |
-| Kei standalone WebKit | BLOCKED — missing system libraries |
-| Real `/meet` Chromium, built Node runtime | PASS — HTTP 200, parentVisible=true, iframe alpha 5469 |
-| Real `/meet` WebKit | BLOCKED — missing system libraries |
-| `/`, `/join`, `/crew`, `/garage`, `/gallery`, `/meet`, `/oni-ai`, `/admin` Chromium | PASS — 8/8, signed-out admin reward dock hidden |
-| Same routes WebKit | BLOCKED — missing system libraries |
-| `npm run check` overall | FAIL/BLOCKED at browser gates; never treated as green |
-| `git diff --check` | PASS |
+| Gate                                                                                | Result                                                                           |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Clean `npm ci` using final lock                                                     | PASS — 1193 packages; lock/manifest consistent                                   |
+| Lint                                                                                | PASS — 0 errors, 7 existing React refresh warnings                               |
+| TypeScript                                                                          | PASS                                                                             |
+| Default production `npm run build`                                                  | PASS — Cloudflare output; no deployment                                          |
+| Additional Node-preset production build                                             | PASS — local browser-test fallback                                               |
+| Composed Firestore emulator tests                                                   | PASS — 13/13, demo-oni-hardening only                                            |
+| Foundation tests                                                                    | PASS — 2/2: concurrent cache bound/offline retention and deployment config guard |
+| Kei standalone Chromium                                                             | PASS — alpha count 9927; raw Pixi alpha 2571                                     |
+| Kei standalone WebKit                                                               | BLOCKED — missing system libraries                                               |
+| Real `/meet` Chromium, built Node runtime                                           | PASS — HTTP 200, parentVisible=true, iframe alpha 5469                           |
+| Real `/meet` WebKit                                                                 | BLOCKED — missing system libraries                                               |
+| `/`, `/join`, `/crew`, `/garage`, `/gallery`, `/meet`, `/oni-ai`, `/admin` Chromium | PASS — 8/8, signed-out admin reward dock hidden                                  |
+| Same routes WebKit                                                                  | BLOCKED — missing system libraries                                               |
+| `npm run check` overall                                                             | FAIL/BLOCKED at browser gates; never treated as green                            |
+| `git diff --check`                                                                  | PASS                                                                             |
 
 The default local Wrangler runtime cannot start in this sandbox (`uv_interface_addresses`, system error 1). The actual built app was therefore also built with supported `NITRO_PRESET=node-server` and tested in that runtime. This is not evidence of a verified Vercel production runtime. WebKit browser binaries downloaded, but required Linux libraries were absent. Standard dependency installation failed on sandbox setgroups/setegid restrictions. Tests were not skipped, weakened, or relabeled as passing. Chromium Meet also logged one external resource `ERR_EMPTY_RESPONSE` while passing its required pixel/parent checks.
 
