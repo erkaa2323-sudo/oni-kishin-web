@@ -1,0 +1,58 @@
+name: Final Format Autofix
+
+on:
+  push:
+    branches: [gpt6/final-foundation-hardening]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: final-format-autofix
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm install --global npm@11.9.0
+      - run: npm ci --no-audit --no-fund
+      - name: Format all reported non-workflow files
+        run: >-
+          npx --no-install prettier --write
+          FOUNDATION-HARDENING.md
+          pages/kei-cubism5.html
+          pages/kei-meet.html
+          public/kei-live2d-host.html
+          public/kei-pixi-texture-test.html
+          public/manifest.webmanifest
+          src/components/oni/OniCharacterAlive.css
+          src/components/oni/OniWebRig.css
+          src/components/oni/OniWorldTransition.css
+          src/styles.css
+      - name: Print exact formatted workflow diffs
+        shell: bash
+        run: |
+          npx --no-install prettier --write .github/workflows/github-pages-kei.yml .github/workflows/vercel-prebuilt-production.yml .github/workflows/verify.yml
+          git diff -- .github/workflows/github-pages-kei.yml .github/workflows/vercel-prebuilt-production.yml .github/workflows/verify.yml
+      - name: Commit only non-workflow formatting
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- FOUNDATION-HARDENING.md pages/kei-cubism5.html pages/kei-meet.html public/kei-live2d-host.html public/kei-pixi-texture-test.html public/manifest.webmanifest src/components/oni/OniCharacterAlive.css src/components/oni/OniWebRig.css src/components/oni/OniWorldTransition.css src/styles.css
+          if git diff --cached --quiet; then
+            echo "No non-workflow formatting changes."
+            exit 0
+          fi
+          git commit -m "style: apply repository formatting"
+          git push origin HEAD:gpt6/final-foundation-hardening
