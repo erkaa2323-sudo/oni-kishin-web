@@ -3,6 +3,11 @@ import fs from "node:fs";
 const path = "firestore.progression.v3.rules.fragment";
 let rules = fs.readFileSync(path, "utf8");
 
+if (rules.includes("function isEconomyAdminV3()")) {
+  console.log("ECONOMY_V3_TERNARY_PATCH_ALREADY_APPLIED");
+  process.exit(0);
+}
+
 const replacements = [
   [
 `    function validEconomyProfileUpdateV3(uid) {
