@@ -1,0 +1,42 @@
+name: Kei Browser Smoke
+
+on:
+  push:
+    branches: [chatgpt/kei-final-browser-test]
+    paths:
+      - 'public/kei-live2d-host.html'
+      - 'scripts/prepare-live2d-core.mjs'
+      - 'tests/kei-browser-smoke.mjs'
+      - '.github/workflows/kei-browser-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install app dependencies
+        run: bun install --no-save
+      - name: Prepare Cubism 5 runtime and Kei assets
+        run: node scripts/prepare-live2d-core.mjs
+      - name: Install Playwright browsers
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Start static Kei host
+        run: |
+          python3 -m http.server 4173 -d public > /tmp/kei-http.log 2>&1 &
+          echo $! > /tmp/kei-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/kei-live2d-host.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kei-http.log
+          exit 1
+      - name: Verify visible Kei pixels in Chromium and WebKit
+        run: node tests/kei-browser-smoke.mjs
