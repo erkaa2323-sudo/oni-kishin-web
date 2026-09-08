@@ -101,8 +101,15 @@ for (const [browserName, launcher] of [
         },
         { vertex, fragment, fxCase },
       );
-      assert.equal(result.ok, true, `${browserName}/${fxCase.name}: ${result.error || "render failed"}`);
-      assert.ok(result.alphaPixels > 100, `${browserName}/${fxCase.name}: effect rendered too few pixels`);
+      assert.equal(
+        result.ok,
+        true,
+        `${browserName}/${fxCase.name}: ${result.error || "render failed"}`,
+      );
+      assert.ok(
+        result.alphaPixels > 100,
+        `${browserName}/${fxCase.name}: effect rendered too few pixels`,
+      );
       assert.ok(result.redEnergy > 5000, `${browserName}/${fxCase.name}: crimson energy missing`);
       assert.ok(result.maxAlpha > 12, `${browserName}/${fxCase.name}: effect alpha is too weak`);
     }

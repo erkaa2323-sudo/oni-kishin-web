@@ -43,10 +43,7 @@ export function OniSocialHub({ activeNickname }: { activeNickname: string }) {
     [profile],
   );
   const equipped = useMemo(
-    () =>
-      equippedIds
-        .map((id) => ONI_VAULT.find((x) => x.id === id))
-        .filter(Boolean),
+    () => equippedIds.map((id) => ONI_VAULT.find((x) => x.id === id)).filter(Boolean),
     [equippedIds],
   );
   const react = async (e: SocialEvent, emoji: (typeof REACTIONS)[number]) => {

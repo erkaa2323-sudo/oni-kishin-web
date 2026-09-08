@@ -17,11 +17,7 @@ export type OniFxResolved = {
   intensity: number;
 };
 
-const IMPLEMENTED_FX = new Set<OniFxId>([
-  "frame-crimson",
-  "aura-red-moon",
-  "entrance-kishin",
-]);
+const IMPLEMENTED_FX = new Set<OniFxId>(["frame-crimson", "aura-red-moon", "entrance-kishin"]);
 
 export function isImplementedOniFx(id: string): id is OniFxId {
   return IMPLEMENTED_FX.has(id as OniFxId);

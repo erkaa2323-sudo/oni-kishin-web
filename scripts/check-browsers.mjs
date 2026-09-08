@@ -63,7 +63,8 @@ try {
   await ready("http://127.0.0.1:4174/meet", app);
   const integration = await run("tests/kei-meet-integration.mjs");
   const routes = await run("tests/route-smoke.mjs");
-  if (!standalone || !cosmeticSource || !cosmeticFx || !integration || !routes) process.exitCode = 1;
+  if (!standalone || !cosmeticSource || !cosmeticFx || !integration || !routes)
+    process.exitCode = 1;
 } finally {
   for (const child of children) {
     try {

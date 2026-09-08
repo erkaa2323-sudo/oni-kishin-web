@@ -273,7 +273,10 @@ export function OniCosmeticFx({
         gl.uniform1f(uniforms.crimsonFrame, fx.crimsonFrame ? 1 : 0);
         gl.uniform1f(uniforms.kishin, fx.kishinArrival ? 1 : 0);
         gl.uniform1f(uniforms.entrance, entrance);
-        gl.uniform1f(uniforms.intensity, reducedMotion ? Math.min(0.82, fx.intensity) : fx.intensity);
+        gl.uniform1f(
+          uniforms.intensity,
+          reducedMotion ? Math.min(0.82, fx.intensity) : fx.intensity,
+        );
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         if (reducedMotion) window.cancelAnimationFrame(frameId);
       };
@@ -330,7 +333,16 @@ export function OniCosmeticFx({
       setFallback(true);
       return;
     }
-  }, [entranceKey, fx.active, fx.crimsonFrame, fx.entranceMs, fx.intensity, fx.kishinArrival, fx.redMoon, preview]);
+  }, [
+    entranceKey,
+    fx.active,
+    fx.crimsonFrame,
+    fx.entranceMs,
+    fx.intensity,
+    fx.kishinArrival,
+    fx.redMoon,
+    preview,
+  ]);
 
   return (
     <div
