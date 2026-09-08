@@ -37,14 +37,12 @@ console.log("RULE_COVERAGE_REPORT_ROOT_COUNT", report.length);
 console.log(
   "RULE_COVERAGE_REPORT_ROOT_META",
   JSON.stringify(
-    report
-      .slice(0, 12)
-      .map((node, index) => ({
-        index,
-        meta: compactMeta(node),
-        valueCount: node?.values?.length ?? 0,
-        childCount: node?.children?.length ?? 0,
-      })),
+    report.slice(0, 12).map((node, index) => ({
+      index,
+      meta: compactMeta(node),
+      valueCount: node?.values?.length ?? 0,
+      childCount: node?.children?.length ?? 0,
+    })),
     null,
     2,
   ),
