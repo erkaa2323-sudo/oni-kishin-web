@@ -1,0 +1,69 @@
+/* Admin V2 cleanup: keep the existing data/actions, but make the control surface easier to read. */
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(10) {
+  display: none;
+}
+
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) button span:last-child,
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) button span:last-child,
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) button span:last-child,
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(9) button span:last-child {
+  font-size: 0;
+  letter-spacing: 0;
+}
+
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) button span:last-child::after {
+  content: "НЭВТРЭХ ХҮСЭЛТ";
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) button span:last-child::after {
+  content: "ЭЛСЭЛТИЙН АНКЕТ";
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) button span:last-child::after {
+  content: "ХӨГЖИМ БА AI";
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(9) button span:last-child::after {
+  content: "ҮЙЛДЛИЙН БҮРТГЭЛ";
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+}
+
+section[aria-label="CREW ACCOUNT"] h2 {
+  font-size: 0;
+}
+
+section[aria-label="CREW ACCOUNT"] h2::after {
+  content: "ГИШҮҮНИЙ НЭВТРЭХ ХҮСЭЛТ";
+  font-size: 1.5rem;
+  line-height: 1.05;
+}
+
+@media (max-width: 767px) {
+  nav[aria-label="Удирдлагын хэсгүүд"] ul {
+    gap: 0.4rem !important;
+  }
+
+  nav[aria-label="Удирдлагын хэсгүүд"] button {
+    min-height: 40px !important;
+    padding-inline: 0.7rem !important;
+  }
+
+  nav[aria-label="Удирдлагын хэсгүүд"] button span:first-child {
+    display: none;
+  }
+
+  nav[aria-label="Удирдлагын хэсгүүд"] + section {
+    padding: 1rem !important;
+  }
+
+  section[aria-label="CREW ACCOUNT"] h2::after {
+    font-size: 1.25rem;
+  }
+}
