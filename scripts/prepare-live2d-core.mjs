@@ -15,10 +15,10 @@ const CUBISM_OUTPUTS = [
 ];
 
 const CDN_OUTPUTS = [
-  { name: "PixiJS 6.5.10", url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js", destination: "public/vendor/live2d/pixi.min.js" },
-  { name: "pixi-live2d-display 0.4.0", url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js", destination: "public/vendor/live2d/cubism4.min.js" },
-  { name: "PixiJS license", url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/LICENSE", destination: "public/vendor/live2d/licenses/PIXI-LICENSE" },
-  { name: "pixi-live2d-display license", url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/LICENSE", destination: "public/vendor/live2d/licenses/PIXI-LIVE2D-DISPLAY-LICENSE" },
+  { name: "PixiJS 8.13.1", url: "https://cdn.jsdelivr.net/npm/pixi.js@8.13.1/dist/pixi.min.js", destination: "public/vendor/live2d/pixi8.min.js" },
+  { name: "Pixi Sound 6.0.1", url: "https://cdn.jsdelivr.net/npm/@pixi/sound@6.0.1/dist/pixi-sound.js", destination: "public/vendor/live2d/pixi-sound.js" },
+  { name: "Cubism 5 Live2D engine 1.3.5", url: "https://cdn.jsdelivr.net/npm/untitled-pixi-live2d-engine@1.3.5/dist/cubism.min.js", destination: "public/vendor/live2d/cubism5-engine.min.js" },
+  { name: "PixiJS 8 license", url: "https://cdn.jsdelivr.net/npm/pixi.js@8.13.1/LICENSE", destination: "public/vendor/live2d/licenses/PIXI8-LICENSE" },
 ];
 
 const KEI_BASES = [
@@ -150,7 +150,7 @@ async function main() {
       console.warn(error instanceof Error ? error.message : error);
     }
   }
-  if (failed === 0) console.log("[live2d] local-first runtime + Kei model cache ready");
+  if (failed === 0) console.log("[live2d] local-first Cubism 5 runtime + Kei model cache ready");
   else console.log(`[live2d] completed with ${failed} fallback asset(s); build may continue safely`);
 }
 
