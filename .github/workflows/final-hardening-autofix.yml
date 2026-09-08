@@ -1,0 +1,46 @@
+name: Final Hardening Autofix
+
+on:
+  push:
+    branches: [gpt6/final-foundation-hardening]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: final-hardening-autofix
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+
+      - run: npm install --global npm@11.9.0
+      - run: node scripts/final-hardening-source-patch.mjs
+      - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: npm ci --no-audit --no-fund
+      - run: npx --no-install prettier --write package.json package-lock.json firestore.rules firestore.progression.rules.fragment firestore.progression.v3.rules.fragment scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx tests/route-smoke.mjs .github/workflows/vercel-prebuilt-production.yml
+
+      - name: Commit deterministic hardening output
+        shell: bash
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: apply final foundation hardening"
+          git push origin HEAD:gpt6/final-foundation-hardening
