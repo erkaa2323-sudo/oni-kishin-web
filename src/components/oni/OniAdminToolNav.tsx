@@ -17,8 +17,7 @@ const TOOLS: AdminTool[] = [
   { id: "creator", code: "IMG", label: "ЗУРГИЙН ХҮСЭЛТ", sourceLabel: "ЗУРГИЙН ХҮСЭЛТ" },
 ];
 
-const compactText = (value: string | null | undefined) =>
-  (value ?? "").replace(/\s+/g, " ").trim();
+const compactText = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim();
 
 function markFloatingSources() {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
@@ -87,9 +86,7 @@ function openTool(id: AdminToolId) {
     return;
   }
   scanAdminUi();
-  document
-    .querySelector<HTMLButtonElement>(`button[data-admin-floating-source="${id}"]`)
-    ?.click();
+  document.querySelector<HTMLButtonElement>(`button[data-admin-floating-source="${id}"]`)?.click();
 }
 
 export function OniAdminToolNav() {
