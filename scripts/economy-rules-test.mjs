@@ -98,6 +98,7 @@ await assertSucceeds(runTransaction(alice, async (tx) => {
   tx.update(profileRef, {
     coin: Number(row.coin) - 700,
     unlocked: [...row.unlocked, "frame-crimson"],
+    lastAction: { type: "vault_unlock", key: "frame-crimson" },
     updatedAt: serverTimestamp(),
   });
   tx.set(spendRef, {
@@ -154,7 +155,11 @@ await assertSucceeds(runTransaction(alice, async (tx) => {
     missionId: "meet-2",
     createdAt: serverTimestamp(),
   });
-  tx.update(profileRef, { coin: currentCoin + 300, updatedAt: serverTimestamp() });
+  tx.update(profileRef, {
+    coin: currentCoin + 300,
+    lastAction: { type: "weekly_claim", key: "meet-2", weekId: "2026-W37" },
+    updatedAt: serverTimestamp(),
+  });
 }));
 
 await assertFails(runTransaction(alice, async (tx) => {
@@ -188,6 +193,7 @@ const meetRewardTx = async (db, nonce) => runTransaction(db, async (tx) => {
     lifetimeXp: Number(row.lifetimeXp) + 100,
     seasonXp: Number(row.seasonXp) + 100,
     meetCount: Number(row.meetCount) + 1,
+    lastAction: { type: "meet_reward", key: nonce },
     updatedAt: serverTimestamp(),
   });
 });
@@ -252,7 +258,12 @@ await assertSucceeds(runTransaction(bob, async (tx) => {
     prestige: 1,
     createdAt: serverTimestamp(),
   });
-  tx.update(profileRef, { xp: 0, prestige: 1, updatedAt: serverTimestamp() });
+  tx.update(profileRef, {
+    xp: 0,
+    prestige: 1,
+    lastAction: { type: "prestige", key: "1" },
+    updatedAt: serverTimestamp(),
+  });
 }));
 const bobAfter = await assertSucceeds(getDoc(doc(bob, "progressionProfiles", "bob")));
 if (bobAfter.data().prestige !== 1 || bobAfter.data().xp !== 0 || bobAfter.data().coin !== 2200 || bobAfter.data().lifetimeXp !== 28000 || bobAfter.data().seasonXp !== 9000) {
