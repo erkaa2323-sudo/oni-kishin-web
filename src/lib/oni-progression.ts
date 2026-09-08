@@ -43,7 +43,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "RARE",
     price: 700,
     minXp: 500,
-    description: "Profile дээр crimson ONI хүрээ нээнэ.",
+    description:
+      "Худалдан аваад EQUIP хийхэд таны Crew/Profile card crimson ONI хүрээтэй болж, бусад member-ээс шууд ялгарна.",
   },
   {
     id: "aura-red-moon",
@@ -52,7 +53,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "EPIC",
     price: 1800,
     minXp: 3000,
-    description: "Profile card-д Red Moon aura effect.",
+    description:
+      "EQUIP хийхэд таны Profile card-ийн ард хөдөлгөөнт Red Moon aura асаж, profile-ийн visual presence илүү хүчтэй болно.",
   },
   {
     id: "garage-neon",
@@ -61,7 +63,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "EPIC",
     price: 2200,
     minXp: 3000,
-    description: "Garage showcase-д cyber neon орчин.",
+    description:
+      "EQUIP хийхэд таны Garage showcase cyber-neon орчин, гэрэлтүүлгийн cosmetic effect-тэй болж харагдана.",
   },
   {
     id: "shizuki-kitsune",
@@ -70,7 +73,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "LEGENDARY",
     price: 4500,
     minXp: 8500,
-    description: "Shizuki chat-ийн Kitsune theme cosmetic.",
+    description:
+      "EQUIP хийхэд ONI AI / Shizuki хэсэг Kitsune theme visual mode-д шилжиж, тусгай character cosmetic мэдрэмж өгнө.",
   },
   {
     id: "title-night-rider",
@@ -79,7 +83,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "RARE",
     price: 900,
     minXp: 1500,
-    description: "Profile дээр equip хийх title.",
+    description:
+      "EQUIP хийхэд таны Profile дээр NIGHT RIDER тусгай title харагдаж, member identity-ийн нэг хэсэг болно.",
   },
   {
     id: "entrance-kishin",
@@ -88,7 +93,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "LEGENDARY",
     price: 5000,
     minXp: 12500,
-    description: "Meet participant card-д legendary entrance cosmetic.",
+    description:
+      "EQUIP хийсэн member Meet-д оролцох үед participant card дээр legendary KISHIN entrance cosmetic ажиллана.",
   },
   {
     id: "creator-red-moon",
@@ -97,7 +103,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "EPIC",
     price: 2600,
     minXp: 5500,
-    description: "Creator/Gallery-д Red Moon visual pack.",
+    description:
+      "EQUIP хийхэд Creator/Gallery дахь таны контент Red Moon visual treatment авч, creator post-ууд илүү ялгарах cosmetic pack болно.",
   },
   {
     id: "trophy-vault",
@@ -106,7 +113,8 @@ export const ONI_VAULT: OniVaultItem[] = [
     rarity: "RARE",
     price: 1200,
     minXp: 1500,
-    description: "Profile collection-д нэмэлт trophy slot.",
+    description:
+      "Худалдан авснаар Profile collection-д нэмэлт Trophy Vault slot нээгдэж, achievement/trophy collection-оо өргөжүүлэх боломжтой болно.",
   },
 ];
 

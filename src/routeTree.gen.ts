@@ -12,6 +12,7 @@ import { Route as MeetRouteImport } from './routes/meet'
 import { Route as MusicRouteImport } from './routes/music'
 import { Route as OniAiRouteImport } from './routes/oni-ai'
 import { Route as ProgressionRouteImport } from './routes/progression'
+import { Route as ShopRouteImport } from './routes/shop'
 
 const IndexRoute=IndexRouteImport.update({id:'/',path:'/',getParentRoute:()=>rootRouteImport} as any)
 const AdminRoute=AdminRouteImport.update({id:'/admin',path:'/admin',getParentRoute:()=>rootRouteImport} as any)
@@ -23,12 +24,13 @@ const MeetRoute=MeetRouteImport.update({id:'/meet',path:'/meet',getParentRoute:(
 const MusicRoute=MusicRouteImport.update({id:'/music',path:'/music',getParentRoute:()=>rootRouteImport} as any)
 const OniAiRoute=OniAiRouteImport.update({id:'/oni-ai',path:'/oni-ai',getParentRoute:()=>rootRouteImport} as any)
 const ProgressionRoute=ProgressionRouteImport.update({id:'/progression',path:'/progression',getParentRoute:()=>rootRouteImport} as any)
+const ShopRoute=ShopRouteImport.update({id:'/shop',path:'/shop',getParentRoute:()=>rootRouteImport} as any)
 
-export interface FileRoutesByFullPath {'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/progression':typeof ProgressionRoute}
+export interface FileRoutesByFullPath {'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute}
 export interface FileRoutesByTo extends FileRoutesByFullPath {}
-export interface FileRoutesById {__root__:typeof rootRouteImport;'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/progression':typeof ProgressionRoute}
+export interface FileRoutesById {__root__:typeof rootRouteImport;'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute}
 export interface FileRouteTypes {fileRoutesByFullPath:FileRoutesByFullPath;fullPaths:keyof FileRoutesByFullPath;fileRoutesByTo:FileRoutesByTo;to:keyof FileRoutesByTo;id:keyof FileRoutesById;fileRoutesById:FileRoutesById}
-export interface RootRouteChildren {IndexRoute:typeof IndexRoute;AdminRoute:typeof AdminRoute;CrewRoute:typeof CrewRoute;GalleryRoute:typeof GalleryRoute;GarageRoute:typeof GarageRoute;JoinRoute:typeof JoinRoute;MeetRoute:typeof MeetRoute;MusicRoute:typeof MusicRoute;OniAiRoute:typeof OniAiRoute;ProgressionRoute:typeof ProgressionRoute}
+export interface RootRouteChildren {IndexRoute:typeof IndexRoute;AdminRoute:typeof AdminRoute;CrewRoute:typeof CrewRoute;GalleryRoute:typeof GalleryRoute;GarageRoute:typeof GarageRoute;JoinRoute:typeof JoinRoute;MeetRoute:typeof MeetRoute;MusicRoute:typeof MusicRoute;OniAiRoute:typeof OniAiRoute;ProgressionRoute:typeof ProgressionRoute;ShopRoute:typeof ShopRoute}
 
 declare module '@tanstack/react-router' { interface FileRoutesByPath {
 '/':{id:'/';path:'/';fullPath:'/';preLoaderRoute:typeof IndexRouteImport;parentRoute:typeof rootRouteImport}
@@ -41,8 +43,9 @@ declare module '@tanstack/react-router' { interface FileRoutesByPath {
 '/music':{id:'/music';path:'/music';fullPath:'/music';preLoaderRoute:typeof MusicRouteImport;parentRoute:typeof rootRouteImport}
 '/oni-ai':{id:'/oni-ai';path:'/oni-ai';fullPath:'/oni-ai';preLoaderRoute:typeof OniAiRouteImport;parentRoute:typeof rootRouteImport}
 '/progression':{id:'/progression';path:'/progression';fullPath:'/progression';preLoaderRoute:typeof ProgressionRouteImport;parentRoute:typeof rootRouteImport}
+'/shop':{id:'/shop';path:'/shop';fullPath:'/shop';preLoaderRoute:typeof ShopRouteImport;parentRoute:typeof rootRouteImport}
 }}
-const rootRouteChildren:RootRouteChildren={IndexRoute,AdminRoute,CrewRoute,GalleryRoute,GarageRoute,JoinRoute,MeetRoute,MusicRoute,OniAiRoute,ProgressionRoute}
+const rootRouteChildren:RootRouteChildren={IndexRoute,AdminRoute,CrewRoute,GalleryRoute,GarageRoute,JoinRoute,MeetRoute,MusicRoute,OniAiRoute,ProgressionRoute,ShopRoute}
 export const routeTree=rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
 import type { getRouter } from './router.tsx'
 import type { startInstance } from './start.ts'
