@@ -83,13 +83,14 @@ await env.withSecurityRulesDisabled(async (context) => {
 const alice = env.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
 const bob = env.authenticatedContext("bob", { email: "bob@example.com" }).firestore();
 
-// 1) A member must never be able to mint arbitrary Coin.
+console.log("CASE_1_ARBITRARY_MINT_BEGIN");
 await assertFails(updateDoc(doc(alice, "progressionProfiles", "alice"), {
   coin: 999999,
   updatedAt: serverTimestamp(),
 }));
+console.log("CASE_1_ARBITRARY_MINT_END");
 
-// 2) Vault spend is atomic: profile debit + exact deterministic negative ledger.
+console.log("CASE_2_VAULT_VALID_BEGIN");
 await assertSucceeds(runTransaction(alice, async (tx) => {
   const profileRef = doc(alice, "progressionProfiles", "alice");
   const spendRef = doc(alice, "progressionLedger", "spend_alice_frame-crimson");
@@ -112,13 +113,14 @@ await assertSucceeds(runTransaction(alice, async (tx) => {
     createdAt: serverTimestamp(),
   });
 }));
+console.log("CASE_2_VAULT_VALID_END");
 
 const postVault = await assertSucceeds(getDoc(doc(alice, "progressionProfiles", "alice")));
 if (postVault.data().coin !== 300 || !postVault.data().unlocked.includes("frame-crimson")) {
   throw new Error("Vault atomic spend invariant failed");
 }
 
-// 3) A standalone fake spend ledger without the matching profile debit is denied.
+console.log("CASE_3_FAKE_LEDGER_BEGIN");
 await assertFails(setDoc(doc(alice, "progressionLedger", "spend_alice_title-night-rider"), {
   uid: "alice",
   sourceType: "vault_spend",
@@ -129,8 +131,9 @@ await assertFails(setDoc(doc(alice, "progressionLedger", "spend_alice_title-nigh
   balanceAfter: 300,
   createdAt: serverTimestamp(),
 }));
+console.log("CASE_3_FAKE_LEDGER_END");
 
-// 4) Completed weekly mission can claim exactly once with atomic profile + claim + ledger.
+console.log("CASE_4_WEEKLY_VALID_BEGIN");
 await assertSucceeds(runTransaction(alice, async (tx) => {
   const profileRef = doc(alice, "progressionProfiles", "alice");
   const claimRef = doc(alice, "progressionMissionClaims", "alice_2026-W37_meet-2");
@@ -161,14 +164,16 @@ await assertSucceeds(runTransaction(alice, async (tx) => {
     updatedAt: serverTimestamp(),
   });
 }));
+console.log("CASE_4_WEEKLY_VALID_END");
 
+console.log("CASE_4B_WEEKLY_REPLAY_BEGIN");
 await assertFails(runTransaction(alice, async (tx) => {
   const profileRef = doc(alice, "progressionProfiles", "alice");
   const snap = await tx.get(profileRef);
   tx.update(profileRef, { coin: Number(snap.data().coin) + 300, updatedAt: serverTimestamp() });
 }));
+console.log("CASE_4B_WEEKLY_REPLAY_END");
 
-// 5) Meet reward is denied while the rider is merely registered.
 const meetRewardTx = async (db, nonce) => runTransaction(db, async (tx) => {
   const profileRef = doc(db, "progressionProfiles", "alice");
   const claimRef = doc(db, "progressionMeetClaims", "alice");
@@ -198,9 +203,10 @@ const meetRewardTx = async (db, nonce) => runTransaction(db, async (tx) => {
   });
 });
 
+console.log("CASE_5_MEET_NO_ATTENDANCE_BEGIN");
 await assertFails(meetRewardTx(alice, "noregattendance001"));
+console.log("CASE_5_MEET_NO_ATTENDANCE_END");
 
-// Admin-confirmed attendance unlocks the exact Meet reward path.
 await env.withSecurityRulesDisabled(async (context) => {
   await setDoc(doc(context.firestore(), "meetAttendance", "alice"), {
     uid: "alice",
@@ -210,11 +216,13 @@ await env.withSecurityRulesDisabled(async (context) => {
     confirmedBy: "admin-seed",
   });
 });
+console.log("CASE_5B_MEET_CONFIRMED_BEGIN");
 await assertSucceeds(meetRewardTx(alice, "confirmedattendance01"));
+console.log("CASE_5B_MEET_CONFIRMED_END");
 
-// 6) Achievement persistence: valid criteria pass, unearned badge fails.
 const aliceAfterMeet = await assertSucceeds(getDoc(doc(alice, "progressionProfiles", "alice")));
 const aliceRow = aliceAfterMeet.data();
+console.log("CASE_6_ACHIEVEMENT_VALID_BEGIN");
 await assertSucceeds(setDoc(doc(alice, "progressionAchievementClaims", "alice_first-blood"), {
   uid: "alice",
   achievementId: "first-blood",
@@ -224,6 +232,9 @@ await assertSucceeds(setDoc(doc(alice, "progressionAchievementClaims", "alice_fi
   lifetimeXp: aliceRow.lifetimeXp,
   claimedAt: serverTimestamp(),
 }));
+console.log("CASE_6_ACHIEVEMENT_VALID_END");
+
+console.log("CASE_6B_ACHIEVEMENT_UNEARNED_BEGIN");
 await assertFails(setDoc(doc(alice, "progressionAchievementClaims", "alice_legend"), {
   uid: "alice",
   achievementId: "legend",
@@ -233,8 +244,9 @@ await assertFails(setDoc(doc(alice, "progressionAchievementClaims", "alice_legen
   lifetimeXp: aliceRow.lifetimeXp,
   claimedAt: serverTimestamp(),
 }));
+console.log("CASE_6B_ACHIEVEMENT_UNEARNED_END");
 
-// 7) Prestige is exact and preserves Coin/Lifetime/Season/collection while resetting current XP.
+console.log("CASE_7_PRESTIGE_VALID_BEGIN");
 await assertSucceeds(runTransaction(bob, async (tx) => {
   const profileRef = doc(bob, "progressionProfiles", "bob");
   const claimRef = doc(bob, "progressionPrestigeClaims", "bob_1");
@@ -265,6 +277,8 @@ await assertSucceeds(runTransaction(bob, async (tx) => {
     updatedAt: serverTimestamp(),
   });
 }));
+console.log("CASE_7_PRESTIGE_VALID_END");
+
 const bobAfter = await assertSucceeds(getDoc(doc(bob, "progressionProfiles", "bob")));
 if (bobAfter.data().prestige !== 1 || bobAfter.data().xp !== 0 || bobAfter.data().coin !== 2200 || bobAfter.data().lifetimeXp !== 28000 || bobAfter.data().seasonXp !== 9000) {
   throw new Error("Prestige preservation invariant failed");
