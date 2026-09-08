@@ -29,6 +29,36 @@ function queueFrame(){if(!raf&&!disposed)raf=requestAnimationFrame(frameKei)}
 async function loadModel(){let last=null;const options={textureOptions:{preferCreateImageBitmap:false,lod:false},autoFocus:false,autoHitTest:false,autoUpdate:true};for(const url of modelUrls){try{return await PIXI.live2d.Live2DModel.from(url,options)}catch(error){last=error;console.warn('[Kei] source failed',url,error)}}throw last||new Error('Kei model unavailable')}
 function alphaSamples(){try{const gl=app?.renderer?.gl;if(!gl)return -1;const w=app.canvas.width,h=app.canvas.height;if(!w||!h)return 0;const data=new Uint8Array(w*h*4);gl.finish();gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,data);let count=0;for(let i=3;i<data.length;i+=64){if(data[i]>8)count++}return count}catch(error){console.warn('[Kei] pixel audit unavailable',error);return -1}}
 function shimLegacyGpuMetadata(textures){for(const texture of textures||[]){const source=texture?.source;if(source && !source._gpuData){Object.defineProperty(source,'_gpuData',{value:Object.create(null),writable:true,configurable:true});}}}
+function cubismPreflight(m){
+  const internal=m?.internalModel;
+  const core=internal?.coreModel;
+  const low=core?.getModel?.();
+  const drawables=low?.drawables;
+  const count=core?.getDrawableCount?.();
+  const orders=core?.getDrawableRenderOrders?.();
+  const renderer=internal?.renderer;
+  const clipping=renderer?._clippingManager;
+  const diag={
+    count,
+    lowDrawableKeys:drawables?Object.keys(drawables):[],
+    renderOrdersType:orders?.constructor?.name||typeof orders,
+    renderOrdersLength:orders?.length??-1,
+    renderOrdersHead:orders?Array.from(orders.slice?.(0,8)||[]):[],
+    lowRenderOrdersType:drawables?.renderOrders?.constructor?.name||typeof drawables?.renderOrders,
+    lowRenderOrdersLength:drawables?.renderOrders?.length??-1,
+    sortedSize:renderer?._sortedDrawableIndexList?.getSize?.()??-1,
+    usingMasking:core?.isUsingMasking?.()??null,
+    hasClippingManager:!!clipping,
+    clipDrawListSize:clipping?._clippingContextListForDraw?.getSize?.()??-1,
+    clipMaskListSize:clipping?._clippingContextListForMask?.getSize?.()??-1
+  };
+  console.log('[Kei] cubism preflight',diag);
+  window.__KEICUBISM__=diag;
+  if(!Number.isInteger(count)||count<=0)throw new Error('Cubism preflight: invalid drawableCount '+String(count));
+  if(!orders||typeof orders.length!=='number')throw new Error('Cubism preflight: drawable renderOrders missing');
+  if(orders.length<count)throw new Error('Cubism preflight: renderOrders too short '+orders.length+'/'+count);
+  return diag;
+}
 window.addEventListener('message',(event)=>{const d=event.data;if(!d||d.source!==PARENT)return;if(d.type==='state')apply(d.state);if(d.type==='interact'){focus((Math.random()-.5)*.7,-.1);motion(Math.floor(Math.random()*4))}});
 document.addEventListener('visibilitychange',()=>{try{if(!app?.ticker)return;if(document.hidden)app.ticker.stop();else{app.ticker.start();queueFrame();apply(currentState,true)}}catch{}});
 try{
@@ -45,6 +75,7 @@ stage.appendChild(app.canvas);
 app.canvas.addEventListener('webglcontextlost',(event)=>{event.preventDefault();send('failed','webgl-context-lost')});
 model=await loadModel();
 shimLegacyGpuMetadata(model?.textures);
+cubismPreflight(model);
 const t0=model?.textures?.[0];
 if(!t0) throw new Error('Kei model has no texture[0]');
 app.renderer.texture.resetState();
