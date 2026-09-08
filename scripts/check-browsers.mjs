@@ -35,6 +35,8 @@ try {
   );
   await ready("http://127.0.0.1:4173/kei-live2d-host.html", staticHost);
   const standalone = await run("tests/kei-browser-smoke.mjs");
+  const cosmeticSource = await run("tests/cosmetic-fx.test.mjs");
+  const cosmeticFx = await run("tests/cosmetic-fx-browser.mjs");
   // Run the actual built application, using its declared local runtime.
   const preset = JSON.parse(readFileSync(".output/nitro.json", "utf8")).preset;
   let app;
@@ -61,7 +63,7 @@ try {
   await ready("http://127.0.0.1:4174/meet", app);
   const integration = await run("tests/kei-meet-integration.mjs");
   const routes = await run("tests/route-smoke.mjs");
-  if (!standalone || !integration || !routes) process.exitCode = 1;
+  if (!standalone || !cosmeticSource || !cosmeticFx || !integration || !routes) process.exitCode = 1;
 } finally {
   for (const child of children) {
     try {
