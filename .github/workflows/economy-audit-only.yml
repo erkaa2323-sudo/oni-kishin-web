@@ -46,7 +46,7 @@ jobs:
           fragments=[
               ("firestore.creator.rules.fragment","match /creatorPublishRequests/"),
               ("firestore.nexus.rules.fragment","match /pushSubscriptions/"),
-              ("firestore.progression.rules.fragment","match /progressionProfiles/"),
+              ("firestore.progression.v3.rules.fragment","function currentWeekPathV3()"),
           ]
           combined=base
           for path, needle in fragments:
@@ -62,9 +62,10 @@ jobs:
           grep -q 'match /progressionSeasonArchive/' firestore.economy-audit.rules
           grep -q '"vault_spend"' firestore.economy-audit.rules
           grep -q '"weekly_mission"' firestore.economy-audit.rules
-          grep -q 'validLedgerCreate' firestore.economy-audit.rules
-          grep -q 'validMarkedProfileUpdate' firestore.economy-audit.rules
-          grep -q 'lastAction' firestore.economy-audit.rules
+          grep -q 'validLedgerCreateV3' firestore.economy-audit.rules
+          grep -q 'validEconomyProfileUpdateV3' firestore.economy-audit.rules
+          grep -q 'freshProfileActionV3' firestore.economy-audit.rules
+          grep -q 'afterProfileFreshV3' firestore.economy-audit.rules
 
       - name: Install rules test harness
         run: bun add --no-save @firebase/rules-unit-testing
@@ -108,6 +109,7 @@ jobs:
           grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
           grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
           grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
+          grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
           if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then exit 1; fi
           if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then exit 1; fi
           echo "NO_DEPLOY_AUDIT_OK"
