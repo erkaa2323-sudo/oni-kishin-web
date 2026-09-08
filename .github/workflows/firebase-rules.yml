@@ -1,18 +1,6 @@
 name: Deploy Firebase Rules
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - firestore.rules
-      - firestore.creator.rules.fragment
-      - firestore.nexus.rules.fragment
-      - firestore.progression.rules.fragment
-      - firestore.progression.v3.rules.fragment
-      - scripts/compose-firestore-rules.mjs
-      - scripts/economy-v3-ternary-patch.mjs
-      - firebase.json
-      - .github/workflows/firebase-rules.yml
   workflow_dispatch:
 
 permissions:
@@ -24,6 +12,7 @@ concurrency:
 
 jobs:
   deploy-rules:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
