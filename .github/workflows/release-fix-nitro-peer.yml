@@ -1,0 +1,50 @@
+name: Temporary Nitro Peer Resolver
+
+on:
+  push:
+    branches:
+      - final/release-2026-09-08
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-nitro-peer-resolver
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    if: ${{ !contains(github.event.head_commit.message, '[skip nitro-peer]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: final/release-2026-09-08
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm install --global npm@11.9.0
+      - name: Resolve Lovable Nitro peer exactly
+        run: npm install --save-dev --save-exact nitro@3.0.260603-beta --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lockfile installability and limited diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -Ev '^(package.json|package-lock.json)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "$unexpected"
+            exit 1
+          fi
+          grep -q '"nitro": "3.0.260603-beta"' package.json
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit resolved peer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "build: align Nitro with Lovable peer [skip nitro-peer]"
+          git push origin HEAD:final/release-2026-09-08
