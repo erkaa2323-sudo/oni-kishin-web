@@ -48,14 +48,16 @@ jobs:
       - name: Build production app
         run: bun run build
       - name: Start built ONI app
-        env:
-          PORT: '4174'
-          HOST: '127.0.0.1'
         run: |
-          node .output/server/index.mjs > /tmp/oni-app.log 2>&1 &
+          npx vite preview --host 127.0.0.1 --port 4174 > /tmp/oni-app.log 2>&1 &
           echo $! > /tmp/oni-app.pid
           for i in {1..45}; do
             if curl -fsS http://127.0.0.1:4174/meet >/dev/null; then exit 0; fi
+            if ! kill -0 "$(cat /tmp/oni-app.pid)" 2>/dev/null; then
+              echo "Vite preview exited before /meet became ready."
+              cat /tmp/oni-app.log
+              exit 1
+            fi
             sleep 1
           done
           cat /tmp/oni-app.log
