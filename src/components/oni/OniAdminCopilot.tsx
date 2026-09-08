@@ -25,11 +25,23 @@ type ChatLine = { id: string; role: "user" | "oni"; text: string };
 
 const QUICK = [
   "Ерөнхий төлөвийг харуул",
-  "Хүлээгдэж буй хүсэлтүүдийг шалга",
+  "Хүлээгдэж буй анкетуудыг шалга",
   "Одоогийн уулзалтыг шалга",
   "Гаражийн төлөвийг харуул",
   "Галерейн төлөвийг харуул",
 ];
+
+const STATE_LABEL: Partial<Record<OniState, string>> = {
+  idle: "БЭЛЭН",
+  listening: "СОНСОЖ БАЙНА",
+  thinking: "БОДОЖ БАЙНА",
+  speaking: "ХАРИУЛЖ БАЙНА",
+  happy: "АМЖИЛТТАЙ",
+  excited: "ИДЭВХТЭЙ",
+  serious: "АНХААРАЛТАЙ",
+  concerned: "АСУУДАЛ ИЛЭРЛЭЭ",
+  music: "ХӨГЖИМ",
+};
 
 function toHistory(lines: ChatLine[]): BrainTurn[] {
   return lines.slice(-10).map((line) => ({ role: line.role, text: line.text }));
@@ -43,7 +55,7 @@ export function OniAdminCopilot() {
       : null;
 
   const [open, setOpen] = useState(true);
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<OniState>("idle");
@@ -52,7 +64,7 @@ export function OniAdminCopilot() {
     {
       id: "welcome",
       role: "oni",
-      text: "Admin ONI онлайн. Members, хүсэлт, meet, garage, gallery, music, audit дээр команд өгч болно.",
+      text: "ONI админ туслах бэлэн. Гишүүд, анкет, уулзалт, гараж, галерей, хөгжим болон үйлдлийн бүртгэлийг шалгаж, зөвшөөрөлтэй үйлдлийг баталгаажуулалтын дараа гүйцэтгэнэ.",
     },
   ]);
 
@@ -71,9 +83,9 @@ export function OniAdminCopilot() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[80] inline-flex min-h-[48px] items-center gap-2 border border-crimson/60 bg-midnight/95 px-4 text-[0.68rem] font-semibold tracking-[0.16em] text-foreground shadow-2xl backdrop-blur-xl clip-notch"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-[80] inline-flex min-h-[48px] items-center gap-2 border border-crimson/60 bg-midnight/95 px-4 text-[0.68rem] font-semibold tracking-[0.12em] text-foreground shadow-2xl backdrop-blur-xl clip-notch"
       >
-        <Bot className="h-4 w-4 text-crimson" /> ONI ADMIN AI
+        <Bot className="h-4 w-4 text-crimson" /> ONI АДМИН ТУСЛАХ
       </button>
     );
   }
@@ -121,7 +133,7 @@ export function OniAdminCopilot() {
 
   return (
     <aside
-      aria-label="ONI Admin AI Copilot"
+      aria-label="ONI админ туслах"
       className="fixed inset-x-3 bottom-[max(.75rem,env(safe-area-inset-bottom))] z-[80] overflow-hidden border border-crimson/45 bg-midnight/95 shadow-2xl backdrop-blur-2xl sm:left-auto sm:right-4 sm:w-[28rem]"
     >
       <div className="flex min-h-[48px] items-center justify-between border-b border-border px-3">
@@ -135,11 +147,11 @@ export function OniAdminCopilot() {
             <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </span>
           <span>
-            <span className="block text-[0.72rem] font-semibold tracking-[0.18em] text-foreground">
-              ONI ADMIN COPILOT
+            <span className="block text-[0.72rem] font-semibold tracking-[0.14em] text-foreground">
+              ONI АДМИН ТУСЛАХ
             </span>
-            <span className="block text-[0.58rem] tracking-[0.14em] text-muted-foreground">
-              LIVE2D · FIREBASE ACTIONS · AUDIT
+            <span className="block text-[0.58rem] tracking-[0.1em] text-muted-foreground">
+              ДҮРТ ТУСЛАХ · FIREBASE ҮЙЛДЭЛ · БҮРТГЭЛ
             </span>
           </span>
           {minimized ? (
@@ -150,7 +162,7 @@ export function OniAdminCopilot() {
         </button>
         <button
           type="button"
-          aria-label="ONI Admin AI хаах"
+          aria-label="ONI админ туслахыг хаах"
           onClick={() => setOpen(false)}
           className="ml-2 inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground"
         >
@@ -159,15 +171,15 @@ export function OniAdminCopilot() {
       </div>
 
       {!minimized ? (
-        <div className="grid max-h-[78svh] grid-rows-[13rem_minmax(7rem,1fr)_auto] sm:grid-rows-[15rem_minmax(8rem,1fr)_auto]">
+        <div className="grid max-h-[78svh] grid-rows-[11rem_minmax(7rem,1fr)_auto] sm:grid-rows-[14rem_minmax(8rem,1fr)_auto]">
           <div className="relative overflow-hidden border-b border-border bg-ink/70">
             <div className="absolute inset-0 opacity-70 [background:radial-gradient(circle_at_50%_65%,rgba(190,18,60,.22),transparent_58%)]" />
             <div className="absolute inset-0">
               <OniLive2D state={state} glow={0.9} speaking={state === "speaking"} />
             </div>
             <div className="pointer-events-none absolute left-3 top-3 border border-border bg-ink/70 px-2.5 py-1.5 backdrop-blur-md">
-              <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-crimson/90">
-                {state.toUpperCase()}
+              <span className="text-[0.58rem] font-semibold tracking-[0.12em] text-crimson/90">
+                {STATE_LABEL[state] ?? "БЭЛЭН"}
               </span>
             </div>
           </div>
@@ -183,8 +195,8 @@ export function OniAdminCopilot() {
                       : "border-border bg-ink/65 text-muted-foreground"
                   }`}
                 >
-                  <span className="mb-1 block text-[0.55rem] font-semibold tracking-[0.14em] text-crimson/75">
-                    {line.role === "user" ? "ADMIN" : "ONI"}
+                  <span className="mb-1 block text-[0.55rem] font-semibold tracking-[0.12em] text-crimson/75">
+                    {line.role === "user" ? "АДМИН" : "ONI"}
                   </span>
                   {line.text}
                 </div>
@@ -203,7 +215,7 @@ export function OniAdminCopilot() {
               >
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-crimson" />
-                  <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-foreground">
+                  <span className="text-[0.58rem] font-semibold tracking-[0.14em] text-foreground">
                     {riskText}
                   </span>
                 </div>
@@ -214,7 +226,7 @@ export function OniAdminCopilot() {
                   type="button"
                   disabled={busy}
                   onClick={() => void execute()}
-                  className="mt-3 inline-flex min-h-[42px] items-center gap-2 border border-crimson/55 bg-crimson/18 px-3 text-[0.62rem] font-semibold tracking-[0.15em] text-foreground hover:bg-crimson/28 disabled:opacity-50"
+                  className="mt-3 inline-flex min-h-[42px] items-center gap-2 border border-crimson/55 bg-crimson/18 px-3 text-[0.62rem] font-semibold tracking-[0.12em] text-foreground hover:bg-crimson/28 disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-4 w-4" /> БАТАЛГААЖУУЛЖ ГҮЙЦЭТГЭХ
                 </button>
@@ -247,7 +259,7 @@ export function OniAdminCopilot() {
                   }
                 }}
                 rows={2}
-                placeholder="Ж: Kitsune гишүүнийг архивла / «Friday Meet» үүсгэ / gallery төлөв харуул"
+                placeholder="Ж: Kitsune гишүүнийг архивла / «Баасан гарагийн уулзалт» үүсгэ / галерейн төлөв харуул"
                 className="min-h-[48px] flex-1 resize-none border border-border bg-midnight/80 px-3 py-2 text-[16px] text-foreground outline-none placeholder:text-muted-foreground/55 focus:border-crimson/55 sm:text-sm"
               />
               <button
