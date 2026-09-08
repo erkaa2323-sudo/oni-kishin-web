@@ -14,7 +14,26 @@ export type ProgressionLedgerEntry = {
   sourceKey: string;
   xp: number;
   coin: number;
+  balanceAfter?: number | null;
   createdAt: string | null;
+};
+
+export type WeeklyMissionKind = "meet" | "creator" | "activity";
+export type WeeklyMissionId = "meet-2" | "creator-1" | "activity-3";
+
+export type WeeklyProgress = {
+  uid: string;
+  weekId: string;
+  meet: number;
+  creator: number;
+  activity: number;
+};
+
+export type WeeklyConfig = {
+  weekId: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  enabled: boolean;
 };
 
 export const ONI_ACHIEVEMENTS = [
@@ -39,6 +58,17 @@ export const WEEKLY_MISSIONS = [
   { id: "creator-1", label: "1 Creator asset батлуулах", target: 1, rewardCoin: 200, kind: "creator" as const },
   { id: "activity-3", label: "3 clan activity дуусгах", target: 3, rewardCoin: 500, kind: "activity" as const },
 ] as const;
+
+export const WEEKLY_MISSION_IDS = WEEKLY_MISSIONS.map((mission) => mission.id) as WeeklyMissionId[];
+
+export function weeklyMissionById(id: string) {
+  return WEEKLY_MISSIONS.find((mission) => mission.id === id) ?? null;
+}
+
+export function weeklyProgressValue(progress: WeeklyProgress | null, kind: WeeklyMissionKind) {
+  if (!progress) return 0;
+  return kind === "meet" ? progress.meet : kind === "creator" ? progress.creator : progress.activity;
+}
 
 export function startOfCurrentWeek(now = new Date()) {
   const d = new Date(now);
