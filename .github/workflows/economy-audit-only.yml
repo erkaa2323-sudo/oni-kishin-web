@@ -6,11 +6,8 @@ on:
       - audit/oni-economy-v2
   workflow_dispatch:
 
-# TEMPORARY write permission is used only by the final step to persist the exact
-# files that were already validated in this same no-deploy job. It will be
-# restored to read-only immediately after the one-shot sync succeeds.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: oni-economy-audit-only
@@ -23,114 +20,6 @@ jobs:
     steps:
       - name: Checkout audit branch
         uses: actions/checkout@v4
-        with:
-          ref: audit/oni-economy-v2
-          fetch-depth: 0
-
-      - name: One-shot sync of atomic economy action markers
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          def sync(path, old, new):
-              p = Path(path)
-              text = p.read_text(encoding="utf-8")
-              if new in text:
-                  return
-              if text.count(old) != 1:
-                  raise SystemExit(f"{path}: sync source was not unique")
-              p.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-          sync(
-              "src/data/progression.ts",
-              '    tx.update(profileRef, { coin: balanceAfter, updatedAt: serverTimestamp() });',
-              '    tx.update(profileRef, { coin: balanceAfter, lastAction: { type: "weekly_claim", key: mission.id, weekId }, updatedAt: serverTimestamp() });',
-          )
-          sync(
-              "src/data/progression.ts",
-              '    tx.update(profileRef, { xp: 0, prestige: nextPrestige, updatedAt: serverTimestamp() });',
-              '    tx.update(profileRef, { xp: 0, prestige: nextPrestige, lastAction: { type: "prestige", key: String(nextPrestige) }, updatedAt: serverTimestamp() });',
-          )
-          sync(
-              "src/data/progression.ts",
-              '    tx.update(ref, { coin: balanceAfter, unlocked: [...p.unlocked, item.id], updatedAt: serverTimestamp() });',
-              '    tx.update(ref, { coin: balanceAfter, unlocked: [...p.unlocked, item.id], lastAction: { type: "vault_unlock", key: item.id }, updatedAt: serverTimestamp() });',
-          )
-          sync(
-              "src/data/progression.ts",
-              '''    tx.update(profileRef, {
-      xp: p.xp + reward.xp,
-      coin: balanceAfter,
-      lifetimeXp: p.lifetimeXp + reward.xp,
-      seasonXp: p.seasonXp + reward.xp,
-      meetCount: p.meetCount + 1,
-      updatedAt: serverTimestamp(),
-    });''',
-              '''    tx.update(profileRef, {
-      xp: p.xp + reward.xp,
-      coin: balanceAfter,
-      lifetimeXp: p.lifetimeXp + reward.xp,
-      seasonXp: p.seasonXp + reward.xp,
-      meetCount: p.meetCount + 1,
-      lastAction: { type: "meet_reward", key: nonce },
-      updatedAt: serverTimestamp(),
-    });''',
-          )
-
-          sync(
-              "firestore.progression.rules.fragment",
-              '        && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.lastAction.key == request.resource.data.prestige.toString()',
-              '        && validPrestigeKey(request.resource.data.prestige, getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.lastAction.key)',
-          )
-
-          sync(
-              "scripts/economy-rules-test.mjs",
-              '''  tx.update(profileRef, {
-    coin: Number(row.coin) - 700,
-    unlocked: [...row.unlocked, "frame-crimson"],
-    updatedAt: serverTimestamp(),
-  });''',
-              '''  tx.update(profileRef, {
-    coin: Number(row.coin) - 700,
-    unlocked: [...row.unlocked, "frame-crimson"],
-    lastAction: { type: "vault_unlock", key: "frame-crimson" },
-    updatedAt: serverTimestamp(),
-  });''',
-          )
-          sync(
-              "scripts/economy-rules-test.mjs",
-              '  tx.update(profileRef, { coin: currentCoin + 300, updatedAt: serverTimestamp() });',
-              '  tx.update(profileRef, { coin: currentCoin + 300, lastAction: { type: "weekly_claim", key: "meet-2", weekId: "2026-W37" }, updatedAt: serverTimestamp() });',
-          )
-          sync(
-              "scripts/economy-rules-test.mjs",
-              '''  tx.update(profileRef, {
-    xp: Number(row.xp) + 100,
-    coin: balanceAfter,
-    lifetimeXp: Number(row.lifetimeXp) + 100,
-    seasonXp: Number(row.seasonXp) + 100,
-    meetCount: Number(row.meetCount) + 1,
-    updatedAt: serverTimestamp(),
-  });''',
-              '''  tx.update(profileRef, {
-    xp: Number(row.xp) + 100,
-    coin: balanceAfter,
-    lifetimeXp: Number(row.lifetimeXp) + 100,
-    seasonXp: Number(row.seasonXp) + 100,
-    meetCount: Number(row.meetCount) + 1,
-    lastAction: { type: "meet_reward", key: nonce },
-    updatedAt: serverTimestamp(),
-  });''',
-          )
-          sync(
-              "scripts/economy-rules-test.mjs",
-              '  tx.update(profileRef, { xp: 0, prestige: 1, updatedAt: serverTimestamp() });',
-              '  tx.update(profileRef, { xp: 0, prestige: 1, lastAction: { type: "prestige", key: "1" }, updatedAt: serverTimestamp() });',
-          )
-          PY
-          git diff --check
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -207,25 +96,8 @@ jobs:
           grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
           grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
           grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
-          if grep -R "firebase deploy\|vercel deploy\|deploy-pages\|nitro deploy" .github/workflows/economy-audit-only.yml; then
+          if grep -E 'firebase deploy|vercel deploy|deploy-pages|nitro deploy' .github/workflows/economy-audit-only.yml; then
             echo "Audit workflow must never deploy"
             exit 1
           fi
           echo "NO_DEPLOY_AUDIT_OK"
-
-      - name: Persist only the already-tested economy sync
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f firestore.economy-audit.rules firebase.economy-audit.json
-          git checkout -- bun.lock 2>/dev/null || true
-          git status --short
-          git add src/data/progression.ts firestore.progression.rules.fragment scripts/economy-rules-test.mjs
-          if git diff --cached --quiet; then
-            echo "Economy sync already persisted"
-            exit 0
-          fi
-          git config user.name "ONI Economy Audit"
-          git config user.email "actions@users.noreply.github.com"
-          git commit -m "Sync tested economy action markers"
-          git push origin HEAD:audit/oni-economy-v2
