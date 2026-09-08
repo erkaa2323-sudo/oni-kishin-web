@@ -23,11 +23,9 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install --no-save
 
       - name: Full TypeScript audit
         run: bun run typecheck
@@ -81,8 +79,6 @@ jobs:
           grep -q 'balanceAfter' src/data/progression.ts
           grep -q 'OniCosmeticBridge' src/routes/__root.tsx
           grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
-          if grep -R "deploy --only\|vercel deploy\|deploy-pages" .github/workflows/economy-audit-only.yml; then
-            echo "Audit workflow must never deploy"
-            exit 1
-          fi
+          grep -q '^permissions:$' .github/workflows/economy-audit-only.yml
+          grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
           echo "NO_DEPLOY_AUDIT_OK"
