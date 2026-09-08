@@ -58,7 +58,7 @@ export function OniEventRewardDock() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+7.5rem)] left-4 z-[67] inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
+        className="fixed bottom-[8.5rem] left-4 z-[67] inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
       >
         <Award className="h-4 w-4 text-crimson" />
         ЭВЕНТИЙН ШАГНАЛ
