@@ -16,6 +16,7 @@ export type OniDestination = {
     | "/meet"
     | "/oni-ai"
     | "/shop"
+    | "/profile"
     | "/admin";
   label: string;
   code: string;
@@ -63,11 +64,18 @@ export const ONI_DESTINATIONS: OniDestination[] = [
     index: "07",
   },
   {
+    to: "/profile",
+    label: "PROFILE",
+    code: "PROFILE",
+    desc: "Account, XP, Coin, Meet болон achievement",
+    index: "08",
+  },
+  {
     to: "/admin",
     label: "УДИРДЛАГА",
     code: "ADMIN",
     desc: "Хяналтын самбар",
-    index: "08",
+    index: "09",
   },
 ];
 
