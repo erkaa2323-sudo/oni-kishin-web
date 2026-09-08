@@ -30,7 +30,7 @@ jobs:
       - run: node scripts/final-hardening-source-patch.mjs
       - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - run: npm ci --no-audit --no-fund
-      - run: npx --no-install prettier --write package.json package-lock.json scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx src/lib/backend/errors.ts tests/route-smoke.mjs .github/workflows/vercel-prebuilt-production.yml
+      - run: npx --no-install prettier --write package.json package-lock.json scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx src/lib/backend/errors.ts tests/route-smoke.mjs
 
       - name: Commit deterministic hardening output
         shell: bash
@@ -41,6 +41,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -A -- package.json package-lock.json firestore.rules firestore.progression.rules.fragment firestore.progression.v3.rules.fragment scripts/final-hardening-source-patch.mjs scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx src/lib/backend/errors.ts tests/route-smoke.mjs HARDENING.md docs-final-hardening-plan.md AUDIT-HARDENING.md HARDENING-STATE.md HARDENING-LOCK.md HARDENING-START.md HARDENING-TEMP.md HARDENING-CONTINUE.md HARDENING-WIP.md HARDENING-GO.md
           git commit -m "chore: apply final foundation hardening"
           git push origin HEAD:gpt6/final-foundation-hardening
