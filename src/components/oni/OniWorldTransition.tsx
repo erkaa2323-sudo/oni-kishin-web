@@ -1,6 +1,6 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-
+import { OniMemberRouteFx } from "./OniMemberRouteFx";
 import "./OniWorldTransition.css";
 
 const WORLD_ORDER = ["/", "/crew", "/garage", "/meet", "/oni-ai"] as const;
@@ -81,6 +81,7 @@ export function OniWorldTransition({ children }: { children: ReactNode }) {
         <span className="oni-world-ambient__depth" />
         <span className="oni-world-ambient__grain" />
       </div>
+      <OniMemberRouteFx />
       <div key={pathname} className="oni-world-scene">
         {children}
       </div>
