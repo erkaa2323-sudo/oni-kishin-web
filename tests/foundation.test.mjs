@@ -68,3 +68,19 @@ test("Vercel Git auto-deployment is disabled and production workflow is manual",
   assert.match(workflow, /workflow_dispatch:/);
   assert.doesNotMatch(workflow, /^  (push|pull_request|workflow_run):/m);
 });
+
+test("admin review controls survive compact gated actors and mobile AI stays bounded", () => {
+  const profiles = readFileSync("src/services/admin-profiles.ts", "utf8");
+  const controls = readFileSync("src/components/oni/OniControlCenter.tsx", "utf8");
+  const cleanup = readFileSync("src/admin-cleanup.css", "utf8");
+
+  assert.match(
+    profiles,
+    /const authorized = profile\.email \? isAuthorizedAdmin\(profile\) : profile\.role === "owner"/,
+  );
+  assert.match(controls, /"member_account\.approve"/);
+  assert.match(controls, /"application\.accept"/);
+  assert.match(cleanup, /max-height: 52svh !important/);
+  assert.match(cleanup, /section\[aria-label="CREW ACCOUNT"\] li button/);
+  assert.match(cleanup, /button\[data-admin-application-action\]/);
+});
