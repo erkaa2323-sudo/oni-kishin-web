@@ -90,17 +90,23 @@ section[aria-label="АНКЕТ"] button[data-admin-application-action="approve"]
     font-size: 1.25rem;
   }
 
-  /* Keep ONI AI inside the phone viewport and leave enough room for the chat composer. */
+  /* Keep ONI AI compact on phones: centered, narrower and never taller than about half the viewport. */
   aside[aria-label="ONI админ туслах"] {
-    left: 1rem !important;
-    right: 1rem !important;
-    width: auto !important;
-    max-width: calc(100vw - 2rem) !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(0.6rem, env(safe-area-inset-bottom)) !important;
+    width: calc(100vw - 1.5rem) !important;
+    max-width: 24rem !important;
+    transform: translateX(-50%) !important;
+  }
+
+  aside[aria-label="ONI админ туслах"] > div:first-child {
+    min-height: 44px !important;
   }
 
   aside[aria-label="ONI админ туслах"] > div:nth-child(2) {
-    max-height: 66svh !important;
-    grid-template-rows: 7.5rem minmax(6.5rem, 1fr) auto !important;
+    max-height: 52svh !important;
+    grid-template-rows: 5.5rem minmax(5rem, 1fr) auto !important;
   }
 
   aside[aria-label="ONI админ туслах"] > div:nth-child(2) > div:nth-child(2),
@@ -108,6 +114,15 @@ section[aria-label="АНКЕТ"] button[data-admin-application-action="approve"]
     min-width: 0 !important;
   }
 
+  aside[aria-label="ONI админ туслах"] > div:nth-child(2) > div:nth-child(2) {
+    padding: 0.65rem !important;
+  }
+
+  aside[aria-label="ONI админ туслах"] > div:nth-child(2) > div:last-child {
+    padding: 0.65rem !important;
+  }
+
+  section[aria-label="CREW ACCOUNT"] li > div > div:last-child,
   section[aria-label="АНКЕТ"] div:has(> button[data-admin-application-action]) {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -115,9 +130,11 @@ section[aria-label="АНКЕТ"] button[data-admin-application-action="approve"]
     width: 100%;
   }
 
+  section[aria-label="CREW ACCOUNT"] li button,
   section[aria-label="АНКЕТ"] button[data-admin-application-action] {
     width: 100% !important;
     min-height: 44px !important;
     justify-content: center !important;
+    touch-action: manipulation;
   }
 }
