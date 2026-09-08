@@ -64,6 +64,19 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Format only merged integration source
+        if: steps.merge.outputs.already_merged == 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          files="$({
+            git diff --cached --name-only --diff-filter=ACMRT HEAD -- '*.js' '*.mjs' '*.ts' '*.tsx'
+            git diff --name-only --diff-filter=ACMRT HEAD -- '*.js' '*.mjs' '*.ts' '*.tsx'
+          } | sort -u)"
+          if [ -n "$files" ]; then
+            printf '%s\n' "$files" | xargs npx prettier --write
+          fi
+
       - name: Full repository verification
         run: npm run check
 
