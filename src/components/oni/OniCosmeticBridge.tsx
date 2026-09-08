@@ -37,16 +37,16 @@ export function OniCosmeticBridge() {
   }, []);
 
   const active = useMemo(() => new Set(Object.values(equipped)), [equipped]);
+  const progressionSurface = pathname.startsWith("/progression") || pathname.startsWith("/shop");
   const frame = active.has("frame-crimson");
   const aura = active.has("aura-red-moon");
   const garage = active.has("garage-neon") && pathname.startsWith("/garage");
   const shizuki = active.has("shizuki-kitsune") && pathname.startsWith("/oni-ai");
   const title =
-    active.has("title-night-rider") &&
-    (pathname.startsWith("/crew") || pathname.startsWith("/progression"));
+    active.has("title-night-rider") && (pathname.startsWith("/crew") || progressionSurface);
   const entrance = active.has("entrance-kishin") && pathname.startsWith("/meet");
   const creator = active.has("creator-red-moon") && pathname.startsWith("/gallery");
-  const trophy = active.has("trophy-vault") && pathname.startsWith("/progression");
+  const trophy = active.has("trophy-vault") && progressionSurface;
 
   useEffect(() => {
     const root = document.documentElement;
