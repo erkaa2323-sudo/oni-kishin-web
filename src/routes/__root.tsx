@@ -10,6 +10,7 @@ import { OniWorldTransition } from "../components/oni/OniWorldTransition";
 import { OniNexusDock } from "../components/oni/OniNexusDock";
 import { NexusMeetPushBridge } from "../components/oni/NexusMeetPushBridge";
 import { OniProgressionRewardBridge } from "../components/oni/OniProgressionRewardBridge";
+import { OniCosmeticBridge } from "../components/oni/OniCosmeticBridge";
 
 const RECOVERY_KEY = "oni:last-hard-recovery";
 const isRecoverableClientLoadError = (error: Error) => /Failed to fetch dynamically imported module|Importing a module script failed|Load failed|ChunkLoadError|error loading dynamically imported module/i.test(`${error.name} ${error.message}`);
@@ -52,4 +53,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) { return <html lang="mn"><head><HeadContent /></head><body>{children}<Scripts /></body></html>; }
-function RootComponent() { const { queryClient } = Route.useRouteContext(); useEffect(() => { initPwa(); }, []); return <QueryClientProvider client={queryClient}><NexusMeetPushBridge /><OniProgressionRewardBridge /><OniOfflineBanner /><OniWorldTransition><Outlet /></OniWorldTransition><OniNexusDock /></QueryClientProvider>; }
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+  useEffect(() => { initPwa(); }, []);
+  return <QueryClientProvider client={queryClient}>
+    <NexusMeetPushBridge />
+    <OniProgressionRewardBridge />
+    <OniCosmeticBridge />
+    <OniOfflineBanner />
+    <OniWorldTransition><Outlet /></OniWorldTransition>
+    <OniNexusDock />
+  </QueryClientProvider>;
+}
