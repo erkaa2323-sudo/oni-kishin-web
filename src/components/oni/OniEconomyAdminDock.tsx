@@ -64,6 +64,7 @@ export function OniEconomyAdminDock() {
   useEffect(() => {
     if (open) void load();
   }, [open]);
+
   const selected = useMemo(
     () => members.find((row) => row.uid === adjustUid) ?? null,
     [members, adjustUid],
@@ -78,11 +79,11 @@ export function OniEconomyAdminDock() {
       await load();
       setNotice(
         confirmed
-          ? "Attendance revoke хийлээ."
-          : "Attendance баталгаажлаа. Reward bridge одоо тухайн rider-ийн Meet reward-ийг олгож чадна.",
+          ? "Уулзалтад оролцсон баталгааг цуцаллаа."
+          : "Оролцоог баталгаажууллаа. Тухайн гишүүн уулзалтын XP болон ONI шагналаа авах эрхтэй боллоо.",
       );
     } catch {
-      setNotice("Attendance өөрчилж чадсангүй.");
+      setNotice("Уулзалтын оролцооны төлөвийг өөрчилж чадсангүй.");
     } finally {
       setBusy("");
     }
@@ -90,7 +91,7 @@ export function OniEconomyAdminDock() {
 
   const saveWeek = async () => {
     if (!weekId || !weekStart || !weekEnd)
-      return setNotice("Week ID, эхлэх/дуусах цаг шаардлагатай.");
+      return setNotice("Долоо хоногийн дугаар, эхлэх болон дуусах цаг шаардлагатай.");
     setBusy("week");
     setNotice("");
     try {
@@ -100,10 +101,10 @@ export function OniEconomyAdminDock() {
         endsAt: new Date(weekEnd),
         enabled: weekEnabled,
       });
-      setNotice("Secure weekly claim window хадгалагдлаа.");
+      setNotice("Долоо хоногийн шагнал авах хугацааг хадгаллаа.");
       await load();
     } catch {
-      setNotice("Weekly window хадгалж чадсангүй.");
+      setNotice("Долоо хоногийн хугацааг хадгалж чадсангүй.");
     } finally {
       setBusy("");
     }
@@ -111,7 +112,7 @@ export function OniEconomyAdminDock() {
 
   const startSeason = async () => {
     if (!seasonId || !seasonStart || !seasonEnd)
-      return setNotice("Season ID, эхлэх/дуусах цаг шаардлагатай.");
+      return setNotice("Улирлын дугаар, эхлэх болон дуусах цаг шаардлагатай.");
     setBusy("season");
     setNotice("");
     try {
@@ -121,11 +122,11 @@ export function OniEconomyAdminDock() {
         endsAt: new Date(seasonEnd),
       });
       setNotice(
-        "Шинэ season эхэллээ. Өмнөх season snapshot archive-д хадгалагдаж, season XP reset хийгдлээ.",
+        "Шинэ улирал эхэллээ. Өмнөх улирлын чансаа архивлагдаж, улирлын XP 0-ээс эхэлнэ. Нийт хуримтлуулсан XP устахгүй.",
       );
       await load();
     } catch {
-      setNotice("Season start хийж чадсангүй.");
+      setNotice("Шинэ улирал эхлүүлж чадсангүй.");
     } finally {
       setBusy("");
     }
@@ -134,18 +135,18 @@ export function OniEconomyAdminDock() {
   const adjust = async () => {
     const amount = Number(adjustAmount);
     if (!selected || !Number.isInteger(amount) || !amount || !adjustReason.trim())
-      return setNotice("Member, бүхэл Coin amount, reason шаардлагатай.");
+      return setNotice("Гишүүн, бүхэл тоон ONI хэмжээ, засварын шалтгаан шаардлагатай.");
     setBusy("adjust");
     setNotice("");
     try {
       const result = await adjustMemberCoin({ uid: selected.uid, amount, reason: adjustReason });
       setNotice(
-        `${selected.nickname} · шинэ balance ${result.balanceAfter.toLocaleString()} ONI. Ledger-д audit reason хадгалагдлаа.`,
+        `${selected.nickname} · шинэ үлдэгдэл ${result.balanceAfter.toLocaleString()} ONI. Засварын шалтгаан үйлдлийн бүртгэлд хадгалагдлаа.`,
       );
       setAdjustAmount("");
       setAdjustReason("");
     } catch {
-      setNotice("Coin adjustment хийж чадсангүй.");
+      setNotice("ONI үлдэгдлийг засварлаж чадсангүй.");
     } finally {
       setBusy("");
     }
@@ -156,29 +157,33 @@ export function OniEconomyAdminDock() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 left-5 z-[80] inline-flex min-h-11 items-center gap-2 border border-emerald-400/35 bg-ink/95 px-4 text-xs font-semibold tracking-[0.14em] text-white shadow-2xl"
+        className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-[65] inline-flex min-h-11 items-center gap-2 border border-emerald-400/35 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
       >
         <Coins className="h-4 w-4 text-emerald-300" />
-        ECONOMY
+        ONI ЭДИЙН ЗАСАГ
       </button>
       {open ? (
         <div
           className="fixed inset-0 z-[96] overflow-y-auto bg-black/80 p-3 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
+          aria-label="ONI эдийн засгийн удирдлага"
         >
           <section className="mx-auto my-4 w-full max-w-3xl border border-white/10 bg-ink p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[0.62rem] tracking-[0.22em] text-emerald-300">
-                  ONI CONTROL CENTER
+                <p className="text-[0.62rem] tracking-[0.18em] text-emerald-300">
+                  ONI УДИРДЛАГЫН ТӨВ
                 </p>
-                <h2 className="mt-1 text-xl font-semibold">ECONOMY / ATTENDANCE / SEASON</h2>
+                <h2 className="mt-1 text-xl font-semibold">ЭДИЙН ЗАСАГ БА ШАГНАЛ</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60">
+              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60" aria-label="Хаах">
                 <X className="h-5 w-5" />
               </button>
             </div>
+            <p className="mt-2 text-xs leading-5 text-white/45">
+              Уулзалтын оролцоо, долоо хоногийн шагнал, улирал болон гишүүний ONI үлдэгдлийг энд удирдана.
+            </p>
             {notice ? (
               <p className="mt-4 border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
                 {notice}
@@ -189,11 +194,10 @@ export function OniEconomyAdminDock() {
               <section className="border border-white/10 p-4">
                 <div className="flex items-center gap-2">
                   <BadgeCheck className="h-4 w-4 text-emerald-300" />
-                  <h3 className="font-semibold">MEET ATTENDANCE</h3>
+                  <h3 className="font-semibold">УУЛЗАЛТЫН ОРОЛЦОО</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Registration өөрөө reward өгөхгүй. Admin энд attendance баталсны дараа л Meet
-                  XP/Coin claim нээгдэнэ.
+                  Зөвхөн бүртгүүлсэн байх нь шагнал өгөхгүй. Админ оролцоог баталгаажуулсны дараа тухайн гишүүн уулзалтын XP болон ONI шагналаа авна.
                 </p>
                 <div className="mt-4 max-h-64 divide-y divide-white/10 overflow-auto">
                   {attendance.length ? (
@@ -204,7 +208,7 @@ export function OniEconomyAdminDock() {
                           <span
                             className={`text-[0.62rem] ${row.confirmed ? "text-emerald-300" : "text-white/35"}`}
                           >
-                            {row.confirmed ? "ATTENDED" : "REGISTERED ONLY"}
+                            {row.confirmed ? "ОРОЛЦСОН НЬ БАТАЛГААЖСАН" : "ЗӨВХӨН БҮРТГҮҮЛСЭН"}
                           </span>
                         </div>
                         <button
@@ -213,12 +217,12 @@ export function OniEconomyAdminDock() {
                           onClick={() => void attendanceAction(row.uid, row.confirmed)}
                           className="min-h-9 border border-white/10 px-3 text-[0.62rem] disabled:opacity-40"
                         >
-                          {row.confirmed ? "REVOKE" : "CONFIRM"}
+                          {row.confirmed ? "ЦУЦЛАХ" : "БАТЛАХ"}
                         </button>
                       </div>
                     ))
                   ) : (
-                    <p className="py-4 text-xs text-white/35">Current Meet participant алга.</p>
+                    <p className="py-4 text-xs text-white/35">Одоогийн уулзалтад бүртгүүлсэн гишүүн алга.</p>
                   )}
                 </div>
               </section>
@@ -226,13 +230,16 @@ export function OniEconomyAdminDock() {
               <section className="border border-white/10 p-4">
                 <div className="flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-crimson" />
-                  <h3 className="font-semibold">SECURE WEEK</h3>
+                  <h3 className="font-semibold">ДОЛОО ХОНОГИЙН ШАГНАЛ</h3>
                 </div>
+                <p className="mt-2 text-xs leading-5 text-white/45">
+                  Тухайн долоо хоногт шагнал авах боломжтой хугацааг тохируулна.
+                </p>
                 <div className="mt-4 space-y-3">
                   <input
                     value={weekId}
                     onChange={(e) => setWeekId(e.target.value)}
-                    placeholder="2026-W37"
+                    placeholder="Ж: 2026-W37"
                     className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
                   />
                   <input
@@ -253,7 +260,7 @@ export function OniEconomyAdminDock() {
                       checked={weekEnabled}
                       onChange={(e) => setWeekEnabled(e.target.checked)}
                     />
-                    Weekly claims enabled
+                    Долоо хоногийн шагнал авах эрхийг нээх
                   </label>
                   <button
                     type="button"
@@ -264,7 +271,7 @@ export function OniEconomyAdminDock() {
                     {busy === "week" ? (
                       <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                     ) : (
-                      "SAVE WEEK"
+                      "ДОЛОО ХОНОГИЙН ТОХИРГООГ ХАДГАЛАХ"
                     )}
                   </button>
                 </div>
@@ -273,17 +280,16 @@ export function OniEconomyAdminDock() {
               <section className="border border-white/10 p-4">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-crimson" />
-                  <h3 className="font-semibold">SEASON CONTROL</h3>
+                  <h3 className="font-semibold">УЛИРЛЫН УДИРДЛАГА</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Start хийхэд өмнөх season leaderboard snapshot archive-д хадгалагдаж, бүх
-                  profile-ийн seasonXp 0 болно. Lifetime XP устахгүй.
+                  Шинэ улирал эхлүүлэхэд өмнөх улирлын чансаа архивлагдаж, улирлын XP 0 болно. Нийт хуримтлуулсан XP хэвээр үлдэнэ.
                 </p>
                 <div className="mt-4 space-y-3">
                   <input
                     value={seasonId}
                     onChange={(e) => setSeasonId(e.target.value)}
-                    placeholder="S01-2026"
+                    placeholder="Ж: S01-2026"
                     className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
                   />
                   <input
@@ -304,7 +310,7 @@ export function OniEconomyAdminDock() {
                     onClick={() => void startSeason()}
                     className="min-h-10 w-full border border-crimson/45 bg-crimson/10 text-xs font-semibold"
                   >
-                    START / ROTATE SEASON
+                    ШИНЭ УЛИРАЛ ЭХЛҮҮЛЭХ
                   </button>
                 </div>
               </section>
@@ -312,11 +318,10 @@ export function OniEconomyAdminDock() {
               <section className="border border-white/10 p-4">
                 <div className="flex items-center gap-2">
                   <Coins className="h-4 w-4 text-amber-300" />
-                  <h3 className="font-semibold">COIN CORRECTION</h3>
+                  <h3 className="font-semibold">ONI ҮЛДЭГДЭЛ ЗАСВАРЛАХ</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Manual adjustment бүр reason + admin UID + balanceAfter-тай Wallet Ledger-д
-                  үлдэнэ.
+                  Гараар хийсэн өөрчлөлт бүр шалтгаан, админы ID болон өөрчлөлтийн дараах үлдэгдэлтэйгээ үйлдлийн бүртгэлд хадгалагдана.
                 </p>
                 <div className="mt-4 space-y-3">
                   <select
@@ -334,13 +339,13 @@ export function OniEconomyAdminDock() {
                     inputMode="numeric"
                     value={adjustAmount}
                     onChange={(e) => setAdjustAmount(e.target.value)}
-                    placeholder="+500 эсвэл -300"
+                    placeholder="Ж: +500 эсвэл -300"
                     className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
                   />
                   <input
                     value={adjustReason}
                     onChange={(e) => setAdjustReason(e.target.value)}
-                    placeholder="Correction reason"
+                    placeholder="Засвар хийж буй шалтгаан"
                     className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
                   />
                   <button
@@ -349,7 +354,7 @@ export function OniEconomyAdminDock() {
                     onClick={() => void adjust()}
                     className="min-h-10 w-full border border-amber-300/30 bg-amber-300/[0.06] text-xs font-semibold"
                   >
-                    APPLY LEDGERED ADJUSTMENT
+                    ҮЛДЭГДЛИЙГ ЗАСВАРЛАЖ БҮРТГЭХ
                   </button>
                 </div>
               </section>
