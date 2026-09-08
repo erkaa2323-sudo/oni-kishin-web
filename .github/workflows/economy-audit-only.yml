@@ -101,24 +101,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'claimWeeklyMission' src/data/progression.ts
-          grep -q 'claimAchievement' src/data/progression.ts
-          grep -q 'claimPrestige' src/data/progression.ts
-          grep -q 'meetAttendance' src/data/progression.ts
-          grep -q 'lastAction: { type: "vault_unlock"' src/data/progression.ts
-          grep -q 'lastAction: { type: "weekly_claim"' src/data/progression.ts
-          grep -q 'lastAction: { type: "meet_reward"' src/data/progression.ts
-          grep -q 'lastAction: { type: "prestige"' src/data/progression.ts
-          grep -q 'balanceAfter' src/data/progression.ts
-          grep -q 'OniCosmeticBridge' src/routes/__root.tsx
-          grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
-          grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
-          grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
-          grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
-          grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
-          grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
-          grep -q 'economy-rule-coverage-report.mjs' .github/workflows/economy-audit-only.yml
-          grep -q 'economy-emulator-log-audit.mjs' .github/workflows/economy-audit-only.yml
-          if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then exit 1; fi
-          if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then exit 1; fi
+          check() {
+            local label="$1"
+            shift
+            if "$@"; then
+              echo "INVARIANT_OK $label"
+            else
+              echo "INVARIANT_FAIL $label"
+              exit 1
+            fi
+          }
+          check claimWeeklyMission grep -q 'claimWeeklyMission' src/data/progression.ts
+          check claimAchievement grep -q 'claimAchievement' src/data/progression.ts
+          check claimPrestige grep -q 'claimPrestige' src/data/progression.ts
+          check meetAttendance grep -q 'meetAttendance' src/data/progression.ts
+          check vault_unlock grep -q 'lastAction: { type: "vault_unlock"' src/data/progression.ts
+          check weekly_claim grep -q 'lastAction: { type: "weekly_claim"' src/data/progression.ts
+          check meet_reward grep -q 'lastAction: { type: "meet_reward"' src/data/progression.ts
+          check prestige_action grep -q 'lastAction: { type: "prestige"' src/data/progression.ts
+          check balanceAfter grep -q 'balanceAfter' src/data/progression.ts
+          check cosmetic_bridge grep -q 'OniCosmeticBridge' src/routes/__root.tsx
+          check economy_admin grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
+          check claim_reward_ui grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
+          check prestige_ui grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
+          check read_only_permissions grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
+          check rules_fragment grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
+          check ternary_patch grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
+          check coverage_report grep -q 'economy-rule-coverage-report.mjs' .github/workflows/economy-audit-only.yml
+          check emulator_log_audit grep -q 'economy-emulator-log-audit.mjs' .github/workflows/economy-audit-only.yml
+          if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL deploy_pages_present'; exit 1; fi
+          if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL vercel_action_present'; exit 1; fi
           echo "NO_DEPLOY_AUDIT_OK"
