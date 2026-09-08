@@ -8,7 +8,17 @@
 
 export type OniDestination = {
   /** Route path (must match a file in src/routes) */
-  to: "/" | "/crew" | "/garage" | "/gallery" | "/music" | "/join" | "/meet" | "/oni-ai" | "/admin";
+  to:
+    | "/"
+    | "/crew"
+    | "/garage"
+    | "/gallery"
+    | "/music"
+    | "/join"
+    | "/meet"
+    | "/profile"
+    | "/oni-ai"
+    | "/admin";
   /** Primary interface language: Mongolian */
   label: string;
   /** Decorative game-world code label */
@@ -70,11 +80,18 @@ export const ONI_DESTINATIONS: OniDestination[] = [
     index: "06",
   },
   {
+    to: "/profile",
+    label: "PROFILE",
+    code: "PROFILE",
+    desc: "Account, XP, Coin, Meet болон achievement",
+    index: "07",
+  },
+  {
     to: "/admin",
     label: "УДИРДЛАГА",
     code: "ADMIN",
     desc: "Хяналтын самбар",
-    index: "07",
+    index: "08",
   },
 ];
 
