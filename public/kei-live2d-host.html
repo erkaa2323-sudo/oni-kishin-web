@@ -29,6 +29,15 @@ function queueFrame(){if(!raf&&!disposed)raf=requestAnimationFrame(frameKei)}
 async function loadModel(){let last=null;const options={textureOptions:{preferCreateImageBitmap:false,lod:false},autoFocus:false,autoHitTest:false,autoUpdate:true};for(const url of modelUrls){try{return await PIXI.live2d.Live2DModel.from(url,options)}catch(error){last=error;console.warn('[Kei] source failed',url,error)}}throw last||new Error('Kei model unavailable')}
 function alphaSamples(){try{const gl=app?.renderer?.gl;if(!gl)return -1;const w=app.canvas.width,h=app.canvas.height;if(!w||!h)return 0;const data=new Uint8Array(w*h*4);gl.finish();gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,data);let count=0;for(let i=3;i<data.length;i+=64){if(data[i]>8)count++}return count}catch(error){console.warn('[Kei] pixel audit unavailable',error);return -1}}
 function shimLegacyGpuMetadata(textures){for(const texture of textures||[]){const source=texture?.source;if(source && !source._gpuData){Object.defineProperty(source,'_gpuData',{value:Object.create(null),writable:true,configurable:true});}}}
+function installCubismCoreCompat(m){
+  const core=m?.internalModel?.coreModel;
+  const low=core?.getModel?.();
+  if(!core||!low)return;
+  if(typeof low.getRenderOrders==='function'){
+    core.getDrawableRenderOrders=()=>low.getRenderOrders();
+  }
+  console.log('[Kei] Cubism 5-r.5 compatibility bridge installed',{hasGetRenderOrders:typeof low.getRenderOrders==='function'});
+}
 function cubismPreflight(m){
   const internal=m?.internalModel;
   const core=internal?.coreModel;
@@ -41,6 +50,7 @@ function cubismPreflight(m){
   const diag={
     count,
     lowDrawableKeys:drawables?Object.keys(drawables):[],
+    hasLowGetRenderOrders:typeof low?.getRenderOrders==='function',
     renderOrdersType:orders?.constructor?.name||typeof orders,
     renderOrdersLength:orders?.length??-1,
     renderOrdersHead:orders?Array.from(orders.slice?.(0,8)||[]):[],
@@ -75,6 +85,7 @@ stage.appendChild(app.canvas);
 app.canvas.addEventListener('webglcontextlost',(event)=>{event.preventDefault();send('failed','webgl-context-lost')});
 model=await loadModel();
 shimLegacyGpuMetadata(model?.textures);
+installCubismCoreCompat(model);
 cubismPreflight(model);
 const t0=model?.textures?.[0];
 if(!t0) throw new Error('Kei model has no texture[0]');
