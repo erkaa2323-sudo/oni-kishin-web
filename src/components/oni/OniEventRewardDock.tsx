@@ -11,6 +11,7 @@ export function OniEventRewardDock() {
   const [placement, setPlacement] = useState<EventRewardPlacement>("participation");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     void listMemberAccounts()
@@ -19,12 +20,14 @@ export function OniEventRewardDock() {
         setMembers(approved);
         setUid((current) => current || approved[0]?.uid || "");
       })
-      .catch(() => setNotice("Member account ачаалж чадсангүй."));
+      .catch(() => setNotice("Зөвшөөрөгдсөн гишүүний бүртгэлүүдийг ачаалж чадсангүй."));
   }, [open]);
+
   const selected = useMemo(() => members.find((x) => x.uid === uid) ?? null, [members, uid]);
+
   const submit = async () => {
     if (!selected || !eventId.trim()) {
-      setNotice("Event ID болон member сонгоно уу.");
+      setNotice("Эвентийн дугаар болон гишүүнээ сонгоно уу.");
       return;
     }
     setBusy(true);
@@ -42,42 +45,47 @@ export function OniEventRewardDock() {
       const code = error instanceof Error ? error.message : "failed";
       setNotice(
         code === "already_rewarded"
-          ? "Энэ event дээр энэ member reward авсан байна."
-          : "Event reward олгох үед алдаа гарлаа.",
+          ? "Энэ эвент дээр тухайн гишүүн шагналаа аль хэдийн авсан байна."
+          : "Эвентийн шагнал олгох үед алдаа гарлаа.",
       );
     } finally {
       setBusy(false);
     }
   };
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-[80] inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-ink/95 px-4 text-xs font-semibold tracking-[0.14em] text-white shadow-2xl"
+        className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+7.5rem)] left-4 z-[67] inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
       >
         <Award className="h-4 w-4 text-crimson" />
-        EVENT REWARD
+        ЭВЕНТИЙН ШАГНАЛ
       </button>
       {open ? (
         <div
           className="fixed inset-0 z-[95] flex items-end bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:justify-center"
           role="dialog"
           aria-modal="true"
+          aria-label="Эвентийн шагнал олгох"
         >
           <section className="w-full max-w-lg border border-white/10 bg-ink p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[0.62rem] tracking-[0.22em] text-crimson">ONI PROGRESSION</p>
-                <h2 className="mt-1 text-xl font-semibold">EVENT REWARD</h2>
+                <p className="text-[0.62rem] tracking-[0.18em] text-crimson">ONI АХИЦ БА ШАГНАЛ</p>
+                <h2 className="mt-1 text-xl font-semibold">ЭВЕНТИЙН ШАГНАЛ</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60">
+              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60" aria-label="Хаах">
                 <X className="h-5 w-5" />
               </button>
             </div>
+            <p className="mt-2 text-xs leading-5 text-white/45">
+              Эвентэд оролцсон гишүүний байр, оролцоонд тохирсон XP болон ONI coin-ыг нэг удаа олгоно.
+            </p>
             <div className="mt-5 space-y-4">
               <label className="block">
-                <span className="text-xs text-white/45">MEMBER</span>
+                <span className="text-xs text-white/45">ГИШҮҮН</span>
                 <select
                   value={uid}
                   onChange={(e) => setUid(e.target.value)}
@@ -91,16 +99,16 @@ export function OniEventRewardDock() {
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs text-white/45">EVENT ID</span>
+                <span className="text-xs text-white/45">ЭВЕНТИЙН ДУГААР</span>
                 <input
                   value={eventId}
                   onChange={(e) => setEventId(e.target.value)}
-                  placeholder="mongol-63-2026-09"
+                  placeholder="Ж: mongol-63-2026-09"
                   className="mt-2 min-h-11 w-full border border-white/10 bg-black/30 px-3 text-base sm:text-sm"
                 />
               </label>
               <label className="block">
-                <span className="text-xs text-white/45">RESULT</span>
+                <span className="text-xs text-white/45">ҮР ДҮН</span>
                 <select
                   value={placement}
                   onChange={(e) => setPlacement(e.target.value as EventRewardPlacement)}
@@ -121,14 +129,14 @@ export function OniEventRewardDock() {
                 type="button"
                 disabled={busy || !selected || !eventId.trim()}
                 onClick={() => void submit()}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.16em] disabled:opacity-50"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.12em] disabled:opacity-50"
               >
                 {busy ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Award className="h-4 w-4" />
                 )}
-                REWARD ОЛГОХ
+                ШАГНАЛ ОЛГОХ
               </button>
             </div>
           </section>
