@@ -66,7 +66,7 @@ export function OniCreatorReviewDock() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.75rem)] left-4 z-[66] inline-flex min-h-11 items-center gap-2 border border-crimson/45 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[.1em] text-foreground shadow-2xl clip-notch"
+        className="fixed bottom-[4.75rem] left-4 z-[66] inline-flex min-h-11 items-center gap-2 border border-crimson/45 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[.1em] text-foreground shadow-2xl clip-notch"
       >
         <Images className="h-4 w-4 text-crimson" />
         ЗУРГИЙН ХҮСЭЛТ
