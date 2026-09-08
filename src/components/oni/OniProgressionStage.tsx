@@ -1,11 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Coins, LockKeyhole, ShieldCheck, Sparkles, Trophy, Zap } from "lucide-react";
+import {
+  Award,
+  Check,
+  Coins,
+  Crown,
+  LockKeyhole,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  WalletCards,
+  Zap,
+} from "lucide-react";
 import { OniHudNav } from "./OniHudNav";
 import { OniFooter } from "./OniFooter";
 import {
+  claimAchievement,
+  claimPrestige,
+  claimWeeklyMission,
   equipVaultItem,
+  getCurrentSeasonConfig,
+  getCurrentWeeklyConfig,
+  getMyAchievementClaims,
   getMyProgression,
   getMyProgressionLedger,
+  getMyWeeklyClaims,
+  getMyWeeklyProgress,
   getProgressionLeaderboard,
   unlockVaultItem,
 } from "@/data/progression";
@@ -21,48 +40,104 @@ import {
   WEEKLY_MISSIONS,
   statsFromLedger,
   weeklyMissionProgress,
+  weeklyProgressValue,
+  type AchievementId,
   type ProgressionLedgerEntry,
+  type SeasonConfig,
+  type WeeklyConfig,
+  type WeeklyProgress,
 } from "@/lib/progression-rewards";
+
+const inWindow = (start: string | null | undefined, end: string | null | undefined) => {
+  if (!start || !end) return false;
+  const now = Date.now();
+  return now >= new Date(start).getTime() && now < new Date(end).getTime();
+};
+
+const shortDate = (value: string | null | undefined) =>
+  value
+    ? new Intl.DateTimeFormat("mn-MN", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(new Date(value))
+    : "—";
 
 export function OniProgressionStage() {
   const [profile, setProfile] = useState<OniProgressionProfile | null>(null);
   const [leaders, setLeaders] = useState<OniProgressionProfile[]>([]);
   const [ledger, setLedger] = useState<ProgressionLedgerEntry[]>([]);
+  const [weekConfig, setWeekConfig] = useState<WeeklyConfig | null>(null);
+  const [seasonConfig, setSeasonConfig] = useState<SeasonConfig | null>(null);
+  const [weekly, setWeekly] = useState<WeeklyProgress | null>(null);
+  const [weeklyClaims, setWeeklyClaims] = useState<Set<string>>(new Set());
+  const [achievementClaims, setAchievementClaims] = useState<Set<AchievementId>>(new Set());
   const [state, setState] = useState<"loading" | "ready" | "guest" | "error">("loading");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
+
   const load = useCallback(async () => {
     try {
-      const [mine, board, history] = await Promise.all([
+      const [mine, board, history, config, season, weekProgress, badgeClaims] = await Promise.all([
         getMyProgression(),
         getProgressionLeaderboard().catch(() => []),
         getMyProgressionLedger().catch(() => []),
+        getCurrentWeeklyConfig().catch(() => null),
+        getCurrentSeasonConfig().catch(() => null),
+        getMyWeeklyProgress().catch(() => null),
+        getMyAchievementClaims().catch(() => new Set<AchievementId>()),
       ]);
+      const claims = config?.weekId
+        ? await getMyWeeklyClaims(config.weekId).catch(() => new Set<string>())
+        : new Set<string>();
       setProfile(mine);
       setLeaders(board);
       setLedger(history.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "")));
+      setWeekConfig(config);
+      setSeasonConfig(season);
+      setWeekly(weekProgress);
+      setWeeklyClaims(claims);
+      setAchievementClaims(badgeClaims);
       setState(mine ? "ready" : "guest");
     } catch {
       setState("error");
     }
   }, []);
+
   useEffect(() => {
     void load();
     const onReward = () => void load();
     window.addEventListener("oni:progression-reward", onReward);
     return () => window.removeEventListener("oni:progression-reward", onReward);
   }, [load]);
+
   const rank = profile ? rankForXp(profile.xp) : null;
   const next = profile ? nextRankForXp(profile.xp) : null;
   const stats = useMemo(
     () => (profile ? statsFromLedger(ledger, profile.unlocked.length, profile.lifetimeXp) : null),
     [ledger, profile],
   );
-  const earned = useMemo(
-    () => (stats ? ONI_ACHIEVEMENTS.filter((a) => a.test(stats)) : []),
+  const eligibleAchievements = useMemo(
+    () =>
+      stats
+        ? new Set(
+            ONI_ACHIEVEMENTS.filter((achievement) => achievement.test(stats)).map(
+              (achievement) => achievement.id,
+            ),
+          )
+        : new Set<AchievementId>(),
     [stats],
   );
-  const weekly = useMemo(() => weeklyMissionProgress(ledger), [ledger]);
+  const legacyWeekly = useMemo(() => weeklyMissionProgress(ledger), [ledger]);
+  const weekOpen =
+    !!weekConfig?.enabled &&
+    !!weekConfig.weekId &&
+    inWindow(weekConfig.startsAt, weekConfig.endsAt);
+  const seasonOpen =
+    !!seasonConfig?.enabled &&
+    !!seasonConfig.seasonId &&
+    inWindow(seasonConfig.startsAt, seasonConfig.endsAt);
   const progress = useMemo(() => {
     if (!profile || !rank || !next) return profile ? 100 : 0;
     return Math.min(
@@ -70,6 +145,15 @@ export function OniProgressionStage() {
       Math.max(0, ((profile.xp - rank.minXp) / (next.minXp - rank.minXp)) * 100),
     );
   }, [profile, rank, next]);
+  const earnedCoin = useMemo(
+    () => ledger.filter((row) => row.coin > 0).reduce((sum, row) => sum + row.coin, 0),
+    [ledger],
+  );
+  const spentCoin = useMemo(
+    () => ledger.filter((row) => row.coin < 0).reduce((sum, row) => sum + Math.abs(row.coin), 0),
+    [ledger],
+  );
+
   const act = async (id: string, mode: "unlock" | "equip") => {
     setBusy(id);
     setNotice("");
@@ -77,7 +161,11 @@ export function OniProgressionStage() {
       if (mode === "unlock") await unlockVaultItem(id);
       else await equipVaultItem(id);
       await load();
-      setNotice(mode === "unlock" ? "VAULT ITEM UNLOCKED ✨" : "COSMETIC EQUIPPED ✨");
+      setNotice(
+        mode === "unlock"
+          ? "VAULT ITEM UNLOCKED ✨ Coin зарцуулалт Wallet Ledger-д бүртгэгдлээ."
+          : "COSMETIC EQUIPPED ✨ Effect сайт дээр realtime идэвхжинэ.",
+      );
     } catch (error) {
       const code = error instanceof Error ? error.message : "failed";
       setNotice(
@@ -91,8 +179,78 @@ export function OniProgressionStage() {
       setBusy("");
     }
   };
+
+  const claimMission = async (missionId: string) => {
+    setBusy(`mission:${missionId}`);
+    setNotice("");
+    try {
+      const result = await claimWeeklyMission(missionId);
+      if (result === "claimed") {
+        setNotice("WEEKLY REWARD CLAIMED ✨ ONI Coin Wallet-д орлоо.");
+        window.dispatchEvent(
+          new CustomEvent("oni:progression-reward", { detail: { source: "weekly", missionId } }),
+        );
+        await load();
+      } else if (result === "already")
+        setNotice("Энэ weekly mission-ийн reward аль хэдийн авсан байна.");
+      else if (result === "not_ready")
+        setNotice("Mission complete болоогүй эсвэл weekly claim window хаалттай байна.");
+      else setNotice("Weekly reward system Admin-аар идэвхжээгүй байна.");
+    } catch {
+      setNotice("Weekly reward claim баталгаажуулж чадсангүй.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const claimBadge = async (achievementId: AchievementId) => {
+    setBusy(`badge:${achievementId}`);
+    setNotice("");
+    try {
+      const result = await claimAchievement(achievementId);
+      if (result === "claimed" || result === "already") {
+        setNotice(
+          result === "claimed"
+            ? "ACHIEVEMENT PERMANENTLY UNLOCKED ✨"
+            : "Энэ badge аль хэдийн таны collection-д байна.",
+        );
+        await load();
+      } else setNotice("Achievement-ийн шаардлага хараахан хангагдаагүй байна.");
+    } catch {
+      setNotice("Achievement claim баталгаажуулж чадсангүй.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const prestige = async () => {
+    setBusy("prestige");
+    setNotice("");
+    try {
+      const result = await claimPrestige();
+      if (result === "claimed") {
+        setNotice(
+          "PRESTIGE ASCENSION COMPLETE 👹 Current Rank XP reset; Coin, Lifetime/Season XP, Collection хэвээр үлдлээ.",
+        );
+        await load();
+      } else if (result === "max") setNotice("PRESTIGE III · MAX хүрсэн байна.");
+      else setNotice("Prestige хийхийн тулд current Rank XP 26,000 хүрсэн байх ёстой.");
+    } catch {
+      setNotice("Prestige transaction баталгаажуулж чадсангүй.");
+    } finally {
+      setBusy("");
+    }
+  };
+
   const missionValue = (kind: "meet" | "creator" | "activity") =>
-    kind === "meet" ? weekly.meet : kind === "creator" ? weekly.creator : weekly.activity;
+    weekConfig?.weekId && weekly?.weekId === weekConfig.weekId
+      ? weeklyProgressValue(weekly, kind)
+      : kind === "meet"
+        ? legacyWeekly.meet
+        : kind === "creator"
+          ? legacyWeekly.creator
+          : legacyWeekly.activity;
+
   return (
     <div className="min-h-screen bg-ink text-white">
       <OniHudNav />
@@ -103,10 +261,12 @@ export function OniProgressionStage() {
             ӨӨРИЙН ДОМОГОО ӨСГӨ.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
-            Meet, Event, Creator болон clan contribution-аас XP / ONI Coin авч Rank өсгөн, cosmetic
-            collection-оо нээнэ. Бодит мөнгөтэй холбоогүй.
+            Баталгаажсан Meet attendance, Event, Creator contribution-аас XP / ONI Coin авч Rank,
+            Prestige, permanent badges болон бодитоор ажилладаг cosmetic collection-оо өсгөнө. ONI
+            Coin нь бодит мөнгө биш.
           </p>
         </header>
+
         {state === "loading" ? (
           <p className="py-16 text-white/50">NEXUS profile ачаалж байна…</p>
         ) : state !== "ready" || !profile ? (
@@ -125,7 +285,7 @@ export function OniProgressionStage() {
                   <div>
                     <p className="text-xs tracking-[0.25em] text-white/45">{profile.nickname}</p>
                     <h2 className="mt-2 text-3xl font-semibold">
-                      LV.{levelForXp(profile.xp)} · {rank?.name}
+                      P{profile.prestige} · LV.{levelForXp(profile.xp)} · {rank?.name}
                     </h2>
                   </div>
                   <div className="text-right">
@@ -158,6 +318,7 @@ export function OniProgressionStage() {
                 </div>
               </div>
             </section>
+
             <section className="grid gap-3 md:grid-cols-3">
               {[
                 ["MEETS", profile.meetCount],
@@ -170,68 +331,187 @@ export function OniProgressionStage() {
                 </div>
               ))}
             </section>
+
+            <section className="mt-10 grid gap-3 md:grid-cols-2">
+              <article className="border border-white/10 bg-white/[0.02] p-5">
+                <p className="text-xs tracking-[0.24em] text-crimson">CURRENT SEASON</p>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div>
+                    <strong className="text-2xl">{seasonConfig?.seasonId || "UNASSIGNED"}</strong>
+                    <p className="mt-2 text-xs text-white/40">
+                      {seasonOpen
+                        ? "SEASON ACTIVE"
+                        : seasonConfig?.enabled
+                          ? "OUTSIDE ACTIVE WINDOW"
+                          : "SEASON NOT ACTIVE"}
+                    </p>
+                  </div>
+                  <span className="text-xs text-white/45">
+                    ENDS · {shortDate(seasonConfig?.endsAt)}
+                  </span>
+                </div>
+              </article>
+              <article className="border border-white/10 bg-white/[0.02] p-5">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-amber-300" />
+                  <p className="text-xs tracking-[0.24em] text-amber-200">PRESTIGE ASCENSION</p>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-4">
+                  <div>
+                    <strong className="text-2xl">PRESTIGE {profile.prestige} / 3</strong>
+                    <p className="mt-2 text-xs leading-5 text-white/40">
+                      26,000 current XP дээр ascension хийнэ. Coin, Lifetime XP, Season XP,
+                      Collection хадгалагдана.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={profile.prestige >= 3 || profile.xp < 26000 || busy === "prestige"}
+                    onClick={() => void prestige()}
+                    className="min-h-10 shrink-0 border border-amber-300/30 bg-amber-300/[0.06] px-4 text-[0.65rem] font-semibold disabled:opacity-30"
+                  >
+                    ASCEND
+                  </button>
+                </div>
+              </article>
+            </section>
+
+            <section className="mt-10 border border-white/10 bg-white/[0.02] p-5">
+              <div className="flex items-center gap-2">
+                <WalletCards className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-xs tracking-[0.24em] text-crimson">ONI WALLET</p>
+                  <h2 className="mt-1 text-2xl font-semibold">COIN FLOW</h2>
+                </div>
+              </div>
+              <div className="mt-5 grid grid-cols-3 gap-px bg-white/10 text-center">
+                <div className="bg-ink p-4">
+                  <span className="text-[0.62rem] text-white/40">BALANCE</span>
+                  <strong className="mt-2 block">🪙 {profile.coin.toLocaleString()}</strong>
+                </div>
+                <div className="bg-ink p-4">
+                  <span className="text-[0.62rem] text-white/40">EARNED LOG</span>
+                  <strong className="mt-2 block text-emerald-300">
+                    +{earnedCoin.toLocaleString()}
+                  </strong>
+                </div>
+                <div className="bg-ink p-4">
+                  <span className="text-[0.62rem] text-white/40">SPENT LOG</span>
+                  <strong className="mt-2 block text-rose-300">
+                    -{spentCoin.toLocaleString()}
+                  </strong>
+                </div>
+              </div>
+            </section>
+
             <section className="mt-10">
-              <p className="text-xs tracking-[0.25em] text-crimson">WEEKLY ORDERS</p>
-              <h2 className="mt-2 text-2xl font-semibold">ЭНЭ 7 ХОНОГИЙН MISSION</h2>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs tracking-[0.25em] text-crimson">WEEKLY ORDERS</p>
+                  <h2 className="mt-2 text-2xl font-semibold">ЭНЭ 7 ХОНОГИЙН MISSION</h2>
+                </div>
+                <span className={`text-xs ${weekOpen ? "text-emerald-300" : "text-amber-300"}`}>
+                  {weekOpen
+                    ? `SECURE WEEK · ${weekConfig?.weekId}`
+                    : "CLAIM WINDOW CLOSED / SETUP PENDING"}
+                </span>
+              </div>
               <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {WEEKLY_MISSIONS.map((m) => {
-                  const value = missionValue(m.kind);
-                  const done = value >= m.target;
+                {WEEKLY_MISSIONS.map((mission) => {
+                  const value = missionValue(mission.kind);
+                  const done = value >= mission.target;
+                  const isClaimed = weeklyClaims.has(mission.id);
+                  const canClaim = weekOpen && done && !isClaimed;
                   return (
                     <article
-                      key={m.id}
+                      key={mission.id}
                       className={`border p-4 ${done ? "border-emerald-400/30 bg-emerald-400/[0.05]" : "border-white/10 bg-white/[0.025]"}`}
                     >
                       <div className="flex justify-between gap-3">
-                        <strong className="text-sm">{m.label}</strong>
+                        <strong className="text-sm">{mission.label}</strong>
                         <span className="text-xs text-white/45">
-                          {Math.min(value, m.target)}/{m.target}
+                          {Math.min(value, mission.target)}/{mission.target}
                         </span>
                       </div>
                       <div className="mt-3 h-1.5 bg-white/10">
                         <div
                           className="h-full bg-crimson"
-                          style={{ width: `${Math.min(100, (value / m.target) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (value / mission.target) * 100)}%` }}
                         />
                       </div>
-                      <p className="mt-3 text-xs text-white/45">
-                        Mission value · 🪙 {m.rewardCoin}
-                      </p>
+                      <p className="mt-3 text-xs text-white/45">Reward · 🪙 {mission.rewardCoin}</p>
+                      <button
+                        type="button"
+                        disabled={!canClaim || busy === `mission:${mission.id}`}
+                        onClick={() => void claimMission(mission.id)}
+                        className="mt-4 min-h-10 w-full border border-emerald-400/30 bg-emerald-400/[0.06] text-[0.65rem] font-semibold tracking-[0.14em] disabled:opacity-35"
+                      >
+                        {isClaimed ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Check className="h-3.5 w-3.5" />
+                            CLAIMED
+                          </span>
+                        ) : done ? (
+                          "CLAIM REWARD"
+                        ) : (
+                          "IN PROGRESS"
+                        )}
+                      </button>
                     </article>
                   );
                 })}
               </div>
             </section>
+
             <section className="mt-10">
-              <p className="text-xs tracking-[0.25em] text-crimson">ACHIEVEMENTS</p>
-              <h2 className="mt-2 text-2xl font-semibold">ONI BADGES</h2>
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-crimson" />
+                <div>
+                  <p className="text-xs tracking-[0.25em] text-crimson">ACHIEVEMENTS</p>
+                  <h2 className="mt-1 text-2xl font-semibold">PERMANENT ONI BADGES</h2>
+                </div>
+              </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {ONI_ACHIEVEMENTS.map((a) => {
-                  const done = earned.some((x) => x.id === a.id);
+                {ONI_ACHIEVEMENTS.map((achievement) => {
+                  const eligible = eligibleAchievements.has(achievement.id);
+                  const owned = achievementClaims.has(achievement.id);
                   return (
                     <article
-                      key={a.id}
-                      className={`border p-4 ${done ? "border-crimson/35 bg-crimson/[0.05]" : "border-white/10 bg-white/[0.02] opacity-60"}`}
+                      key={achievement.id}
+                      className={`border p-4 ${owned ? "border-emerald-400/35 bg-emerald-400/[0.05]" : eligible ? "border-crimson/35 bg-crimson/[0.05]" : "border-white/10 bg-white/[0.02] opacity-65"}`}
                     >
                       <div className="flex items-center justify-between">
-                        <strong>{a.name}</strong>
-                        {done ? (
-                          <ShieldCheck className="h-4 w-4 text-crimson" />
+                        <strong>{achievement.name}</strong>
+                        {owned ? (
+                          <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                        ) : eligible ? (
+                          <Sparkles className="h-4 w-4 text-crimson" />
                         ) : (
                           <LockKeyhole className="h-4 w-4 text-white/30" />
                         )}
                       </div>
-                      <p className="mt-2 text-xs leading-5 text-white/45">{a.description}</p>
+                      <p className="mt-2 text-xs leading-5 text-white/45">
+                        {achievement.description}
+                      </p>
+                      <button
+                        type="button"
+                        disabled={!eligible || owned || busy === `badge:${achievement.id}`}
+                        onClick={() => void claimBadge(achievement.id)}
+                        className="mt-4 min-h-9 w-full border border-white/10 text-[0.62rem] font-semibold tracking-[0.12em] disabled:opacity-35"
+                      >
+                        {owned ? "PERMANENTLY OWNED" : eligible ? "CLAIM BADGE" : "LOCKED"}
+                      </button>
                     </article>
                   );
                 })}
               </div>
             </section>
+
             <section className="mt-10">
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs tracking-[0.25em] text-crimson">ONI VAULT</p>
-                  <h2 className="mt-2 text-2xl font-semibold">COSMETIC UNLOCKS</h2>
+                  <h2 className="mt-2 text-2xl font-semibold">REAL COSMETIC UNLOCKS</h2>
                 </div>
                 <span className="text-xs text-white/40">
                   {profile.unlocked.length} / {ONI_VAULT.length}
@@ -273,7 +553,7 @@ export function OniProgressionStage() {
                           onClick={() => void act(item.id, owned ? "equip" : "unlock")}
                           className="mt-3 min-h-11 w-full border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.16em] disabled:opacity-45"
                         >
-                          {equipped ? "EQUIPPED" : owned ? "EQUIP" : "UNLOCK"}
+                          {equipped ? "EQUIPPED · LIVE" : owned ? "EQUIP" : "UNLOCK"}
                         </button>
                       </div>
                     </article>
@@ -281,35 +561,53 @@ export function OniProgressionStage() {
                 })}
               </div>
             </section>
+
             <section className="mt-10">
-              <p className="text-xs tracking-[0.25em] text-crimson">ACTIVITY LEDGER</p>
-              <h2 className="mt-2 text-2xl font-semibold">СҮҮЛИЙН REWARD</h2>
+              <p className="text-xs tracking-[0.25em] text-crimson">WALLET LEDGER</p>
+              <h2 className="mt-2 text-2xl font-semibold">ОРЛОГО / ЗАРЛАГЫН ТҮҮХ</h2>
               <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
                 {ledger.length ? (
-                  ledger.slice(0, 8).map((entry) => (
+                  ledger.slice(0, 14).map((entry) => (
                     <div
                       key={entry.id}
                       className="flex items-center justify-between gap-4 py-3 text-xs"
                     >
-                      <span className="truncate text-white/65">
-                        {entry.sourceType.replaceAll("_", " ").toUpperCase()}
-                      </span>
-                      <span className="shrink-0">
-                        +{entry.xp} XP · 🪙 +{entry.coin}
+                      <div className="min-w-0">
+                        <span className="block truncate text-white/65">
+                          {entry.sourceType.replaceAll("_", " ").toUpperCase()}
+                        </span>
+                        {entry.balanceAfter != null ? (
+                          <span className="mt-1 block text-[0.6rem] text-white/30">
+                            BALANCE AFTER · {entry.balanceAfter.toLocaleString()}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span
+                        className={`shrink-0 ${entry.coin < 0 ? "text-rose-300" : entry.coin > 0 ? "text-emerald-300" : "text-white/45"}`}
+                      >
+                        {entry.xp ? `${entry.xp > 0 ? "+" : ""}${entry.xp} XP · ` : ""}🪙{" "}
+                        {entry.coin > 0 ? "+" : ""}
+                        {entry.coin.toLocaleString()}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="py-5 text-sm text-white/40">Reward history одоогоор хоосон.</p>
+                  <p className="py-5 text-sm text-white/40">Wallet history одоогоор хоосон.</p>
                 )}
               </div>
             </section>
           </>
         )}
+
         <section className="mt-12">
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-crimson" />
-            <h2 className="text-xl font-semibold">SEASON REPUTATION</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-crimson" />
+              <h2 className="text-xl font-semibold">SEASON REPUTATION</h2>
+            </div>
+            <span className="text-xs text-white/35">
+              {seasonConfig?.seasonId || "NO ACTIVE SEASON"}
+            </span>
           </div>
           <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
             {leaders.length ? (
@@ -320,7 +618,8 @@ export function OniProgressionStage() {
                     {entry.nickname}
                   </span>
                   <span className="text-white/55">
-                    {entry.seasonXp.toLocaleString()} XP · {rankForXp(entry.xp).name}
+                    {entry.seasonXp.toLocaleString()} XP · P{entry.prestige} ·{" "}
+                    {rankForXp(entry.xp).name}
                   </span>
                 </div>
               ))

@@ -14,20 +14,57 @@ export type ProgressionLedgerEntry = {
   sourceKey: string;
   xp: number;
   coin: number;
+  balanceAfter?: number | null;
   createdAt: string | null;
 };
+
+export type WeeklyMissionKind = "meet" | "creator" | "activity";
+export type WeeklyMissionId = "meet-2" | "creator-1" | "activity-3";
+
+export type WeeklyProgress = {
+  uid: string;
+  weekId: string;
+  meet: number;
+  creator: number;
+  activity: number;
+};
+
+export type WeeklyConfig = {
+  weekId: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  enabled: boolean;
+};
+
+export type SeasonConfig = {
+  seasonId: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  enabled: boolean;
+};
+
+export type ProgressionStats = {
+  meets: number;
+  creator: number;
+  events: number;
+  unlocked: number;
+  lifetimeXp: number;
+};
+
+export type AchievementId =
+  "first-blood" | "night-rider" | "content-creator" | "collector" | "kishin" | "legend";
 
 export const ONI_ACHIEVEMENTS = [
   {
     id: "first-blood",
     name: "FIRST BLOOD",
-    description: "Анхны meet attendance reward ав.",
+    description: "Анхны баталгаажсан Meet attendance reward ав.",
     test: (s: ProgressionStats) => s.meets >= 1,
   },
   {
     id: "night-rider",
     name: "NIGHT RIDER",
-    description: "10 meet-д оролц.",
+    description: "10 баталгаажсан Meet-д оролц.",
     test: (s: ProgressionStats) => s.meets >= 10,
   },
   {
@@ -54,15 +91,16 @@ export const ONI_ACHIEVEMENTS = [
     description: "26,000 lifetime XP хүр.",
     test: (s: ProgressionStats) => s.lifetimeXp >= 26000,
   },
-] as const;
+] as const satisfies ReadonlyArray<{
+  id: AchievementId;
+  name: string;
+  description: string;
+  test: (stats: ProgressionStats) => boolean;
+}>;
 
-export type ProgressionStats = {
-  meets: number;
-  creator: number;
-  events: number;
-  unlocked: number;
-  lifetimeXp: number;
-};
+export function achievementById(id: string) {
+  return ONI_ACHIEVEMENTS.find((achievement) => achievement.id === id) ?? null;
+}
 
 export const WEEKLY_MISSIONS = [
   { id: "meet-2", label: "2 Meet оролц", target: 2, rewardCoin: 300, kind: "meet" as const },
@@ -81,6 +119,21 @@ export const WEEKLY_MISSIONS = [
     kind: "activity" as const,
   },
 ] as const;
+
+export const WEEKLY_MISSION_IDS = WEEKLY_MISSIONS.map((mission) => mission.id) as WeeklyMissionId[];
+
+export function weeklyMissionById(id: string) {
+  return WEEKLY_MISSIONS.find((mission) => mission.id === id) ?? null;
+}
+
+export function weeklyProgressValue(progress: WeeklyProgress | null, kind: WeeklyMissionKind) {
+  if (!progress) return 0;
+  return kind === "meet"
+    ? progress.meet
+    : kind === "creator"
+      ? progress.creator
+      : progress.activity;
+}
 
 export function startOfCurrentWeek(now = new Date()) {
   const d = new Date(now);

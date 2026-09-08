@@ -10,9 +10,10 @@
     "start": "node .output/server/index.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run build && npm run test:foundation && npm run test:rules && npm run test:browsers",
+    "check": "npm run lint && npm run typecheck && npm run build && npm run test:foundation && npm run test:rules && npm run test:economy && npm run test:browsers",
     "test:foundation": "node --test tests/foundation.test.mjs",
-    "test:rules": "node scripts/compose-firestore-rules.mjs && firebase emulators:exec --only firestore --project demo-oni-hardening --config firebase.test.json \"node --test tests/firestore-rules.test.mjs\"",
+    "test:rules": "node scripts/economy-v3-ternary-patch.mjs && node scripts/compose-firestore-rules.mjs && firebase emulators:exec --only firestore --project demo-oni-hardening --config firebase.test.json \"node --test tests/firestore-rules.test.mjs\"",
+    "test:economy": "node scripts/economy-v3-ternary-patch.mjs && node scripts/compose-firestore-rules.mjs && firebase emulators:exec --only firestore --project demo-oni-economy --config firebase.economy.test.json \"node scripts/economy-rules-test.mjs && node scripts/economy-rule-coverage-report.mjs\"",
     "test:browsers": "node scripts/check-browsers.mjs"
   },
   "dependencies": {

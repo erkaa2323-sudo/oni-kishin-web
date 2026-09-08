@@ -1,0 +1,134 @@
+name: ONI Economy Audit Only
+
+on:
+  push:
+    branches:
+      - audit/oni-economy-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oni-economy-audit-only
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout audit branch
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --no-save
+
+      - name: Full TypeScript audit
+        run: bun run typecheck
+
+      - name: Production build without deploy
+        run: bun run build
+
+      - name: Apply expression-safe ternary candidate
+        run: node scripts/economy-v3-ternary-patch.mjs
+
+      - name: Compose Firestore rules without deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          base=Path("firestore.rules").read_text(encoding="utf-8")
+          marker="    match /{document=**} { allow read, write: if false; }"
+          if marker not in base:
+              raise SystemExit("Firestore deny-all marker missing")
+          fragments=[
+              ("firestore.creator.rules.fragment","match /creatorPublishRequests/"),
+              ("firestore.nexus.rules.fragment","match /pushSubscriptions/"),
+              ("firestore.progression.v3.rules.fragment","function currentWeekPathV3()"),
+          ]
+          combined=base
+          for path, needle in fragments:
+              if needle not in combined:
+                  combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
+          Path("firestore.economy-audit.rules").write_text(combined,encoding="utf-8")
+          PY
+          grep -q 'match /progressionMissionClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionWeekly/' firestore.economy-audit.rules
+          grep -q 'match /meetAttendance/' firestore.economy-audit.rules
+          grep -q 'match /progressionAchievementClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionPrestigeClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionSeasonArchive/' firestore.economy-audit.rules
+          grep -q '"vault_spend"' firestore.economy-audit.rules
+          grep -q '"weekly_mission"' firestore.economy-audit.rules
+          grep -q 'validLedgerCreateV3' firestore.economy-audit.rules
+          grep -q 'validEconomyProfileUpdateV3' firestore.economy-audit.rules
+          grep -q 'freshProfileActionV3' firestore.economy-audit.rules
+          grep -q 'afterProfileFreshV3' firestore.economy-audit.rules
+          grep -q '? validVaultProfileV3' firestore.economy-audit.rules
+          grep -q '? meetCount >= 1' firestore.economy-audit.rules
+
+      - name: Install rules test harness
+        run: bun add --no-save @firebase/rules-unit-testing
+
+      - name: Firestore economy security integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > firebase.economy-audit.json <<'JSON'
+          {
+            "firestore": { "rules": "firestore.economy-audit.rules" },
+            "emulators": { "firestore": { "port": 8089 }, "ui": { "enabled": false } }
+          }
+          JSON
+          bunx firebase-tools@14.16.0 emulators:exec --only firestore --project demo-oni-economy --config firebase.economy-audit.json "bun scripts/economy-rules-test.mjs && bun scripts/economy-rule-coverage-report.mjs" 2>&1 | tee economy-emulator.log
+          bun scripts/economy-emulator-log-audit.mjs
+
+      - name: Upload economy emulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: economy-emulator-diagnostics
+          path: economy-emulator.log
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Economy invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          check() {
+            local label="$1"
+            shift
+            if "$@"; then
+              echo "INVARIANT_OK $label"
+            else
+              echo "INVARIANT_FAIL $label"
+              exit 1
+            fi
+          }
+          check claimWeeklyMission grep -q 'claimWeeklyMission' src/data/progression.ts
+          check claimAchievement grep -q 'claimAchievement' src/data/progression.ts
+          check claimPrestige grep -q 'claimPrestige' src/data/progression.ts
+          check meetAttendance grep -q 'meetAttendance' src/data/progression.ts
+          check vault_unlock grep -q 'lastAction: { type: "vault_unlock"' src/data/progression.ts
+          check weekly_claim grep -q 'lastAction: { type: "weekly_claim"' src/data/progression.ts
+          check meet_reward grep -q 'lastAction: { type: "meet_reward"' src/data/progression.ts
+          check prestige_action grep -q 'lastAction: { type: "prestige"' src/data/progression.ts
+          check balanceAfter grep -q 'balanceAfter' src/data/progression.ts
+          check cosmetic_bridge grep -q 'OniCosmeticBridge' src/routes/__root.tsx
+          check economy_admin grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
+          check claim_reward_ui grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
+          check prestige_ui grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
+          check read_only_permissions grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
+          check rules_fragment grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
+          check ternary_patch grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
+          check coverage_report grep -q 'economy-rule-coverage-report.mjs' .github/workflows/economy-audit-only.yml
+          check emulator_log_audit grep -q 'economy-emulator-log-audit.mjs' .github/workflows/economy-audit-only.yml
+          if grep -Eq '^[[:space:]]*uses:[[:space:]]+actions/deploy-pages@' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL deploy_pages_present'; exit 1; fi
+          if grep -Eq '^[[:space:]]*uses:[[:space:]]+amondnet/vercel-action@' .github/workflows/economy-audit-only.yml; then echo 'INVARIANT_FAIL vercel_action_present'; exit 1; fi
+          echo "NO_DEPLOY_AUDIT_OK"
