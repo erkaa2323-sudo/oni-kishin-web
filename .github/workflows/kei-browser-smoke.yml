@@ -5,6 +5,7 @@ on:
     branches: [chatgpt/kei-final-browser-test]
     paths:
       - 'public/kei-live2d-host.html'
+      - 'public/kei-pixi-texture-test.html'
       - 'scripts/prepare-live2d-core.mjs'
       - 'tests/kei-browser-smoke.mjs'
       - '.github/workflows/kei-browser-smoke.yml'
