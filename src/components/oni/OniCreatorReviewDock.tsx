@@ -1,14 +1,12 @@
-import { isAdminEmail } from "@/lib/admin-authorization";
 import { useEffect, useState } from "react";
 import { Check, Images, Loader2, RefreshCw, X } from "lucide-react";
-import { onAuthStateChanged } from "firebase/auth";
 
-import { firebaseAuth } from "@/integrations/firebase/client";
 import {
   listCreatorPublishRequests,
   reviewCreatorPublishRequest,
   type CreatorPublishRequest,
 } from "@/data/creator-publish";
+import { useOniAuth } from "@/hooks/useOniAuth";
 
 const PRESET_LABEL: Record<string, string> = {
   profile: "ПРОФАЙЛ",
@@ -19,20 +17,13 @@ const PRESET_LABEL: Record<string, string> = {
 };
 
 export function OniCreatorReviewDock() {
-  const [authorized, setAuthorized] = useState(false);
+  const auth = useOniAuth();
+  const authorized = auth.phase === "authorized";
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<CreatorPublishRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
   const [notice, setNotice] = useState("");
-
-  useEffect(
-    () =>
-      onAuthStateChanged(firebaseAuth, (user) => {
-        setAuthorized(isAdminEmail(user?.email));
-      }),
-    [],
-  );
 
   const load = async () => {
     if (!authorized) return;
