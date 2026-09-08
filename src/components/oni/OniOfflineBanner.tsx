@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Truthful offline indicator. Live Supabase-backed data (members, garage, MEET)
+ * Truthful offline indicator. Live Firebase-backed data (members, garage, MEET)
  * is never cached, so we tell the user it is unavailable instead of showing stale state.
  */
 export function OniOfflineBanner() {
