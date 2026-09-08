@@ -71,6 +71,12 @@ jobs:
           grep -q 'afterProfileFreshV3' firestore.economy-audit.rules
           grep -q '? validVaultProfileV3' firestore.economy-audit.rules
           grep -q '? meetCount >= 1' firestore.economy-audit.rules
+          echo '=== FIRESTORE LINE CONTEXT 588-600 ==='
+          nl -ba firestore.economy-audit.rules | sed -n '588,600p'
+          echo '=== FIRESTORE LINE CONTEXT 651-663 ==='
+          nl -ba firestore.economy-audit.rules | sed -n '651,663p'
+          echo '=== FIRESTORE LINE CONTEXT 746-758 ==='
+          nl -ba firestore.economy-audit.rules | sed -n '746,758p'
 
       - name: Install rules test harness
         run: bun add --no-save @firebase/rules-unit-testing
