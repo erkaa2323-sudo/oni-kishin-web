@@ -33,7 +33,7 @@ document.addEventListener('visibilitychange',()=>{try{if(!app?.ticker)return;if(
 try{
 await loadScript(['/vendor/live2d/pixi8.min.js','https://cdn.jsdelivr.net/npm/pixi.js@8.13.1/dist/pixi.min.js'],()=>!!window.PIXI,'PixiJS 8');
 await loadScript(['/vendor/live2d/live2dcubismcore.js','https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js'],()=>!!window.Live2DCubismCore,'Cubism 5 Core');
-await loadScript(['/vendor/live2d/pixi-sound.js','https://cdn.jsdelivr.net/npm/@pixi/sound@6.0.1/dist/pixi-sound.js'],()=>true,'Pixi Sound');
+await loadScript(['/vendor/live2d/pixi-sound.js','https://cdn.jsdelivr.net/npm/@pixi/sound@6.0.1/dist/pixi-sound.js'],()=>!!window.PIXI?.sound,'Pixi Sound');
 await loadScript(['/vendor/live2d/cubism5-engine.min.js','https://cdn.jsdelivr.net/npm/untitled-pixi-live2d-engine@1.3.5/dist/cubism.min.js'],()=>!!(window.PIXI?.live2d?.Live2DModel&&window.PIXI?.live2d?.Live2DPlugin),'Cubism 5 engine');
 PIXI.extensions.add(PIXI.live2d.Live2DPlugin);
 if(typeof PIXI.live2d.Live2DModel.registerTicker==='function')PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);
