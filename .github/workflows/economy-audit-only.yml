@@ -60,8 +60,10 @@ jobs:
           grep -q 'match /progressionAchievementClaims/' firestore.economy-audit.rules
           grep -q 'match /progressionPrestigeClaims/' firestore.economy-audit.rules
           grep -q 'match /progressionSeasonArchive/' firestore.economy-audit.rules
-          grep -q 'sourceType == "vault_spend"' firestore.economy-audit.rules
-          grep -q 'sourceType == "weekly_mission"' firestore.economy-audit.rules
+          grep -q '"vault_spend"' firestore.economy-audit.rules
+          grep -q '"weekly_mission"' firestore.economy-audit.rules
+          grep -q 'validLedgerCreate' firestore.economy-audit.rules
+          grep -q 'validMarkedProfileUpdate' firestore.economy-audit.rules
           grep -q 'lastAction' firestore.economy-audit.rules
 
       - name: Install rules test harness
