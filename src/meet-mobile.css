@@ -1,0 +1,51 @@
+@media (max-width: 767px) {
+  main:has(#meet-title) {
+    overflow-x: hidden;
+  }
+
+  main:has(#meet-title) > .mx-auto.grid {
+    gap: 1.25rem !important;
+    padding-top: calc(24svh + 6.25rem) !important;
+    padding-bottom: 2.5rem !important;
+  }
+
+  main:has(#meet-title) aside {
+    top: 4.5rem !important;
+    height: 24svh !important;
+    min-height: 190px !important;
+  }
+
+  main:has(#meet-title) .min-w-0.space-y-8 > * + * {
+    margin-top: 1.25rem !important;
+  }
+
+  #meet-title {
+    margin-top: 0.9rem !important;
+    font-size: 2.5rem !important;
+    line-height: 0.95 !important;
+  }
+
+  #meet-title + p {
+    margin-top: 0.8rem !important;
+    font-size: 0.78rem !important;
+    line-height: 1.55 !important;
+  }
+
+  #meet-title ~ .glass-panel {
+    margin-top: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  #meet-title ~ .glass-panel dl {
+    gap: 0.65rem !important;
+  }
+
+  #meet-title ~ .glass-panel dd {
+    font-size: 0.78rem !important;
+  }
+
+  main:has(#meet-title) .hud-rule {
+    font-size: 0.58rem !important;
+    letter-spacing: 0.2em !important;
+  }
+}
