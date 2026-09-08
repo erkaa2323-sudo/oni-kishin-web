@@ -49,9 +49,7 @@ export function OniCreatorReviewDock() {
     try {
       await reviewCreatorPublishRequest(row.id, decision);
       setNotice(
-        decision === "approved"
-          ? "Зураг галерейд нийтлэгдлээ."
-          : "Зургийн хүсэлтийг татгалзлаа.",
+        decision === "approved" ? "Зураг галерейд нийтлэгдлээ." : "Зургийн хүсэлтийг татгалзлаа.",
       );
       await load();
     } catch (error) {
