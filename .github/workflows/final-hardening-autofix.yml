@@ -30,7 +30,7 @@ jobs:
       - run: node scripts/final-hardening-source-patch.mjs
       - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - run: npm ci --no-audit --no-fund
-      - run: npx --no-install prettier --write package.json package-lock.json firestore.rules firestore.progression.rules.fragment firestore.progression.v3.rules.fragment scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx tests/route-smoke.mjs .github/workflows/vercel-prebuilt-production.yml
+      - run: npx --no-install prettier --write package.json package-lock.json scripts/economy-v3-ternary-patch.mjs src/lib/admin-authorization.ts BACKEND.md src/lib/pwa.ts src/components/oni/OniOfflineBanner.tsx src/lib/backend/errors.ts tests/route-smoke.mjs .github/workflows/vercel-prebuilt-production.yml
 
       - name: Commit deterministic hardening output
         shell: bash
