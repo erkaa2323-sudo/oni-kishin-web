@@ -13,7 +13,12 @@ import {
   type AttendanceCandidate,
 } from "@/data/economy-admin";
 
-const localInput = (value?: string | null) => value ? new Date(value).toISOString().slice(0, 16) : "";
+const localInput = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
 
 export function OniEconomyAdminDock() {
   const [open, setOpen] = useState(false);
