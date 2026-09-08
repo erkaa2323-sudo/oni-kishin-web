@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, LockKeyhole, LogOut, UserPlus } from "lucide-react";
 
@@ -17,6 +18,7 @@ const fieldClass =
 
 type Props = {
   onAccount: (account: MemberAccount | null) => void;
+  allowAccountActions?: boolean;
 };
 
 function authMessage(error: unknown): string {
@@ -29,7 +31,7 @@ function authMessage(error: unknown): string {
   return "Үйлдэл амжилтгүй боллоо. Мэдээллээ шалгаад дахин оролдоно уу.";
 }
 
-export function OniMemberGate({ onAccount }: Props) {
+export function OniMemberGate({ onAccount, allowAccountActions = false }: Props) {
   const [phase, setPhase] = useState<"loading" | "signed_out" | "signed_in">("loading");
   const [account, setAccount] = useState<MemberAccount | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -114,7 +116,7 @@ export function OniMemberGate({ onAccount }: Props) {
       <section className="mt-6 border border-border bg-midnight/55 p-4" aria-label="Crew аккаунт">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <span className="hud-label text-crimson/85">CREW ACCOUNT</span>
+            <span className="hud-label text-crimson/85">PROFILE</span>
             <p className="mt-2 text-sm text-foreground">{account.nickname}</p>
             <p className="mt-1 text-xs text-muted-foreground">CPM ID: {account.cpmId}</p>
           </div>
@@ -129,7 +131,7 @@ export function OniMemberGate({ onAccount }: Props) {
         </div>
         {account.status === "approved" ? (
           <p className="mt-3 flex items-center gap-2 text-xs text-emerald-300">
-            <CheckCircle2 className="h-4 w-4" /> ADMIN БАТАЛГААЖУУЛСАН
+            <CheckCircle2 className="h-4 w-4" /> БАТАЛГААЖСАН MEMBER
           </p>
         ) : (
           <div className="mt-3">
@@ -148,11 +150,35 @@ export function OniMemberGate({ onAccount }: Props) {
             </button>
           </div>
         )}
+        {!allowAccountActions ? (
+          <Link
+            to="/profile"
+            className="mt-4 inline-flex min-h-11 items-center border border-crimson/50 px-4 text-xs text-foreground"
+          >
+            PROFILE НЭЭХ
+          </Link>
+        ) : null}
       </section>
     );
   }
 
   if (phase === "signed_in") {
+    if (!allowAccountActions) {
+      return (
+        <section className="mt-6 border border-border bg-midnight/55 p-4">
+          <p className="text-xs leading-relaxed text-amber-300">
+            Crew мэдээллээ Profile хэсэгт холбоод Admin баталгаажуулсны дараа Meet-д оролцоно.
+          </p>
+          <Link
+            to="/profile"
+            className="mt-4 inline-flex min-h-11 items-center border border-crimson/50 px-4 text-xs text-foreground"
+          >
+            PROFILE НЭЭХ
+          </Link>
+        </section>
+      );
+    }
+
     const linkCrew = async (event: React.FormEvent) => {
       event.preventDefault();
       const user = firebaseAuth.currentUser;
@@ -218,6 +244,22 @@ export function OniMemberGate({ onAccount }: Props) {
     );
   }
 
+  if (!allowAccountActions) {
+    return (
+      <section className="mt-6 border border-border bg-midnight/55 p-4">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Meet-д оролцохын өмнө Profile хэсэгт нэвтэрч эсвэл account үүсгэнэ.
+        </p>
+        <Link
+          to="/profile"
+          className="mt-4 inline-flex min-h-11 items-center border border-crimson/50 bg-crimson/10 px-4 text-xs text-foreground"
+        >
+          PROFILE НЭЭХ
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <section className="mt-6 border border-border bg-midnight/55 p-4" aria-label="Crew нэвтрэлт">
       <div className="flex gap-2">
@@ -249,7 +291,7 @@ export function OniMemberGate({ onAccount }: Props) {
           />
         </label>
         <label className="text-xs text-muted-foreground">
-          ONI HUB НУУЦ ҮГ
+          НУУЦ ҮГ
           <input
             required
             minLength={6}
@@ -295,7 +337,7 @@ export function OniMemberGate({ onAccount }: Props) {
           ) : (
             <LockKeyhole className="h-4 w-4" />
           )}
-          {mode === "register" ? "CREW ACCOUNT ҮҮСГЭХ" : "НЭВТРЭХ"}
+          {mode === "register" ? "ACCOUNT ҮҮСГЭХ" : "НЭВТРЭХ"}
         </button>
       </form>
     </section>
