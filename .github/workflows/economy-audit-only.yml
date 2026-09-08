@@ -33,6 +33,9 @@ jobs:
       - name: Production build without deploy
         run: bun run build
 
+      - name: Apply expression-safe ternary candidate
+        run: node scripts/economy-v3-ternary-patch.mjs
+
       - name: Compose Firestore rules without deploy
         shell: bash
         run: |
@@ -66,6 +69,8 @@ jobs:
           grep -q 'validEconomyProfileUpdateV3' firestore.economy-audit.rules
           grep -q 'freshProfileActionV3' firestore.economy-audit.rules
           grep -q 'afterProfileFreshV3' firestore.economy-audit.rules
+          grep -q '? validVaultProfileV3' firestore.economy-audit.rules
+          grep -q '? meetCount >= 1' firestore.economy-audit.rules
 
       - name: Install rules test harness
         run: bun add --no-save @firebase/rules-unit-testing
@@ -110,6 +115,7 @@ jobs:
           grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
           grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
           grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
+          grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
           if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then exit 1; fi
           if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then exit 1; fi
           echo "NO_DEPLOY_AUDIT_OK"
