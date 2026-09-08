@@ -19,6 +19,8 @@ if (/maximum of 1000 expressions/i.test(log)) {
 const windows = [
   ["CASE_1_ARBITRARY_MINT_BEGIN", "CASE_1_ARBITRARY_MINT_END", "arbitrary mint deny"],
   ["CASE_3_FAKE_LEDGER_BEGIN", "CASE_3_FAKE_LEDGER_END", "fake ledger deny"],
+  ["CASE_4B_WEEKLY_REPLAY_BEGIN", "CASE_4B_WEEKLY_REPLAY_END", "weekly replay deny"],
+  ["CASE_5_MEET_NO_ATTENDANCE_BEGIN", "CASE_5_MEET_NO_ATTENDANCE_END", "meet without confirmed attendance deny"],
   ["CASE_6B_ACHIEVEMENT_UNEARNED_BEGIN", "CASE_6B_ACHIEVEMENT_UNEARNED_END", "unearned achievement deny"],
 ];
 
