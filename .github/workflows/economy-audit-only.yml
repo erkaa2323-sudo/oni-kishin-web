@@ -16,7 +16,7 @@ concurrency:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout audit branch
         uses: actions/checkout@v4
@@ -56,10 +56,17 @@ jobs:
           PY
           grep -q 'match /progressionMissionClaims/' firestore.economy-audit.rules
           grep -q 'match /progressionWeekly/' firestore.economy-audit.rules
+          grep -q 'match /meetAttendance/' firestore.economy-audit.rules
+          grep -q 'match /progressionAchievementClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionPrestigeClaims/' firestore.economy-audit.rules
+          grep -q 'match /progressionSeasonArchive/' firestore.economy-audit.rules
           grep -q 'sourceType == "vault_spend"' firestore.economy-audit.rules
           grep -q 'sourceType == "weekly_mission"' firestore.economy-audit.rules
 
-      - name: Firestore rules emulator compile
+      - name: Install rules test harness
+        run: bun add --no-save @firebase/rules-unit-testing
+
+      - name: Firestore economy security integration
         shell: bash
         run: |
           set -euo pipefail
@@ -69,16 +76,21 @@ jobs:
             "emulators": { "firestore": { "port": 8089 }, "ui": { "enabled": false } }
           }
           JSON
-          bunx firebase-tools@14.16.0 emulators:exec --only firestore --project demo-oni-economy --config firebase.economy-audit.json "echo FIRESTORE_RULES_COMPILED"
+          bunx firebase-tools@14.16.0 emulators:exec --only firestore --project demo-oni-economy --config firebase.economy-audit.json "bun scripts/economy-rules-test.mjs"
 
       - name: Economy invariants
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'claimWeeklyMission' src/data/progression.ts
+          grep -q 'claimAchievement' src/data/progression.ts
+          grep -q 'claimPrestige' src/data/progression.ts
+          grep -q 'meetAttendance' src/data/progression.ts
           grep -q 'balanceAfter' src/data/progression.ts
           grep -q 'OniCosmeticBridge' src/routes/__root.tsx
+          grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
           grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
+          grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
           grep -q '^permissions:$' .github/workflows/economy-audit-only.yml
           grep -q '^  contents: read$' .github/workflows/economy-audit-only.yml
           echo "NO_DEPLOY_AUDIT_OK"
