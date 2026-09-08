@@ -1,5 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { OniProgressionStage } from "@/components/oni/OniProgressionStage";
+import { OniVaultPreviewDock } from "@/components/oni/OniVaultPreviewDock";
+
+function ProgressionRoute() {
+  return (
+    <>
+      <OniProgressionStage />
+      <OniVaultPreviewDock />
+    </>
+  );
+}
 
 export const Route = createFileRoute("/progression")({
   head: () => ({
@@ -11,5 +21,5 @@ export const Route = createFileRoute("/progression")({
       },
     ],
   }),
-  component: OniProgressionStage,
+  component: ProgressionRoute,
 });

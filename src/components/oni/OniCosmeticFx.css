@@ -1,0 +1,143 @@
+.oni-fx-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #050304;
+}
+
+.oni-fx-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.oni-fx-surface {
+  position: relative;
+  z-index: 2;
+}
+
+.oni-fx-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.oni-fx-shell[data-kishin="true"] .oni-fx-surface {
+  animation: oni-kishin-materialize 1.4s cubic-bezier(0.16, 0.8, 0.22, 1) both;
+}
+
+.oni-fx-route-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  width: 100vw;
+  height: 100svh;
+  pointer-events: none;
+  background: transparent;
+  overflow: hidden;
+}
+
+.oni-fx-route-overlay .oni-fx-canvas {
+  opacity: 0.78;
+  mix-blend-mode: screen;
+}
+
+.oni-fx-route-overlay .oni-fx-surface {
+  display: none;
+}
+
+.oni-fx-route-overlay[data-night-rider="true"] .oni-fx-canvas {
+  mix-blend-mode: plus-lighter;
+  opacity: 0.58;
+}
+
+.oni-fx-route-overlay[data-garage-neon="true"] .oni-fx-canvas {
+  opacity: 0.66;
+}
+
+.oni-fx-shell[data-fallback="true"][data-red-moon="true"] .oni-fx-atmosphere,
+.oni-fx-shell[data-fallback="true"][data-creator-moon="true"] .oni-fx-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 72% 28%, rgb(142 4 16 / 58%) 0 7%, transparent 18%),
+    radial-gradient(circle at 20% 82%, rgb(128 4 20 / 22%), transparent 34%);
+}
+
+.oni-fx-shell[data-fallback="true"][data-crimson-frame="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(238 28 47 / 64%),
+    inset 0 0 34px rgb(166 7 28 / 24%),
+    0 0 28px rgb(146 5 24 / 16%);
+}
+
+.oni-fx-shell[data-fallback="true"][data-garage-neon="true"] .oni-fx-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse at 18% 72%, rgb(14 166 214 / 28%), transparent 38%),
+    radial-gradient(ellipse at 82% 65%, rgb(190 16 108 / 24%), transparent 38%);
+}
+
+.oni-fx-shell[data-fallback="true"][data-kitsune="true"] .oni-fx-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 30% 52%, rgb(255 89 17 / 30%), transparent 15%),
+    radial-gradient(circle at 68% 46%, rgb(224 20 105 / 24%), transparent 16%),
+    radial-gradient(circle at 50% 28%, rgb(255 138 24 / 18%), transparent 18%);
+}
+
+.oni-fx-shell[data-fallback="true"][data-night-rider="true"] .oni-fx-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse at 50% 78%, rgb(36 42 164 / 27%), transparent 45%),
+    radial-gradient(ellipse at 50% 38%, rgb(88 18 135 / 16%), transparent 52%);
+}
+
+.oni-fx-shell[data-fallback="true"][data-trophy-vault="true"] .oni-fx-atmosphere {
+  opacity: 1;
+  background:
+    radial-gradient(circle at 25% 32%, rgb(255 165 34 / 24%), transparent 10%),
+    radial-gradient(circle at 72% 64%, rgb(255 197 72 / 20%), transparent 9%),
+    radial-gradient(ellipse at 50% 55%, rgb(160 85 14 / 15%), transparent 48%);
+}
+
+@keyframes oni-kishin-materialize {
+  0% {
+    opacity: 0;
+    transform: scale(0.975) translateY(10px);
+    filter: brightness(2.4) contrast(1.35) blur(5px);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.018) translateY(-2px);
+    filter: brightness(1.65) contrast(1.2) blur(0);
+  }
+  38% {
+    transform: scale(0.994);
+    filter: brightness(1.08) contrast(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oni-fx-shell[data-kishin="true"] .oni-fx-surface {
+    animation: none;
+  }
+
+  .oni-fx-route-overlay .oni-fx-canvas {
+    opacity: 0.42;
+  }
+}
