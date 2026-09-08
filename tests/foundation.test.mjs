@@ -74,6 +74,15 @@ test("admin permission bridge keeps reduced owner actors actionable and explicit
   assert.match(source, /profile\.role === "owner" && isAdminEmail\(profile\.email\)/);
 });
 
+test("admin mobile review controls stay tappable and ONI AI stays compact", () => {
+  const cleanup = readFileSync("src/admin-cleanup.css", "utf8");
+  assert.match(cleanup, /max-height: 52svh !important/);
+  assert.match(cleanup, /max-width: 24rem !important/);
+  assert.match(cleanup, /section\[aria-label="CREW ACCOUNT"\] li button/);
+  assert.match(cleanup, /button\[data-admin-application-action\]/);
+  assert.match(cleanup, /touch-action: manipulation/);
+});
+
 test("Vercel Git auto-deployment is disabled and production workflow is manual", () => {
   assert.equal(JSON.parse(readFileSync("vercel.json", "utf8")).git.deploymentEnabled, false);
   const workflow = readFileSync(".github/workflows/vercel-prebuilt-production.yml", "utf8");
