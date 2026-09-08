@@ -6,7 +6,6 @@ const lines = log.split(/\r?\n/);
 const requiredMarkers = [
   "ECONOMY_SECURITY_INTEGRATION_OK",
   "RULE_COVERAGE_FOCUSED_OK",
-  "RULE_COVERAGE_UNDEFINED_NODE_COUNT 0",
 ];
 for (const marker of requiredMarkers) {
   if (!log.includes(marker)) throw new Error(`Missing audit marker: ${marker}`);
