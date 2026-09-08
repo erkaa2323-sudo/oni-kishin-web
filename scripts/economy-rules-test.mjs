@@ -284,5 +284,35 @@ if (bobAfter.data().prestige !== 1 || bobAfter.data().xp !== 0 || bobAfter.data(
   throw new Error("Prestige preservation invariant failed");
 }
 
+const coverageResponse = await fetch(`http://127.0.0.1:8089/emulator/v1/projects/${projectId}:ruleCoverage`);
+if (!coverageResponse.ok) {
+  throw new Error(`Rule coverage request failed: ${coverageResponse.status}`);
+}
+const coverage = await coverageResponse.json();
+console.log("RULE_COVERAGE_TOP_KEYS", Object.keys(coverage));
+const coverageHits = [];
+const seen = new Set();
+const walkCoverage = (value, path = "$", depth = 0) => {
+  if (coverageHits.length >= 80 || depth > 20 || value == null) return;
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => walkCoverage(entry, `${path}[${index}]`, depth + 1));
+    return;
+  }
+  if (typeof value !== "object") return;
+  for (const [key, child] of Object.entries(value)) {
+    const childText = typeof child === "string" ? child : "";
+    if (/error|undefined|null/i.test(key) || /error|undefined|null/i.test(childText)) {
+      const signature = `${path}.${key}:${childText}`;
+      if (!seen.has(signature)) {
+        seen.add(signature);
+        coverageHits.push({ path, key, value: child, context: value });
+      }
+    }
+    walkCoverage(child, `${path}.${key}`, depth + 1);
+  }
+};
+walkCoverage(coverage);
+console.log("RULE_COVERAGE_ERROR_HITS", JSON.stringify(coverageHits, null, 2));
+
 console.log("ECONOMY_SECURITY_INTEGRATION_OK");
 await env.cleanup();
