@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<style>
+html,body,#stage{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+body{touch-action:pan-y}
+canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+#loading{position:absolute;inset:0;display:grid;place-items:center;font:600 8px/1.2 system-ui;letter-spacing:.22em;color:rgba(255,255,255,.26);pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage"></div><div id="loading">KEI // CUBISM 5</div>
+<script>
+(async function(){
+const SOURCE='oni-kei-meet',PARENT='oni-kei-meet-parent';
+const stage=document.getElementById('stage'),loading=document.getElementById('loading');
+const modelUrls=['/vendor/live2d/kei/kei_basic_free.model3.json','https://raw.githubusercontent.com/zou-hong-run/ai-xiaoyou-web/39fe1a76517416c503a74caf8efb46e477dd95ce/public/model/kei_zh/kei_basic_free.model3.json'];
+let app=null,model=null,observer=null,raf=0,idleTimer=0,currentState='idle',disposed=false;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function send(type,detail){try{parent.postMessage({source:SOURCE,type,detail},'*')}catch{}}
+function loadScript(urls,ready,label){return new Promise((resolve,reject)=>{let i=0;const next=()=>{if(ready())return resolve();if(i>=urls.length)return reject(new Error(label+' unavailable'));const s=document.createElement('script');let done=false;const timer=setTimeout(()=>{if(done)return;done=true;s.remove();next()},7000);s.src=urls[i++];s.onload=()=>{if(done)return;done=true;clearTimeout(timer);ready()?resolve():next()};s.onerror=()=>{if(done)return;done=true;clearTimeout(timer);s.remove();next()};document.head.appendChild(s)};next()})}
+function focus(x,y){try{model?.focus?.(x,y,true)}catch{}}
+function motion(index){if(reduced||!model?.motion)return;try{model.motion('',index)}catch{}}
+function apply(state,force=false){if(!force&&state===currentState&&state!=='countdown-final10')return;currentState=state||'idle';if(!model)return;if(currentState==='countdown-ten'){focus(.08,-.08);motion(1);return}if(currentState==='countdown-five'){focus(.2,-.12);motion(2);return}if(currentState==='countdown-one'){focus(.34,-.16);motion(3);return}if(currentState==='countdown-final10'){focus(.48,-.2);return}if(currentState==='countdown-go'||currentState==='access'){focus(.62,-.2);motion(0);return}if(currentState==='registered'){focus(-.36,-.1);motion(1);return}if(currentState==='live'){focus(.48,-.14);motion(2);return}if(currentState==='starting'||currentState==='open'){focus(.12,-.08);motion(3);return}if(currentState==='denied'||currentState==='full'||currentState==='closed'){focus(-.34,.18);return}focus(0,-.02)}
+function frameKei(){raf=0;if(!app||!model||disposed)return;const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);app.renderer.resize(w,h);model.anchor.set(.5,.5);model.scale.set(.6);model.position.set(w*.5,h*.5);model.visible=true;model.renderable=true;model.alpha=1}
+function queueFrame(){if(!raf&&!disposed)raf=requestAnimationFrame(frameKei)}
+async function loadModel(){let last=null;for(const url of modelUrls){try{return await PIXI.live2d.Live2DModel.from(url)}catch(error){last=error;console.warn('[Kei] source failed',url,error)}}throw last||new Error('Kei model unavailable')}
+function alphaSamples(){try{const gl=app?.renderer?.gl;if(!gl)return -1;const w=app.canvas.width,h=app.canvas.height;if(!w||!h)return 0;const data=new Uint8Array(w*h*4);gl.finish();gl.readPixels(0,0,w,h,gl.RGBA,gl.UNSIGNED_BYTE,data);let count=0;for(let i=3;i<data.length;i+=64){if(data[i]>8)count++}return count}catch(error){console.warn('[Kei] pixel audit unavailable',error);return -1}}
+window.addEventListener('message',(event)=>{const d=event.data;if(!d||d.source!==PARENT)return;if(d.type==='state')apply(d.state);if(d.type==='interact'){focus((Math.random()-.5)*.7,-.1);motion(Math.floor(Math.random()*4))}});
+document.addEventListener('visibilitychange',()=>{try{if(!app?.ticker)return;if(document.hidden)app.ticker.stop();else{app.ticker.start();queueFrame();apply(currentState,true)}}catch{}});
+try{
+await loadScript(['/vendor/live2d/pixi8.min.js','https://cdn.jsdelivr.net/npm/pixi.js@8.13.1/dist/pixi.min.js'],()=>!!window.PIXI,'PixiJS 8');
+await loadScript(['/vendor/live2d/live2dcubismcore.js','https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js'],()=>!!window.Live2DCubismCore,'Cubism 5 Core');
+await loadScript(['/vendor/live2d/pixi-sound.js','https://cdn.jsdelivr.net/npm/@pixi/sound@6.0.1/dist/pixi-sound.js'],()=>true,'Pixi Sound');
+await loadScript(['/vendor/live2d/cubism5-engine.min.js','https://cdn.jsdelivr.net/npm/untitled-pixi-live2d-engine@1.3.5/dist/cubism.min.js'],()=>!!(window.PIXI?.live2d?.Live2DModel&&window.PIXI?.live2d?.Live2DPlugin),'Cubism 5 engine');
+PIXI.extensions.add(PIXI.live2d.Live2DPlugin);
+if(typeof PIXI.live2d.Live2DModel.registerTicker==='function')PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);
+app=new PIXI.Application();
+await app.init({width:Math.max(1,stage.clientWidth),height:Math.max(1,stage.clientHeight),backgroundAlpha:0,antialias:false,autoDensity:true,resolution:1,preference:'webgl',powerPreference:'low-power'});
+if(app.ticker)app.ticker.maxFPS=30;
+stage.appendChild(app.canvas);
+app.canvas.addEventListener('webglcontextlost',(event)=>{event.preventDefault();send('failed','webgl-context-lost')});
+model=await loadModel();app.stage.addChild(model);frameKei();apply(currentState,true);
+await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+frameKei();await new Promise(r=>setTimeout(r,260));
+const pixels=alphaSamples();
+if(pixels===0)throw new Error('Canvas alpha is empty after Cubism 5 render');
+loading.remove();send('ready',pixels);
+if('ResizeObserver'in window){observer=new ResizeObserver(queueFrame);observer.observe(stage)}else addEventListener('resize',queueFrame,{passive:true});
+if(!reduced)idleTimer=setInterval(()=>{if(model&&!document.hidden&&(currentState==='idle'||currentState==='scheduled'))focus(Math.sin(Date.now()/5200)*.14,-.035)},4200);
+}catch(error){console.error('[Kei] render failed',error);loading.textContent='KEI // RENDER ERROR';send('failed',String(error?.message||error))}
+addEventListener('beforeunload',()=>{disposed=true;if(raf)cancelAnimationFrame(raf);if(idleTimer)clearInterval(idleTimer);observer?.disconnect();try{model?.destroy?.({children:true})}catch{}try{app?.destroy?.(true)}catch{}})
+})();
+</script>
+</body>
+</html>
