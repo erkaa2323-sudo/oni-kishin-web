@@ -64,6 +64,7 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let generation = 0;
 
     if (!backendConfigured) {
       setError("Backend configuration is unavailable in this deployment.");
@@ -74,6 +75,7 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
     }
 
     const resolve = async (user: { uid: string; email?: string | null } | null) => {
+      const current = ++generation;
       if (!active) return;
       if (!user) {
         setUid(null);
@@ -84,9 +86,10 @@ export function OniAuthProvider({ children }: { children: ReactNode }) {
       }
       setUid(user.uid);
       setEmail(user.email ?? null);
+      setProfile(null);
       setPhase("loading");
       const res = await fetchAdminProfile(user.uid, user.email ?? null);
-      if (!active) return;
+      if (!active || current !== generation) return;
       if (res.ok && isAuthorizedAdmin(res.data)) {
         setProfile(res.data);
         setPhase("authorized");

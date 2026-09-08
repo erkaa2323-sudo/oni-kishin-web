@@ -184,7 +184,8 @@ export const membersService = {
     }
   },
   create: (data: Record<string, unknown>) => firebaseCreate("members", memberWrite(data)),
-  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("members", id, memberWrite(data)),
+  update: (id: string, data: Record<string, unknown>) =>
+    firebaseUpdate("members", id, memberWrite(data)),
   archive: (id: string) => firebaseUpdate("members", id, { status: "archived" }),
   remove: (id: string) => firebaseRemove("members", id),
 };
@@ -204,7 +205,12 @@ function mapFirebaseMember(r: Row): MemberRecord {
 }
 
 function memberWrite(data: Record<string, unknown>): Record<string, unknown> {
-  const portraitUrl = data["portrait_url"] ?? data["portraitUrl"] ?? data["image_url"] ?? data["imageUrl"] ?? data["image"];
+  const portraitUrl =
+    data["portrait_url"] ??
+    data["portraitUrl"] ??
+    data["image_url"] ??
+    data["imageUrl"] ??
+    data["image"];
   const cpmId = data["cpm_id"] ?? data["cpmid"] ?? data["cpmId"];
   const joinedAt = data["joined_at"] ?? data["joinedAt"];
   return compact({
@@ -248,7 +254,8 @@ export const garageService = {
   },
   archive: (id: string) => firebaseUpdate("garage", id, { status: "archived" }),
   create: (data: Record<string, unknown>) => firebaseCreate("garage", vehicleWrite(data)),
-  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("garage", id, vehicleWrite(data)),
+  update: (id: string, data: Record<string, unknown>) =>
+    firebaseUpdate("garage", id, vehicleWrite(data)),
   remove: (id: string) => firebaseRemove("garage", id),
 };
 
@@ -284,7 +291,12 @@ function vehicleWrite(data: Record<string, unknown>): Record<string, unknown> {
   const owner = data["owner_name"] ?? data["ownerName"] ?? data["owner"];
   const ownerMemberId = data["owner_member_id"] ?? data["ownerMemberId"];
   const build = data["build"] ?? data["description"];
-  const imagePath = data["image_path"] ?? data["imagePath"] ?? data["image_url"] ?? data["imageUrl"] ?? data["image"];
+  const imagePath =
+    data["image_path"] ??
+    data["imagePath"] ??
+    data["image_url"] ??
+    data["imageUrl"] ??
+    data["image"];
   return compact({
     name: data["model"] ?? data["name"],
     model: data["model"] ?? data["name"],
@@ -470,21 +482,26 @@ export const meetService = {
       const credentialsRef = doc(firebaseDb, "meetCredentials", "current");
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
       const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
-      const registrationClosesAt = firebaseTimestamp(data["registration_closes_at"] ?? data["registrationClosesAt"]);
+      const registrationClosesAt = firebaseTimestamp(
+        data["registration_closes_at"] ?? data["registrationClosesAt"],
+      );
       const capacity = Number(data["capacity"] ?? 20);
       const roomId = str(data["room_id"] ?? data["roomId"]);
       const password = str(data["password"]);
-      await setDoc(meetRef, compact({
-        title: data["title"],
-        startAt: scheduledAt,
-        endsAt,
-        registrationClosesAt,
-        maxPlayers: Number.isFinite(capacity) ? capacity : 20,
-        status: data["status"] ?? "scheduled",
-        enabled: data["enabled"] ?? true,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }));
+      await setDoc(
+        meetRef,
+        compact({
+          title: data["title"],
+          startAt: scheduledAt,
+          endsAt,
+          registrationClosesAt,
+          maxPlayers: Number.isFinite(capacity) ? capacity : 20,
+          status: data["status"] ?? "scheduled",
+          enabled: data["enabled"] ?? true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }),
+      );
       if (roomId || password) {
         await setDoc(credentialsRef, { roomId, password, updatedAt: serverTimestamp() });
       }
@@ -493,27 +510,43 @@ export const meetService = {
       return { ok: false, error: normalizeError(err) };
     }
   },
-  update: async (id: string, data: Record<string, unknown>): Promise<ServiceResult<{ id: string }>> => {
+  update: async (
+    id: string,
+    data: Record<string, unknown>,
+  ): Promise<ServiceResult<{ id: string }>> => {
     try {
       const meetRef = doc(firebaseDb, "meets", id);
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
       const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
-      const registrationClosesAt = firebaseTimestamp(data["registration_closes_at"] ?? data["registrationClosesAt"]);
+      const registrationClosesAt = firebaseTimestamp(
+        data["registration_closes_at"] ?? data["registrationClosesAt"],
+      );
       const capacity = Number(data["capacity"] ?? 20);
-      await updateDoc(meetRef, compact({
-        title: data["title"],
-        startAt: scheduledAt,
-        endsAt,
-        registrationClosesAt,
-        maxPlayers: Number.isFinite(capacity) ? capacity : 20,
-        status: data["status"],
-        enabled: data["enabled"],
-        updatedAt: serverTimestamp(),
-      }));
+      await updateDoc(
+        meetRef,
+        compact({
+          title: data["title"],
+          startAt: scheduledAt,
+          endsAt,
+          registrationClosesAt,
+          maxPlayers: Number.isFinite(capacity) ? capacity : 20,
+          status: data["status"],
+          enabled: data["enabled"],
+          updatedAt: serverTimestamp(),
+        }),
+      );
       const roomId = str(data["room_id"] ?? data["roomId"]);
       const password = str(data["password"]);
       if (roomId || password) {
-        await setDoc(doc(firebaseDb, "meetCredentials", id), compact({ roomId: roomId || undefined, password: password || undefined, updatedAt: serverTimestamp() }), { merge: true });
+        await setDoc(
+          doc(firebaseDb, "meetCredentials", id),
+          compact({
+            roomId: roomId || undefined,
+            password: password || undefined,
+            updatedAt: serverTimestamp(),
+          }),
+          { merge: true },
+        );
       }
       return ok({ id });
     } catch (err) {
@@ -522,8 +555,13 @@ export const meetService = {
   },
   remove: (id: string) => firebaseRemove("meets", id),
   setStatus: (id: string, status: MeetRecord["status"]) => firebaseUpdate("meets", id, { status }),
-  setLifecycle: (id: string, status: MeetRecord["status"]) => firebaseUpdate("meets", id, { status }),
-  setCredentials: async (id: string, roomId: string, password: string): Promise<ServiceResult<{ id: string }>> => {
+  setLifecycle: (id: string, status: MeetRecord["status"]) =>
+    firebaseUpdate("meets", id, { status }),
+  setCredentials: async (
+    id: string,
+    roomId: string,
+    password: string,
+  ): Promise<ServiceResult<{ id: string }>> => {
     try {
       await setDoc(
         doc(firebaseDb, "meetCredentials", id),
@@ -575,7 +613,10 @@ export const meetService = {
       try {
         const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
         if (!snapshot.exists()) return fail("NOT_FOUND", "Уулзалтын нууц мэдээлэл олдсонгүй.");
-        return ok({ roomId: str(snapshot.data()["roomId"]), password: str(snapshot.data()["password"]) });
+        return ok({
+          roomId: str(snapshot.data()["roomId"]),
+          password: str(snapshot.data()["password"]),
+        });
       } catch (err) {
         return { ok: false, error: normalizeError(err) };
       }
@@ -630,10 +671,17 @@ export const musicService = {
   },
   listPublished: async (): Promise<ServiceResult<MusicTrackRecord[]>> => {
     const res = await musicService.list();
-    return res.ok ? ok(res.data.filter((track) => track.status === "published").sort((a, b) => a.sortOrder - b.sortOrder)) : res;
+    return res.ok
+      ? ok(
+          res.data
+            .filter((track) => track.status === "published")
+            .sort((a, b) => a.sortOrder - b.sortOrder),
+        )
+      : res;
   },
   create: (data: Record<string, unknown>) => firebaseCreate("music", trackWrite(data)),
-  update: (id: string, data: Record<string, unknown>) => firebaseUpdate("music", id, trackWrite(data)),
+  update: (id: string, data: Record<string, unknown>) =>
+    firebaseUpdate("music", id, trackWrite(data)),
   remove: (id: string) => firebaseRemove("music", id),
 };
 
@@ -650,15 +698,21 @@ function mapFirebaseTrack(r: Row): MusicTrackRecord {
     sourceUrl: audioPath,
     coverPath: opt(r["coverPath"] || r["cover"] || r["image"]),
     sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
-    durationSeconds: Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : undefined,
-    status: /archiv/i.test(rawStatus) ? "archived" : /draft|hidden/i.test(rawStatus) ? "draft" : "published",
+    durationSeconds:
+      Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : undefined,
+    status: /archiv/i.test(rawStatus)
+      ? "archived"
+      : /draft|hidden/i.test(rawStatus)
+        ? "draft"
+        : "published",
     createdAt: firebaseDate(r["createdAt"]),
     updatedAt: firebaseDate(r["updatedAt"]),
   };
 }
 
 function trackWrite(data: Record<string, unknown>): Record<string, unknown> {
-  const audioPath = data["source_url"] ?? data["sourceUrl"] ?? data["audio_path"] ?? data["audioPath"];
+  const audioPath =
+    data["source_url"] ?? data["sourceUrl"] ?? data["audio_path"] ?? data["audioPath"];
   const duration = Number(data["duration_seconds"] ?? data["durationSeconds"] ?? 0);
   const sortOrder = Number(data["sort_order"] ?? data["sortOrder"] ?? 0);
   return compact({

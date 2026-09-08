@@ -1,5 +1,14 @@
 import { useMemo, useState } from "react";
-import { Bot, CheckCircle2, ChevronDown, ChevronUp, Loader2, Send, ShieldAlert, X } from "lucide-react";
+import {
+  Bot,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Send,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 
 import {
   executeAdminCopilotAction,
@@ -49,7 +58,11 @@ export function OniAdminCopilot() {
 
   const riskText = useMemo(() => {
     if (!action) return "";
-    return action.risk === "high" ? "ӨНДӨР ЭРСДЭЛ" : action.risk === "medium" ? "ДУНД ЭРСДЭЛ" : "БАГА ЭРСДЭЛ";
+    return action.risk === "high"
+      ? "ӨНДӨР ЭРСДЭЛ"
+      : action.risk === "medium"
+        ? "ДУНД ЭРСДЭЛ"
+        : "БАГА ЭРСДЭЛ";
   }, [action]);
 
   if (!actor || !open) {
@@ -122,10 +135,18 @@ export function OniAdminCopilot() {
             <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </span>
           <span>
-            <span className="block text-[0.72rem] font-semibold tracking-[0.18em] text-foreground">ONI ADMIN COPILOT</span>
-            <span className="block text-[0.58rem] tracking-[0.14em] text-muted-foreground">LIVE2D · FIREBASE ACTIONS · AUDIT</span>
+            <span className="block text-[0.72rem] font-semibold tracking-[0.18em] text-foreground">
+              ONI ADMIN COPILOT
+            </span>
+            <span className="block text-[0.58rem] tracking-[0.14em] text-muted-foreground">
+              LIVE2D · FIREBASE ACTIONS · AUDIT
+            </span>
           </span>
-          {minimized ? <ChevronUp className="ml-auto h-4 w-4" /> : <ChevronDown className="ml-auto h-4 w-4" />}
+          {minimized ? (
+            <ChevronUp className="ml-auto h-4 w-4" />
+          ) : (
+            <ChevronDown className="ml-auto h-4 w-4" />
+          )}
         </button>
         <button
           type="button"
@@ -145,7 +166,9 @@ export function OniAdminCopilot() {
               <OniLive2D state={state} glow={0.9} speaking={state === "speaking"} />
             </div>
             <div className="pointer-events-none absolute left-3 top-3 border border-border bg-ink/70 px-2.5 py-1.5 backdrop-blur-md">
-              <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-crimson/90">{state.toUpperCase()}</span>
+              <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-crimson/90">
+                {state.toUpperCase()}
+              </span>
             </div>
           </div>
 
@@ -168,18 +191,25 @@ export function OniAdminCopilot() {
               ))}
               {busy ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-crimson" /> ONI боловсруулж байна…
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-crimson" /> ONI боловсруулж
+                  байна…
                 </div>
               ) : null}
             </div>
 
             {action ? (
-              <div className={`mt-3 border p-3 ${action.risk === "high" ? "border-crimson/60 bg-crimson/10" : "border-amber-400/35 bg-amber-400/5"}`}>
+              <div
+                className={`mt-3 border p-3 ${action.risk === "high" ? "border-crimson/60 bg-crimson/10" : "border-amber-400/35 bg-amber-400/5"}`}
+              >
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-crimson" />
-                  <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-foreground">{riskText}</span>
+                  <span className="text-[0.58rem] font-semibold tracking-[0.16em] text-foreground">
+                    {riskText}
+                  </span>
                 </div>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{action.summary}</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {action.summary}
+                </p>
                 <button
                   type="button"
                   disabled={busy}

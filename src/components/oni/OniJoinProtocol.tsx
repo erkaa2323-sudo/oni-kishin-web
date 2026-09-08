@@ -91,13 +91,13 @@ export function OniJoinProtocol() {
 
   const hasStarted = Boolean(
     values.lastName.trim() ||
-      values.firstName.trim() ||
-      values.age ||
-      values.cpmNickname.trim() ||
-      values.cpmId.trim() ||
-      values.contact.trim() ||
-      values.message.trim() ||
-      values.interests.length,
+    values.firstName.trim() ||
+    values.age ||
+    values.cpmNickname.trim() ||
+    values.cpmId.trim() ||
+    values.contact.trim() ||
+    values.message.trim() ||
+    values.interests.length,
   );
 
   const guideState =
@@ -219,9 +219,14 @@ export function OniJoinProtocol() {
 
             {savedReference ? (
               <div className="mt-5 flex items-start gap-3 border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 clip-notch">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" aria-hidden="true" />
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"
+                  aria-hidden="true"
+                />
                 <div>
-                  <p className="text-xs font-medium text-foreground">Сүүлд илгээсэн хүсэлт бүртгэгдсэн.</p>
+                  <p className="text-xs font-medium text-foreground">
+                    Сүүлд илгээсэн хүсэлт бүртгэгдсэн.
+                  </p>
                   <p className="mt-1 text-[0.68rem] tracking-[0.12em] text-muted-foreground">
                     REF / {savedReference} · ХЯНАГДАЖ БАЙНА
                   </p>
@@ -232,7 +237,10 @@ export function OniJoinProtocol() {
             <form className="mt-6 space-y-5" onSubmit={onSubmit} noValidate>
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label htmlFor={`${uid}-last`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-last`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     ОВОГ *
                   </label>
                   <input
@@ -243,11 +251,16 @@ export function OniJoinProtocol() {
                     autoComplete="family-name"
                     onChange={(event) => set("lastName", event.target.value)}
                   />
-                  {errors.lastName ? <p className="mt-2 text-xs text-crimson">{errors.lastName}</p> : null}
+                  {errors.lastName ? (
+                    <p className="mt-2 text-xs text-crimson">{errors.lastName}</p>
+                  ) : null}
                 </div>
 
                 <div>
-                  <label htmlFor={`${uid}-first`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-first`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     НЭР *
                   </label>
                   <input
@@ -258,7 +271,9 @@ export function OniJoinProtocol() {
                     autoComplete="given-name"
                     onChange={(event) => set("firstName", event.target.value)}
                   />
-                  {errors.firstName ? <p className="mt-2 text-xs text-crimson">{errors.firstName}</p> : null}
+                  {errors.firstName ? (
+                    <p className="mt-2 text-xs text-crimson">{errors.firstName}</p>
+                  ) : null}
                 </div>
               </div>
 
@@ -281,7 +296,10 @@ export function OniJoinProtocol() {
                 </div>
 
                 <div>
-                  <label htmlFor={`${uid}-gender`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-gender`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     ХҮЙС *
                   </label>
                   <select
@@ -300,7 +318,10 @@ export function OniJoinProtocol() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label htmlFor={`${uid}-nick`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-nick`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     CPM ХОЧ *
                   </label>
                   <input
@@ -347,7 +368,10 @@ export function OniJoinProtocol() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label htmlFor={`${uid}-direction`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-direction`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     ЧИГЛЭЛ *
                   </label>
                   <select
@@ -368,7 +392,10 @@ export function OniJoinProtocol() {
                 </div>
 
                 <div>
-                  <label htmlFor={`${uid}-contact-type`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-contact-type`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     ХОЛБООНЫ СУВАГ *
                   </label>
                   <select
@@ -387,7 +414,10 @@ export function OniJoinProtocol() {
               </div>
 
               <div>
-                <label htmlFor={`${uid}-contact`} className="hud-label mb-2 block text-foreground/70">
+                <label
+                  htmlFor={`${uid}-contact`}
+                  className="hud-label mb-2 block text-foreground/70"
+                >
                   ХОЛБОО БАРИХ ХАЯГ / ДУГААР *
                 </label>
                 <input
@@ -462,7 +492,11 @@ export function OniJoinProtocol() {
                   placeholder="Өөрийгөө товч танилцуулна уу."
                 />
                 <div className="mt-1 flex items-center justify-between gap-3">
-                  {errors.message ? <p className="text-xs text-crimson">{errors.message}</p> : <span />}
+                  {errors.message ? (
+                    <p className="text-xs text-crimson">{errors.message}</p>
+                  ) : (
+                    <span />
+                  )}
                   <p className="text-[0.65rem] text-muted-foreground/70">
                     {values.message.length}/{MESSAGE_MAX}
                   </p>
@@ -472,7 +506,9 @@ export function OniJoinProtocol() {
               <div className="overflow-hidden border border-white/10 bg-black/25 p-4 clip-notch">
                 <div className="flex items-center justify-between gap-4">
                   <span className="hud-label text-crimson/80">LIVE PREVIEW</span>
-                  <span className="text-[0.58rem] tracking-[0.16em] text-muted-foreground">APPLICANT CARD</span>
+                  <span className="text-[0.58rem] tracking-[0.16em] text-muted-foreground">
+                    APPLICANT CARD
+                  </span>
                 </div>
                 <div className="mt-4 flex items-end justify-between gap-5">
                   <div className="min-w-0">
@@ -485,7 +521,9 @@ export function OniJoinProtocol() {
                   </div>
                   <div className="text-right">
                     <p className="text-[0.68rem] text-foreground/80">{values.direction}</p>
-                    <p className="mt-1 text-[0.58rem] tracking-[0.15em] text-crimson/80">{experienceLabel}</p>
+                    <p className="mt-1 text-[0.58rem] tracking-[0.15em] text-crimson/80">
+                      {experienceLabel}
+                    </p>
                   </div>
                 </div>
               </div>

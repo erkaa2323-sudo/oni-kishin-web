@@ -2,13 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import "@/services/application-workflow";
 import { OniAdminPage } from "@/components/oni/OniAdminPage";
-import { OniEventRewardDock } from "@/components/oni/OniEventRewardDock";
 
 const description =
   "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем, progression reward ба Live2D ONI AI админ copilot.";
 
 function AdminRoutePage() {
-  return <><OniAdminPage /><OniEventRewardDock /></>;
+  return <OniAdminPage />;
 }
 
 export const Route = createFileRoute("/admin")({

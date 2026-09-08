@@ -55,7 +55,11 @@ export function safePortraitUrl(value: string | undefined): string | undefined {
   return undefined;
 }
 
-export function fallbackPortrait(callsign: string, role: string | undefined, index: number): string {
+export function fallbackPortrait(
+  callsign: string,
+  role: string | undefined,
+  index: number,
+): string {
   const identity = `${callsign} ${role ?? ""}`.toLowerCase();
   if (identity.includes("kitsune") || /(^|\s)leader($|\s)/.test(identity)) return crew01;
   if (identity.includes("hugo") || identity.includes("co-leader")) return crew02;
@@ -65,12 +69,19 @@ export function fallbackPortrait(callsign: string, role: string | undefined, ind
 export function parseCrewRole(value: string | undefined | null): CrewRoleId {
   const v = (value ?? "").toLowerCase();
   if (
-    v.includes("leader") || v.includes("command") || v.includes("captain") ||
-    v.includes("owner") || v.includes("удирд") || v.includes("ахлагч") ||
-    v.includes("тэргүүн") || v.includes("дэд")
-  ) return "command";
+    v.includes("leader") ||
+    v.includes("command") ||
+    v.includes("captain") ||
+    v.includes("owner") ||
+    v.includes("удирд") ||
+    v.includes("ахлагч") ||
+    v.includes("тэргүүн") ||
+    v.includes("дэд")
+  )
+    return "command";
   if (v.includes("mechanic") || v.includes("tuner") || v.includes("механ")) return "mechanic";
-  if (v.includes("media") || v.includes("content") || v.includes("editor") || v.includes("медиа")) return "media";
+  if (v.includes("media") || v.includes("content") || v.includes("editor") || v.includes("медиа"))
+    return "media";
   return "driver";
 }
 

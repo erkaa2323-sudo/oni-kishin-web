@@ -1,7 +1,7 @@
 /**
  * Guarded service-worker registration.
  * Registers ONLY in the published production app — never in dev, iframes or Lovable previews.
- * Caching strategy is defined in vite.config.ts (generateSW):
+ * Caching and push handling are defined in the custom public/sw.js:
  * static shell/assets only. No Supabase / API / authenticated responses are ever cached.
  */
 const SW_URL = "/sw.js";

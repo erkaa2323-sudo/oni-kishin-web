@@ -13,10 +13,17 @@ export function OniProgressionRewardBridge() {
       try {
         const result = await claimMeetAttendanceReward();
         if (result === "claimed") {
-          window.dispatchEvent(new CustomEvent("oni:progression-reward", { detail: { source: "meet", xp: 100, coin: 50 } }));
+          window.dispatchEvent(
+            new CustomEvent("oni:progression-reward", {
+              detail: { source: "meet", xp: 100, coin: 50 },
+            }),
+          );
         }
       } catch (error) {
-        console.warn("[oni-progression] meet reward check failed", error instanceof Error ? error.message : "unknown");
+        console.warn(
+          "[oni-progression] meet reward check failed",
+          error instanceof Error ? error.message : "unknown",
+        );
       }
     };
 

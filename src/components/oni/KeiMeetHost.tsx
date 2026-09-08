@@ -95,7 +95,8 @@ function hostCopy(state: HostState, nickname?: string, notice?: string) {
 }
 
 function countdownCopy(phase: CountdownPhase, seconds: number) {
-  if (phase === "ten") return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
+  if (phase === "ten")
+    return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
   if (phase === "five") return "5 минут. Crew check дуусгаж, Meet-д ороход бэлэн байгаарай.";
   if (phase === "one") return "1 минут. ONI MEET launch sequence эхэллээ.";
   if (phase === "final10") return `${Math.max(1, seconds)}… ONI MEET эхлэх гэж байна.`;

@@ -16,7 +16,11 @@ export type NexusPushResult =
   | { ok: true; state: "enabled"; message: string }
   | { ok: false; state: Exclude<NexusPushState, "enabled">; message: string };
 
-type NavigatorWithStandalone = Navigator & { standalone?: boolean; setAppBadge?: (count?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+  setAppBadge?: (count?: number) => Promise<void>;
+  clearAppBadge?: () => Promise<void>;
+};
 
 export function isNexusStandalone() {
   if (typeof window === "undefined") return false;
@@ -26,11 +30,19 @@ export function isNexusStandalone() {
 
 export function isIosDevice() {
   if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
 }
 
 function supportsPush() {
-  return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  return (
+    typeof window !== "undefined" &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window &&
+    "Notification" in window
+  );
 }
 
 function decodeApplicationServerKey(value: string) {
@@ -50,7 +62,10 @@ async function publicKey() {
 async function subscriptionId(uid: string, endpoint: string) {
   const data = new TextEncoder().encode(endpoint);
   const digest = await crypto.subtle.digest("SHA-256", data);
-  const hex = Array.from(new Uint8Array(digest)).slice(0, 12).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  const hex = Array.from(new Uint8Array(digest))
+    .slice(0, 12)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
   return `${uid}__${hex}`;
 }
 
@@ -70,23 +85,48 @@ export async function getNexusPushState(): Promise<NexusPushState> {
 }
 
 export async function enableNexusPush(): Promise<NexusPushResult> {
-  if (!supportsPush()) return { ok: false, state: "unsupported", message: "Энэ төхөөрөмж Web Push дэмжихгүй байна." };
+  if (!supportsPush())
+    return { ok: false, state: "unsupported", message: "Энэ төхөөрөмж Web Push дэмжихгүй байна." };
   if (isIosDevice() && !isNexusStandalone()) {
-    return { ok: false, state: "install_required", message: "iPhone дээр эхлээд ONI NEXUS-ийг Home Screen-д app болгон нэмнэ үү." };
+    return {
+      ok: false,
+      state: "install_required",
+      message: "iPhone дээр эхлээд ONI NEXUS-ийг Home Screen-д app болгон нэмнэ үү.",
+    };
   }
 
   const user = firebaseAuth.currentUser;
-  if (!user) return { ok: false, state: "signed_out", message: "Push идэвхжүүлэхийн тулд ONI member account-аар нэвтэрнэ үү." };
+  if (!user)
+    return {
+      ok: false,
+      state: "signed_out",
+      message: "Push идэвхжүүлэхийн тулд ONI member account-аар нэвтэрнэ үү.",
+    };
   const account = await fetchMemberAccount(user.uid).catch(() => null);
   if (!account || account.status !== "approved") {
-    return { ok: false, state: "approval_required", message: "Push нь зөвхөн баталгаажсан ONI member-д нээлттэй." };
+    return {
+      ok: false,
+      state: "approval_required",
+      message: "Push нь зөвхөн баталгаажсан ONI member-д нээлттэй.",
+    };
   }
 
   const key = await publicKey().catch(() => "");
-  if (!key) return { ok: false, state: "config_required", message: "ONI NEXUS push backend тохиргоо хараахан идэвхжээгүй байна." };
+  if (!key)
+    return {
+      ok: false,
+      state: "config_required",
+      message: "ONI NEXUS push backend тохиргоо хараахан идэвхжээгүй байна.",
+    };
 
-  const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
-  if (permission !== "granted") return { ok: false, state: "denied", message: "Notification permission зөвшөөрөгдөөгүй байна." };
+  const permission =
+    Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+  if (permission !== "granted")
+    return {
+      ok: false,
+      state: "denied",
+      message: "Notification permission зөвшөөрөгдөөгүй байна.",
+    };
 
   const registration = await navigator.serviceWorker.ready;
   let subscription = await registration.pushManager.getSubscription();
@@ -106,18 +146,22 @@ export async function enableNexusPush(): Promise<NexusPushResult> {
   }
 
   const id = await subscriptionId(user.uid, endpoint);
-  await setDoc(doc(firebaseDb, "pushSubscriptions", id), {
-    uid: user.uid,
-    nickname: account.nickname,
-    cpmId: account.cpmId,
-    endpoint,
-    p256dh,
-    auth,
-    platform: isIosDevice() ? "ios" : "web",
-    enabled: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  await setDoc(
+    doc(firebaseDb, "pushSubscriptions", id),
+    {
+      uid: user.uid,
+      nickname: account.nickname,
+      cpmId: account.cpmId,
+      endpoint,
+      p256dh,
+      auth,
+      platform: isIosDevice() ? "ios" : "web",
+      enabled: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
 
   const nav = navigator as NavigatorWithStandalone;
   await nav.clearAppBadge?.().catch(() => undefined);

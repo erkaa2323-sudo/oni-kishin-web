@@ -63,12 +63,14 @@ function countdownText(iso: string | null, now: number): string {
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-function countdownPhase(iso: string | null, now: number): { phase: CountdownPhase; seconds: number } {
+function countdownPhase(
+  iso: string | null,
+  now: number,
+): { phase: CountdownPhase; seconds: number } {
   if (!iso) return { phase: "none", seconds: 0 };
   const diff = new Date(iso).getTime() - now;
   const seconds = Math.max(0, Math.ceil(diff / 1000));
-  if (diff <= 0)
-    return diff > -8_000 ? { phase: "go", seconds: 0 } : { phase: "none", seconds: 0 };
+  if (diff <= 0) return diff > -8_000 ? { phase: "go", seconds: 0 } : { phase: "none", seconds: 0 };
   if (diff <= 10_000) return { phase: "final10", seconds };
   if (diff <= 60_000) return { phase: "one", seconds };
   if (diff <= 5 * 60_000) return { phase: "five", seconds };
@@ -395,7 +397,10 @@ export function OniMeetAccess() {
 
               <form className="mt-6 space-y-5" onSubmit={onSubmit} noValidate>
                 <div>
-                  <label htmlFor={`${uid}-nick`} className="hud-label mb-2 block text-foreground/70">
+                  <label
+                    htmlFor={`${uid}-nick`}
+                    className="hud-label mb-2 block text-foreground/70"
+                  >
                     CPM NICKNAME *
                   </label>
                   <input

@@ -414,7 +414,11 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
         </div>
       </div>
 
-      {outcome ? <span className="sr-only" aria-live="polite">{statusBadge}</span> : null}
+      {outcome ? (
+        <span className="sr-only" aria-live="polite">
+          {statusBadge}
+        </span>
+      ) : null}
     </div>
   );
 }

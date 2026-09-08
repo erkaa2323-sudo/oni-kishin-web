@@ -28,7 +28,9 @@ type Pixi = {
     renderer: { resize: (width: number, height: number) => void };
     destroy: (removeView?: boolean, options?: Record<string, unknown>) => void;
   };
-  live2d?: { Live2DModel?: { from: (url: string, options?: Record<string, unknown>) => Promise<Model> } };
+  live2d?: {
+    Live2DModel?: { from: (url: string, options?: Record<string, unknown>) => Promise<Model> };
+  };
 };
 
 declare global {
@@ -41,7 +43,8 @@ declare global {
 const PIXI_URL = "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js";
 const CORE_URL = "https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js";
 const DISPLAY_URL = "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js";
-const MODEL_URL = "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@0.4.0/test/assets/shizuku/shizuku.model.json";
+const MODEL_URL =
+  "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display@0.4.0/test/assets/shizuku/shizuku.model.json";
 const LIVE2D_RUNTIME_TIMEOUT_MS = 7_000;
 const LIVE2D_MODEL_TIMEOUT_MS = 8_000;
 
@@ -127,7 +130,9 @@ function loadScript(src: string) {
       if (existing.dataset.loaded === "true") resolve();
       else {
         existing.addEventListener("load", () => resolve(), { once: true });
-        existing.addEventListener("error", () => reject(new Error(`Failed: ${src}`)), { once: true });
+        existing.addEventListener("error", () => reject(new Error(`Failed: ${src}`)), {
+          once: true,
+        });
       }
       return;
     }
@@ -361,7 +366,8 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
       gazeTargetRef.current = {
         x: Math.max(-1, Math.min(1, x)),
         y: Math.max(-1, Math.min(1, y)),
-        active: clientX >= rect.left - rect.width * 0.35 && clientX <= rect.right + rect.width * 0.35,
+        active:
+          clientX >= rect.left - rect.width * 0.35 && clientX <= rect.right + rect.width * 0.35,
       };
     };
 
@@ -409,9 +415,14 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
 
       const breath = (Math.sin(now / 1150) + 1) * 0.5;
       const speakingBoost = speakingRef.current ? 1.45 : 1;
-      const headX = bias.x + Math.sin(now / 2100) * 2.4 * bias.intensity * speakingBoost + gazeCurrentRef.current.x * 7.5;
-      const headY = bias.y + Math.sin(now / 2750 + 0.8) * 1.7 * bias.intensity + gazeCurrentRef.current.y * 4.2;
-      const bodyX = Math.sin(now / 3200 + 1.4) * 1.2 * bias.intensity + gazeCurrentRef.current.x * 1.2;
+      const headX =
+        bias.x +
+        Math.sin(now / 2100) * 2.4 * bias.intensity * speakingBoost +
+        gazeCurrentRef.current.x * 7.5;
+      const headY =
+        bias.y + Math.sin(now / 2750 + 0.8) * 1.7 * bias.intensity + gazeCurrentRef.current.y * 4.2;
+      const bodyX =
+        Math.sin(now / 3200 + 1.4) * 1.2 * bias.intensity + gazeCurrentRef.current.x * 1.2;
 
       setParam(model, "PARAM_BREATH", breath);
       setParam(model, "PARAM_ANGLE_X", headX);
@@ -561,12 +572,16 @@ export function OniLive2D({ state, glow, speaking = false }: Props) {
   if (failed) return <OniWebRig state={state} glow={glow} speaking={speaking} />;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-label="ONI Live2D Shizuku">
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      aria-label="ONI Live2D Shizuku"
+    >
       <div
         className="absolute inset-0 transition-opacity duration-500"
         style={{
           opacity: Math.min(1, Math.max(0.15, glow)),
-          background: "radial-gradient(45% 42% at 50% 58%, oklch(0.55 0.215 25.5 / 0.28), transparent 74%)",
+          background:
+            "radial-gradient(45% 42% at 50% 58%, oklch(0.55 0.215 25.5 / 0.28), transparent 74%)",
         }}
       />
       <div ref={hostRef} className="absolute inset-0" />

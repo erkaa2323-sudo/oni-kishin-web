@@ -27,16 +27,76 @@ export type OniStateVisual = {
 };
 
 export const ONI_STATE_VISUALS: Record<OniState, OniStateVisual> = {
-  idle: { label: "ХҮЛЭЭЛТИЙН ГОРИМ", code: "IDLE", motion: "oni-anim-idle", glow: 0.25, priority: 0 },
-  music: { label: "ХӨГЖИМ СОНСОЖ БАЙНА", code: "MUSIC", motion: "oni-anim-music", glow: 0.45, priority: 1 },
-  listening: { label: "СОНСОЖ БАЙНА", code: "LISTENING", motion: "oni-anim-listening", glow: 0.4, priority: 2 },
-  thinking: { label: "БОДОЖ БАЙНА", code: "THINKING", motion: "oni-anim-thinking", glow: 0.55, priority: 3 },
-  speaking: { label: "ХАРИУЛЖ БАЙНА", code: "VOICE", motion: "oni-anim-speaking", glow: 0.68, priority: 4 },
-  happy: { label: "БАЯРТАЙ БАЙНА", code: "HAPPY", motion: "oni-anim-happy", glow: 0.6, priority: 3 },
-  excited: { label: "СЭТГЭЛ ХӨДӨЛСӨН", code: "EXCITED", motion: "oni-anim-excited", glow: 0.8, priority: 4 },
-  surprised: { label: "ГЭНЭТ ГАЙХСАН", code: "SURPRISED", motion: "oni-anim-surprised", glow: 0.7, priority: 4 },
-  concerned: { label: "САНАА ЗОВНИЖ БАЙНА", code: "CONCERNED", motion: "oni-anim-concerned", glow: 0.3, priority: 3 },
-  serious: { label: "НОЦТОЙ ГОРИМ", code: "SERIOUS", motion: "oni-anim-serious", glow: 0.5, priority: 3 },
+  idle: {
+    label: "ХҮЛЭЭЛТИЙН ГОРИМ",
+    code: "IDLE",
+    motion: "oni-anim-idle",
+    glow: 0.25,
+    priority: 0,
+  },
+  music: {
+    label: "ХӨГЖИМ СОНСОЖ БАЙНА",
+    code: "MUSIC",
+    motion: "oni-anim-music",
+    glow: 0.45,
+    priority: 1,
+  },
+  listening: {
+    label: "СОНСОЖ БАЙНА",
+    code: "LISTENING",
+    motion: "oni-anim-listening",
+    glow: 0.4,
+    priority: 2,
+  },
+  thinking: {
+    label: "БОДОЖ БАЙНА",
+    code: "THINKING",
+    motion: "oni-anim-thinking",
+    glow: 0.55,
+    priority: 3,
+  },
+  speaking: {
+    label: "ХАРИУЛЖ БАЙНА",
+    code: "VOICE",
+    motion: "oni-anim-speaking",
+    glow: 0.68,
+    priority: 4,
+  },
+  happy: {
+    label: "БАЯРТАЙ БАЙНА",
+    code: "HAPPY",
+    motion: "oni-anim-happy",
+    glow: 0.6,
+    priority: 3,
+  },
+  excited: {
+    label: "СЭТГЭЛ ХӨДӨЛСӨН",
+    code: "EXCITED",
+    motion: "oni-anim-excited",
+    glow: 0.8,
+    priority: 4,
+  },
+  surprised: {
+    label: "ГЭНЭТ ГАЙХСАН",
+    code: "SURPRISED",
+    motion: "oni-anim-surprised",
+    glow: 0.7,
+    priority: 4,
+  },
+  concerned: {
+    label: "САНАА ЗОВНИЖ БАЙНА",
+    code: "CONCERNED",
+    motion: "oni-anim-concerned",
+    glow: 0.3,
+    priority: 3,
+  },
+  serious: {
+    label: "НОЦТОЙ ГОРИМ",
+    code: "SERIOUS",
+    motion: "oni-anim-serious",
+    glow: 0.5,
+    priority: 3,
+  },
 };
 
 function includesAny(text: string, words: string[]) {
@@ -52,14 +112,104 @@ function scoreText(text: string) {
 
   if (includesAny(t, ["хөгжим", "дуу", "трэк", "music", "play", "тавь", "сонсъё"])) add("music", 4);
 
-  if (includesAny(t, ["баярлалаа", "баяртай", "гоё", "сайхан", "хөөрхөн", "мундаг", "супер", "хаха", "хэхэ", "love", "😄", "😊", "❤️", "❤"])) add("happy", 4);
-  if (includesAny(t, ["вау", "wow", "гайхалтай", "тасархай", "аймар гоё", "яамай", "🔥", "!!", "ёстой гоё"])) add("excited", 5);
-  if (includesAny(t, ["гайхлаа", "үнэхээр", "нээрээ", "really", "?!", "яаж", "яагаад", "юу гэж", "ийм гэж үү"])) add("surprised", 3);
+  if (
+    includesAny(t, [
+      "баярлалаа",
+      "баяртай",
+      "гоё",
+      "сайхан",
+      "хөөрхөн",
+      "мундаг",
+      "супер",
+      "хаха",
+      "хэхэ",
+      "love",
+      "😄",
+      "😊",
+      "❤️",
+      "❤",
+    ])
+  )
+    add("happy", 4);
+  if (
+    includesAny(t, [
+      "вау",
+      "wow",
+      "гайхалтай",
+      "тасархай",
+      "аймар гоё",
+      "яамай",
+      "🔥",
+      "!!",
+      "ёстой гоё",
+    ])
+  )
+    add("excited", 5);
+  if (
+    includesAny(t, [
+      "гайхлаа",
+      "үнэхээр",
+      "нээрээ",
+      "really",
+      "?!",
+      "яаж",
+      "яагаад",
+      "юу гэж",
+      "ийм гэж үү",
+    ])
+  )
+    add("surprised", 3);
 
-  if (includesAny(t, ["гуниг", "гунигтай", "муу байна", "хэцүү", "асуудал", "санаа зов", "уучлаарай", "харамсалтай", "туслаач", "😢", "😭", "sorry"])) add("concerned", 5);
-  if (includesAny(t, ["аюул", "аюултай", "анхаар", "хатуу", "сануулга", "хориг", "зөвшөөрөхгүй", "болохгүй", "дүрэм", "хууль", "эрсдэл", "ноцтой", "яаралтай"])) add("serious", 5);
+  if (
+    includesAny(t, [
+      "гуниг",
+      "гунигтай",
+      "муу байна",
+      "хэцүү",
+      "асуудал",
+      "санаа зов",
+      "уучлаарай",
+      "харамсалтай",
+      "туслаач",
+      "😢",
+      "😭",
+      "sorry",
+    ])
+  )
+    add("concerned", 5);
+  if (
+    includesAny(t, [
+      "аюул",
+      "аюултай",
+      "анхаар",
+      "хатуу",
+      "сануулга",
+      "хориг",
+      "зөвшөөрөхгүй",
+      "болохгүй",
+      "дүрэм",
+      "хууль",
+      "эрсдэл",
+      "ноцтой",
+      "яаралтай",
+    ])
+  )
+    add("serious", 5);
 
-  if (includesAny(t, ["бодъё", "бодож", "судлая", "шалгая", "нягтал", "дүгнэ", "тооцоол", "анализ", "analysis"])) add("thinking", 3);
+  if (
+    includesAny(t, [
+      "бодъё",
+      "бодож",
+      "судлая",
+      "шалгая",
+      "нягтал",
+      "дүгнэ",
+      "тооцоол",
+      "анализ",
+      "analysis",
+    ])
+  )
+    add("thinking", 3);
 
   return scores;
 }

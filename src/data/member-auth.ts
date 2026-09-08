@@ -46,10 +46,7 @@ const accountFrom = (uid: string, row: Record<string, unknown>): MemberAccount =
   memberId: String(row["memberId"] ?? ""),
   nickname: String(row["nickname"] ?? ""),
   cpmId: String(row["cpmId"] ?? ""),
-  status:
-    row["status"] === "approved" || row["status"] === "rejected"
-      ? row["status"]
-      : "pending",
+  status: row["status"] === "approved" || row["status"] === "rejected" ? row["status"] : "pending",
 });
 
 export async function fetchMemberAccount(uid: string): Promise<MemberAccount | null> {

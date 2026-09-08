@@ -47,14 +47,7 @@ export function cpmLaunchUrl(userAgent?: string): string {
 }
 
 export type MeetLifecycle =
-  | "none"
-  | "scheduled"
-  | "starting_soon"
-  | "open"
-  | "closed"
-  | "full"
-  | "active"
-  | "ended";
+  "none" | "scheduled" | "starting_soon" | "open" | "closed" | "full" | "active" | "ended";
 
 export type MeetSession = {
   id: string;
@@ -75,8 +68,7 @@ export type MeetParticipant = {
 export type MeetCredentials = { roomId: string; password: string };
 
 export type MeetLoad =
-  | { status: "ok"; session: MeetSession | null }
-  | { status: "error"; reason: string };
+  { status: "ok"; session: MeetSession | null } | { status: "error"; reason: string };
 
 export type VerificationInput = {
   cpmNickname: string;
@@ -304,11 +296,7 @@ export async function registerForMeet(
       if (startAt === null) return "invalid" as const;
       const explicitClose = valueMs(meet["registrationClosesAt"]);
       const closesAt = explicitClose ?? startAt + MEET_REGISTRATION_GRACE_MS;
-      if (
-        meet["status"] === "closed" ||
-        meet["status"] === "ended" ||
-        closesAt <= now
-      )
+      if (meet["status"] === "closed" || meet["status"] === "ended" || closesAt <= now)
         return "registration_closed" as const;
 
       const capacity = Math.min(20, Math.max(1, Number(meet["maxPlayers"] ?? 20)));

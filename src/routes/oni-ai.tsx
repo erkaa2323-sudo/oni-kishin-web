@@ -4,7 +4,8 @@ import { OniAiChamber } from "@/components/oni/OniAiChamber";
 import { OniRigBridge } from "@/components/oni/OniRigBridge";
 import "@/components/oni/OniCharacterAlive.css";
 
-const description = "Oni Shizuki — кланы AI туслах, хөгжим болон AI Creator Studio нэгтгэсэн команд танхим.";
+const description =
+  "Oni Shizuki — кланы AI туслах, хөгжим болон AI Creator Studio нэгтгэсэн команд танхим.";
 
 function OniAiRoute() {
   return (

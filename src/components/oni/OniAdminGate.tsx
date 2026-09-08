@@ -1,3 +1,4 @@
+import { OniEventRewardDock } from "./OniEventRewardDock";
 import { useEffect, useState } from "react";
 import { KeyRound, Loader2, ShieldAlert, ShieldPlus } from "lucide-react";
 
@@ -142,7 +143,7 @@ function SignIn() {
           Зөвхөн зөвшөөрөгдсөн админ профайлтай хэрэглэгч самбарт нэвтэрнэ.
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
-          Зөвхөн OWNER/ADMIN/MODERATOR эрхтэй бүртгэл нэвтэрнэ.
+          Зөвхөн зөвшөөрөгдсөн Firebase OWNER бүртгэл нэвтэрнэ.
         </p>
 
         <label className="mt-5 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
@@ -291,7 +292,12 @@ function GateBody() {
   if (phase === "backend_unavailable") return <BackendUnavailable />;
   if (phase === "signed_out") return <SignIn />;
   if (phase === "unauthorized") return <AccessDenied />;
-  return <OniControlCenter />;
+  return (
+    <>
+      <OniControlCenter />
+      <OniEventRewardDock />
+    </>
+  );
 }
 
 export function OniAdminGate() {
