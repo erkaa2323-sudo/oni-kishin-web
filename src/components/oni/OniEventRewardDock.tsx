@@ -76,12 +76,18 @@ export function OniEventRewardDock() {
                 <p className="text-[0.62rem] tracking-[0.18em] text-crimson">ONI АХИЦ БА ШАГНАЛ</p>
                 <h2 className="mt-1 text-xl font-semibold">ЭВЕНТИЙН ШАГНАЛ</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60" aria-label="Хаах">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="p-2 text-white/60"
+                aria-label="Хаах"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <p className="mt-2 text-xs leading-5 text-white/45">
-              Эвентэд оролцсон гишүүний байр, оролцоонд тохирсон XP болон ONI coin-ыг нэг удаа олгоно.
+              Эвентэд оролцсон гишүүний байр, оролцоонд тохирсон XP болон ONI coin-ыг нэг удаа
+              олгоно.
             </p>
             <div className="mt-5 space-y-4">
               <label className="block">
