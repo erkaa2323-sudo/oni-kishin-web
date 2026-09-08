@@ -23,9 +23,20 @@ export function isValidRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (VALID_ROLES as string[]).includes(value);
 }
 
-/** Centralized, reusable permission check. */
+/**
+ * Centralized, reusable permission check.
+ *
+ * The strict auth gate resolves an allowlisted owner profile with email, while
+ * several admin action surfaces intentionally pass a compact { uid, role }
+ * actor after that gate has already succeeded. Accept that compact owner shape
+ * for UI permission checks so review controls do not get disabled/hidden merely
+ * because the email field was omitted. Firestore rules and the admin action
+ * dispatcher remain the authoritative write boundary.
+ */
 export function hasPermission(profile: AdminProfile | null, permission: AdminPermission): boolean {
-  if (!isAuthorizedAdmin(profile) || !profile) return false;
+  if (!profile) return false;
+  const authorized = profile.email ? isAuthorizedAdmin(profile) : profile.role === "owner";
+  if (!authorized) return false;
   return ROLE_PERMISSIONS[profile.role]?.includes(permission) ?? false;
 }
 
