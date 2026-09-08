@@ -64,7 +64,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Format only merged integration source
+      - name: Normalize only merged integration source
         if: steps.merge.outputs.already_merged == 'false'
         shell: bash
         run: |
@@ -75,6 +75,7 @@ jobs:
           } | sort -u)"
           if [ -n "$files" ]; then
             printf '%s\n' "$files" | xargs npx prettier --write
+            printf '%s\n' "$files" | xargs npx eslint --fix
           fi
 
       - name: Full repository verification
