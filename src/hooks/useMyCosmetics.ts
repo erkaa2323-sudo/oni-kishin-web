@@ -25,29 +25,26 @@ export function useMyCosmetics() {
       setLoading(false);
     };
 
-    const unsubscribeAuth = watchMemberAuth(
-      ({ user, account }) => {
-        unsubscribeProgression?.();
-        unsubscribeProgression = null;
+    const unsubscribeAuth = watchMemberAuth(({ user, account }) => {
+      unsubscribeProgression?.();
+      unsubscribeProgression = null;
 
-        if (!user || account?.status !== "approved") {
-          setEffectIds([]);
+      if (!user || account?.status !== "approved") {
+        setEffectIds([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      unsubscribeProgression = onSnapshot(
+        doc(firebaseDb, "progressionProfiles", user.uid),
+        (snapshot) => {
+          setEffectIds(snapshot.exists() ? equippedIds(snapshot.data()) : []);
           setLoading(false);
-          return;
-        }
-
-        setLoading(true);
-        unsubscribeProgression = onSnapshot(
-          doc(firebaseDb, "progressionProfiles", user.uid),
-          (snapshot) => {
-            setEffectIds(snapshot.exists() ? equippedIds(snapshot.data()) : []);
-            setLoading(false);
-          },
-          clear,
-        );
-      },
-      clear,
-    );
+        },
+        clear,
+      );
+    }, clear);
 
     return () => {
       unsubscribeProgression?.();

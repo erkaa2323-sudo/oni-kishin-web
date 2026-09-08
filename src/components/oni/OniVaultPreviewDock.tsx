@@ -49,9 +49,7 @@ export function OniVaultPreviewDock() {
         <div className="relative flex min-h-56 flex-col justify-between bg-black/20 p-4">
           <div className="flex items-start justify-between gap-3">
             <span className="text-[0.58rem] tracking-[0.22em] text-white/55">LIVE PREVIEW</span>
-            <span className="text-[0.58rem] tracking-[0.18em] text-crimson">
-              {selected.rarity}
-            </span>
+            <span className="text-[0.58rem] tracking-[0.18em] text-crimson">{selected.rarity}</span>
           </div>
           <div className="relative mx-auto grid h-20 w-20 place-items-center border border-white/15 bg-black/35 text-cinema text-3xl text-white shadow-2xl clip-notch">
             鬼

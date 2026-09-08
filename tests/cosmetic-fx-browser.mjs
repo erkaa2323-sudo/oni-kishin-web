@@ -104,15 +104,7 @@ for (const [browserName, launcher] of [
             const error = gl.getError();
             if (error !== gl.NO_ERROR) throw new Error(`gl_error_${error}`);
             const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-            gl.readPixels(
-              0,
-              0,
-              canvas.width,
-              canvas.height,
-              gl.RGBA,
-              gl.UNSIGNED_BYTE,
-              pixels,
-            );
+            gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
             let alphaPixels = 0;
             let colorEnergy = 0;
             let redEnergy = 0;

@@ -296,15 +296,7 @@ export function OniCosmeticFx({
           : window.innerWidth < 768
             ? 1.5
             : 1.8;
-    const targetFps = reducedMotion
-      ? 1
-      : preview
-        ? 24
-        : ambient
-          ? 30
-          : lowPowerDevice
-            ? 30
-            : 60;
+    const targetFps = reducedMotion ? 1 : preview ? 24 : ambient ? 30 : lowPowerDevice ? 30 : 60;
     let gl: WebGLRenderingContext | null = null;
     let program: WebGLProgram | null = null;
     let buffer: WebGLBuffer | null = null;
