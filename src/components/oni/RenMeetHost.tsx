@@ -1,2 +1,2 @@
-// Compatibility export for older imports. The active Meet host is the iPhone-safe Kei renderer.
-export { KeiMeetHostStable as RenMeetHost } from "./KeiMeetHostStable";
+// Compatibility export for older imports. The active Meet host is the hardened iPhone-safe Kei renderer.
+export { KeiMeetHostHardened as RenMeetHost } from "./KeiMeetHostHardened";
