@@ -14,14 +14,18 @@ import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 import { ONI_VAULT, type OniProgressionProfile } from "@/lib/oni-progression";
 import {
   ONI_REWARDS,
-  WEEKLY_MISSIONS,
+  achievementById,
   weeklyMissionById,
+  type AchievementId,
   type ProgressionLedgerEntry,
+  type SeasonConfig,
   type WeeklyConfig,
   type WeeklyProgress,
 } from "@/lib/progression-rewards";
 
 const DEFAULT_EQUIPPED: Record<string, string> = {};
+const MAX_PRESTIGE = 3;
+const PRESTIGE_XP = 26_000;
 const nonNegative = (value: unknown) => Math.max(0, Number(value ?? 0));
 const signed = (value: unknown) => Number(value ?? 0) || 0;
 const toMillis = (value: unknown) => value && typeof value === "object" && "toMillis" in value
@@ -65,6 +69,15 @@ const blankProfile = (uid: string, nickname: string) => ({
   equipped: {},
 });
 
+function achievementEligible(id: AchievementId, profile: OniProgressionProfile) {
+  if (id === "first-blood") return profile.meetCount >= 1;
+  if (id === "night-rider") return profile.meetCount >= 10;
+  if (id === "content-creator") return profile.creatorCount >= 5;
+  if (id === "collector") return profile.unlocked.length >= 5;
+  if (id === "kishin") return profile.lifetimeXp >= 8_500;
+  return profile.lifetimeXp >= 26_000;
+}
+
 export async function ensureMyProgression(): Promise<OniProgressionProfile | null> {
   const user = firebaseAuth.currentUser;
   if (!user) return null;
@@ -98,6 +111,18 @@ export async function getCurrentWeeklyConfig(): Promise<WeeklyConfig | null> {
   };
 }
 
+export async function getCurrentSeasonConfig(): Promise<SeasonConfig | null> {
+  const snap = await getDoc(doc(firebaseDb, "progressionMissions", "currentSeason"));
+  if (!snap.exists()) return null;
+  const row = snap.data();
+  return {
+    seasonId: String(row["seasonId"] ?? ""),
+    startsAt: toIso(row["startsAt"]),
+    endsAt: toIso(row["endsAt"]),
+    enabled: row["enabled"] === true,
+  };
+}
+
 export async function getMyWeeklyProgress(): Promise<WeeklyProgress | null> {
   const user = firebaseAuth.currentUser;
   if (!user) return null;
@@ -116,8 +141,12 @@ export async function getMyWeeklyProgress(): Promise<WeeklyProgress | null> {
 export async function getMyWeeklyClaims(weekId: string): Promise<Set<string>> {
   const user = firebaseAuth.currentUser;
   if (!user || !weekId) return new Set();
-  const snaps = await Promise.all(WEEKLY_MISSIONS.map((mission) => getDoc(doc(firebaseDb, "progressionMissionClaims", `${user.uid}_${weekId}_${mission.id}`))));
-  return new Set(snaps.flatMap((snap, index) => snap.exists() ? [WEEKLY_MISSIONS[index]?.id ?? ""] : []).filter(Boolean));
+  const snapshot = await getDocs(query(
+    collection(firebaseDb, "progressionMissionClaims"),
+    where("uid", "==", user.uid),
+    where("weekId", "==", weekId),
+  ));
+  return new Set(snapshot.docs.map((row) => String(row.data()["missionId"] ?? "")).filter(Boolean));
 }
 
 export async function claimWeeklyMission(missionId: string): Promise<"claimed" | "already" | "not_ready" | "unavailable"> {
@@ -127,7 +156,6 @@ export async function claimWeeklyMission(missionId: string): Promise<"claimed" |
   const configRef = doc(firebaseDb, "progressionMissions", "currentWeek");
   const weeklyRef = doc(firebaseDb, "progressionWeekly", user.uid);
   const profileRef = doc(firebaseDb, "progressionProfiles", user.uid);
-
   return runTransaction(firebaseDb, async (tx) => {
     const [configSnap, weeklySnap, profileSnap] = await Promise.all([tx.get(configRef), tx.get(weeklyRef), tx.get(profileRef)]);
     if (!configSnap.exists() || !weeklySnap.exists() || !profileSnap.exists()) return "unavailable" as const;
@@ -137,7 +165,6 @@ export async function claimWeeklyMission(missionId: string): Promise<"claimed" |
     const endsAt = toMillis(config["endsAt"]);
     const now = Date.now();
     if (!weekId || config["enabled"] !== true || !startsAt || !endsAt || now < startsAt || now >= endsAt) return "not_ready" as const;
-
     const weekly = weeklySnap.data();
     if (String(weekly["weekId"] ?? "") !== weekId) return "not_ready" as const;
     const progressValue = mission.kind === "meet"
@@ -146,21 +173,13 @@ export async function claimWeeklyMission(missionId: string): Promise<"claimed" |
         ? nonNegative(weekly["creator"])
         : nonNegative(weekly["activity"]);
     if (progressValue < mission.target) return "not_ready" as const;
-
     const claimRef = doc(firebaseDb, "progressionMissionClaims", `${user.uid}_${weekId}_${mission.id}`);
     const claimSnap = await tx.get(claimRef);
     if (claimSnap.exists()) return "already" as const;
-
     const profile = parseProgressionProfile(user.uid, profileSnap.data());
     const balanceAfter = profile.coin + mission.rewardCoin;
     const ledgerRef = doc(firebaseDb, "progressionLedger", `mission_${user.uid}_${weekId}_${mission.id}`);
-    tx.set(claimRef, {
-      uid: user.uid,
-      weekId,
-      missionId: mission.id,
-      rewardCoin: mission.rewardCoin,
-      createdAt: serverTimestamp(),
-    });
+    tx.set(claimRef, { uid: user.uid, weekId, missionId: mission.id, rewardCoin: mission.rewardCoin, createdAt: serverTimestamp() });
     tx.set(ledgerRef, {
       uid: user.uid,
       sourceType: "weekly_mission",
@@ -177,6 +196,74 @@ export async function claimWeeklyMission(missionId: string): Promise<"claimed" |
   });
 }
 
+export async function getMyAchievementClaims(): Promise<Set<AchievementId>> {
+  const user = firebaseAuth.currentUser;
+  if (!user) return new Set();
+  const snapshot = await getDocs(query(collection(firebaseDb, "progressionAchievementClaims"), where("uid", "==", user.uid)));
+  return new Set(snapshot.docs.map((row) => String(row.data()["achievementId"] ?? "") as AchievementId).filter((id) => achievementById(id) !== null));
+}
+
+export async function claimAchievement(achievementId: AchievementId): Promise<"claimed" | "already" | "not_ready" | "unavailable"> {
+  const user = firebaseAuth.currentUser;
+  if (!user || !achievementById(achievementId)) return "unavailable";
+  const profileRef = doc(firebaseDb, "progressionProfiles", user.uid);
+  const claimRef = doc(firebaseDb, "progressionAchievementClaims", `${user.uid}_${achievementId}`);
+  return runTransaction(firebaseDb, async (tx) => {
+    const [profileSnap, claimSnap] = await Promise.all([tx.get(profileRef), tx.get(claimRef)]);
+    if (!profileSnap.exists()) return "unavailable" as const;
+    if (claimSnap.exists()) return "already" as const;
+    const profile = parseProgressionProfile(user.uid, profileSnap.data());
+    if (!achievementEligible(achievementId, profile)) return "not_ready" as const;
+    tx.set(claimRef, {
+      uid: user.uid,
+      achievementId,
+      meetCount: profile.meetCount,
+      creatorCount: profile.creatorCount,
+      unlockedCount: profile.unlocked.length,
+      lifetimeXp: profile.lifetimeXp,
+      claimedAt: serverTimestamp(),
+    });
+    return "claimed" as const;
+  });
+}
+
+export async function claimPrestige(): Promise<"claimed" | "max" | "not_ready" | "unavailable"> {
+  const user = firebaseAuth.currentUser;
+  if (!user) return "unavailable";
+  const profileRef = doc(firebaseDb, "progressionProfiles", user.uid);
+  return runTransaction(firebaseDb, async (tx) => {
+    const profileSnap = await tx.get(profileRef);
+    if (!profileSnap.exists()) return "unavailable" as const;
+    const profile = parseProgressionProfile(user.uid, profileSnap.data());
+    if (profile.prestige >= MAX_PRESTIGE) return "max" as const;
+    if (profile.xp < PRESTIGE_XP) return "not_ready" as const;
+    const nextPrestige = profile.prestige + 1;
+    const claimRef = doc(firebaseDb, "progressionPrestigeClaims", `${user.uid}_${nextPrestige}`);
+    const claimSnap = await tx.get(claimRef);
+    if (claimSnap.exists()) return "max" as const;
+    const ledgerRef = doc(firebaseDb, "progressionLedger", `prestige_${user.uid}_${nextPrestige}`);
+    tx.set(claimRef, {
+      uid: user.uid,
+      prestige: nextPrestige,
+      previousXp: profile.xp,
+      lifetimeXp: profile.lifetimeXp,
+      createdAt: serverTimestamp(),
+    });
+    tx.set(ledgerRef, {
+      uid: user.uid,
+      sourceType: "prestige",
+      sourceKey: String(nextPrestige),
+      xp: 0,
+      coin: 0,
+      balanceAfter: profile.coin,
+      prestige: nextPrestige,
+      createdAt: serverTimestamp(),
+    });
+    tx.update(profileRef, { xp: 0, prestige: nextPrestige, updatedAt: serverTimestamp() });
+    return "claimed" as const;
+  });
+}
+
 export async function unlockVaultItem(itemId: string) {
   const user = firebaseAuth.currentUser;
   if (!user) throw new Error("auth_required");
@@ -188,22 +275,12 @@ export async function unlockVaultItem(itemId: string) {
     const [snap, spendSnap] = await Promise.all([tx.get(ref), tx.get(spendRef)]);
     if (!snap.exists()) throw new Error("profile_required");
     const p = parseProgressionProfile(user.uid, snap.data());
-    if (p.unlocked.includes(item.id)) throw new Error("already_unlocked");
-    if (spendSnap.exists()) throw new Error("already_unlocked");
+    if (p.unlocked.includes(item.id) || spendSnap.exists()) throw new Error("already_unlocked");
     if (p.xp < item.minXp) throw new Error("rank_required");
     if (p.coin < item.price) throw new Error("coin_required");
     const balanceAfter = p.coin - item.price;
     tx.update(ref, { coin: balanceAfter, unlocked: [...p.unlocked, item.id], updatedAt: serverTimestamp() });
-    tx.set(spendRef, {
-      uid: user.uid,
-      sourceType: "vault_spend",
-      sourceKey: item.id,
-      itemId: item.id,
-      xp: 0,
-      coin: -item.price,
-      balanceAfter,
-      createdAt: serverTimestamp(),
-    });
+    tx.set(spendRef, { uid: user.uid, sourceType: "vault_spend", sourceKey: item.id, itemId: item.id, xp: 0, coin: -item.price, balanceAfter, createdAt: serverTimestamp() });
     tx.set(doc(firebaseDb, "socialEvents", `${user.uid}_cosmetic_${item.id}`), {
       uid: user.uid,
       nickname: p.nickname,
@@ -240,14 +317,16 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
   if (!profile) return "unavailable";
   const meetRef = doc(firebaseDb, "meets", "current");
   const participantRef = doc(firebaseDb, "meetParticipants", user.uid);
+  const attendanceRef = doc(firebaseDb, "meetAttendance", user.uid);
   const claimRef = doc(firebaseDb, "progressionMeetClaims", user.uid);
   const profileRef = doc(firebaseDb, "progressionProfiles", user.uid);
   const configRef = doc(firebaseDb, "progressionMissions", "currentWeek");
   const weeklyRef = doc(firebaseDb, "progressionWeekly", user.uid);
   return runTransaction(firebaseDb, async (tx) => {
-    const [meetSnap, participantSnap, claimSnap, profileSnap, configSnap, weeklySnap] = await Promise.all([
+    const [meetSnap, participantSnap, attendanceSnap, claimSnap, profileSnap, configSnap, weeklySnap] = await Promise.all([
       tx.get(meetRef),
       tx.get(participantRef),
+      tx.get(attendanceRef),
       tx.get(claimRef),
       tx.get(profileRef),
       tx.get(configRef),
@@ -257,9 +336,11 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
     const meet = meetSnap.data();
     const participant = participantSnap.data();
     const start = meet["startAt"];
-    if (!start || participant["meetStartAt"]?.toMillis?.() !== start.toMillis?.()) return "unavailable" as const;
-    if (start.toMillis() > Date.now() || meet["status"] === "ended" || meet["status"] === "closed") return "not_ready" as const;
-    if (claimSnap.exists() && claimSnap.data()["meetStartAt"]?.toMillis?.() === start.toMillis()) return "already" as const;
+    const startMs = toMillis(start);
+    if (!start || !startMs || toMillis(participant["meetStartAt"]) !== startMs) return "unavailable" as const;
+    if (startMs > Date.now()) return "not_ready" as const;
+    if (!attendanceSnap.exists() || toMillis(attendanceSnap.data()["meetStartAt"]) !== startMs) return "not_ready" as const;
+    if (claimSnap.exists() && toMillis(claimSnap.data()["meetStartAt"]) === startMs) return "already" as const;
     const p = parseProgressionProfile(user.uid, profileSnap.data());
     const nonce = crypto.randomUUID().replace(/-/g, "");
     const reward = ONI_REWARDS.meetAttendance;
@@ -283,14 +364,12 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
       meetCount: p.meetCount + 1,
       updatedAt: serverTimestamp(),
     });
-
     if (configSnap.exists()) {
       const config = configSnap.data();
       const weekId = String(config["weekId"] ?? "");
       const startsAt = toMillis(config["startsAt"]);
       const endsAt = toMillis(config["endsAt"]);
-      const now = Date.now();
-      if (weekId && config["enabled"] === true && startsAt && endsAt && now >= startsAt && now < endsAt) {
+      if (weekId && config["enabled"] === true && startsAt && endsAt && startMs >= startsAt && startMs < endsAt) {
         const previous = weeklySnap.exists() && String(weeklySnap.data()["weekId"] ?? "") === weekId ? weeklySnap.data() : null;
         tx.set(weeklyRef, {
           uid: user.uid,
@@ -304,7 +383,6 @@ export async function claimMeetAttendanceReward(): Promise<"claimed" | "already"
         });
       }
     }
-
     tx.set(doc(firebaseDb, "socialEvents", `${user.uid}_meet_${nonce}`), {
       uid: user.uid,
       nickname: p.nickname,
