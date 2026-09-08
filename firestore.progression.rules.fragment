@@ -56,9 +56,19 @@
         && requiredText(get(attendancePath).data.confirmedBy, 180);
     }
 
+    function validVaultTerms(itemId, price, xp) {
+      return (itemId == "frame-crimson" && price == 700 && xp >= 500)
+        || (itemId == "aura-red-moon" && price == 1800 && xp >= 3000)
+        || (itemId == "garage-neon" && price == 2200 && xp >= 3000)
+        || (itemId == "shizuki-kitsune" && price == 4500 && xp >= 8500)
+        || (itemId == "title-night-rider" && price == 900 && xp >= 1500)
+        || (itemId == "entrance-kishin" && price == 5000 && xp >= 12500)
+        || (itemId == "creator-red-moon" && price == 2600 && xp >= 5500)
+        || (itemId == "trophy-vault" && price == 1200 && xp >= 1500);
+    }
+
     function validVaultSpendLedger(uid, itemId, price, balanceAfter) {
-      let ledgerId = "spend_" + uid + "_" + itemId;
-      let ledgerPath = /databases/$(database)/documents/progressionLedger/$(ledgerId);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("spend_" + uid + "_" + itemId);
       return existsAfter(ledgerPath)
         && getAfter(ledgerPath).data.uid == uid
         && getAfter(ledgerPath).data.sourceType == "vault_spend"
@@ -70,32 +80,51 @@
         && getAfter(ledgerPath).data.createdAt == request.time;
     }
 
-    function validVaultUnlock(itemId, price, minXp) {
+    function validVaultBranch(itemId, price) {
       let before = resource.data.unlocked.toSet();
       let after = request.resource.data.unlocked.toSet();
       let added = after.difference(before);
-      return request.resource.data.xp >= minXp
-        && request.resource.data.coin == resource.data.coin - price
-        && request.resource.data.coin >= 0
-        && request.resource.data.unlocked.size() == resource.data.unlocked.size() + 1
-        && added.hasOnly([itemId]) && added.hasAny([itemId])
-        && validEquippedCosmetics(request.resource.data)
+      return added.hasOnly([itemId])
+        && added.hasAny([itemId])
+        && validVaultTerms(itemId, price, request.resource.data.xp)
         && validVaultSpendLedger(request.auth.uid, itemId, price, request.resource.data.coin);
     }
 
-    function validAnyVaultUnlock() {
-      return validVaultUnlock("frame-crimson", 700, 500)
-        || validVaultUnlock("aura-red-moon", 1800, 3000)
-        || validVaultUnlock("garage-neon", 2200, 3000)
-        || validVaultUnlock("shizuki-kitsune", 4500, 8500)
-        || validVaultUnlock("title-night-rider", 900, 1500)
-        || validVaultUnlock("entrance-kishin", 5000, 12500)
-        || validVaultUnlock("creator-red-moon", 2600, 5500)
-        || validVaultUnlock("trophy-vault", 1200, 1500);
+    function validVaultUnlock() {
+      let price = resource.data.coin - request.resource.data.coin;
+      return request.resource.data.coin >= 0
+        && request.resource.data.unlocked.size() == resource.data.unlocked.size() + 1
+        && request.resource.data.xp == resource.data.xp
+        && request.resource.data.lifetimeXp == resource.data.lifetimeXp
+        && request.resource.data.seasonXp == resource.data.seasonXp
+        && request.resource.data.prestige == resource.data.prestige
+        && request.resource.data.meetCount == resource.data.meetCount
+        && request.resource.data.creatorCount == resource.data.creatorCount
+        && request.resource.data.eventCount == resource.data.eventCount
+        && request.resource.data.equipped == resource.data.equipped
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "unlocked", "updatedAt"])
+        && validEquippedCosmetics(request.resource.data)
+        && (
+          (price == 700 && validVaultBranch("frame-crimson", 700))
+          || (price == 1800 && validVaultBranch("aura-red-moon", 1800))
+          || (price == 2200 && validVaultBranch("garage-neon", 2200))
+          || (price == 4500 && validVaultBranch("shizuki-kitsune", 4500))
+          || (price == 900 && validVaultBranch("title-night-rider", 900))
+          || (price == 5000 && validVaultBranch("entrance-kishin", 5000))
+          || (price == 2600 && validVaultBranch("creator-red-moon", 2600))
+          || (price == 1200 && validVaultBranch("trophy-vault", 1200))
+        );
     }
 
     function validEquipOnly() {
       return request.resource.data.coin == resource.data.coin
+        && request.resource.data.xp == resource.data.xp
+        && request.resource.data.lifetimeXp == resource.data.lifetimeXp
+        && request.resource.data.seasonXp == resource.data.seasonXp
+        && request.resource.data.prestige == resource.data.prestige
+        && request.resource.data.meetCount == resource.data.meetCount
+        && request.resource.data.creatorCount == resource.data.creatorCount
+        && request.resource.data.eventCount == resource.data.eventCount
         && request.resource.data.unlocked == resource.data.unlocked
         && validEquippedCosmetics(request.resource.data)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"]);
@@ -104,7 +133,6 @@
     function validMeetReward(uid) {
       let claimPath = /databases/$(database)/documents/progressionMeetClaims/$(uid);
       return currentMeetExists()
-        && currentMeet().keys().hasAll(["startAt"])
         && currentMeet().startAt is timestamp
         && request.time >= currentMeet().startAt
         && confirmedAttendance(uid)
@@ -136,15 +164,13 @@
         || (missionId == "activity-3" && rewardCoin == 500);
     }
 
-    function validWeeklyRewardFor(uid, missionId, rewardCoin) {
-      let claimId = uid + "_" + currentWeek().weekId + "_" + missionId;
-      let claimPath = /databases/$(database)/documents/progressionMissionClaims/$(claimId);
-      let ledgerId = "mission_" + uid + "_" + currentWeek().weekId + "_" + missionId;
-      let ledgerPath = /databases/$(database)/documents/progressionLedger/$(ledgerId);
-      return activeCurrentWeek()
-        && existsAfter(claimPath)
+    function validWeeklyRewardLink(uid, missionId, rewardCoin) {
+      let weekId = currentWeek().weekId;
+      let claimPath = /databases/$(database)/documents/progressionMissionClaims/$(uid + "_" + weekId + "_" + missionId);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("mission_" + uid + "_" + weekId + "_" + missionId);
+      return existsAfter(claimPath)
         && getAfter(claimPath).data.uid == uid
-        && getAfter(claimPath).data.weekId == currentWeek().weekId
+        && getAfter(claimPath).data.weekId == weekId
         && getAfter(claimPath).data.missionId == missionId
         && getAfter(claimPath).data.rewardCoin == rewardCoin
         && getAfter(claimPath).data.createdAt == request.time
@@ -153,32 +179,51 @@
         && getAfter(ledgerPath).data.sourceType == "weekly_mission"
         && getAfter(ledgerPath).data.coin == rewardCoin
         && getAfter(ledgerPath).data.balanceAfter == request.resource.data.coin
-        && getAfter(ledgerPath).data.createdAt == request.time
-        && request.resource.data.coin == resource.data.coin + rewardCoin
+        && getAfter(ledgerPath).data.createdAt == request.time;
+    }
+
+    function validWeeklyReward(uid) {
+      let rewardCoin = request.resource.data.coin - resource.data.coin;
+      return activeCurrentWeek()
         && request.resource.data.xp == resource.data.xp
         && request.resource.data.lifetimeXp == resource.data.lifetimeXp
         && request.resource.data.seasonXp == resource.data.seasonXp
+        && request.resource.data.prestige == resource.data.prestige
         && request.resource.data.meetCount == resource.data.meetCount
         && request.resource.data.creatorCount == resource.data.creatorCount
         && request.resource.data.eventCount == resource.data.eventCount
         && request.resource.data.unlocked == resource.data.unlocked
         && request.resource.data.equipped == resource.data.equipped
-        && request.resource.data.prestige == resource.data.prestige
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "updatedAt"]);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "updatedAt"])
+        && (
+          (rewardCoin == 300 && validWeeklyRewardLink(uid, "meet-2", 300))
+          || (rewardCoin == 200 && validWeeklyRewardLink(uid, "creator-1", 200))
+          || (rewardCoin == 500 && validWeeklyRewardLink(uid, "activity-3", 500))
+        );
     }
 
-    function validAnyWeeklyReward(uid) {
-      return validWeeklyRewardFor(uid, "meet-2", 300)
-        || validWeeklyRewardFor(uid, "creator-1", 200)
-        || validWeeklyRewardFor(uid, "activity-3", 500);
+    function validPrestigeDocs(uid, prestige, key) {
+      let claimPath = /databases/$(database)/documents/progressionPrestigeClaims/$(uid + "_" + key);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("prestige_" + uid + "_" + key);
+      return existsAfter(claimPath)
+        && getAfter(claimPath).data.uid == uid
+        && getAfter(claimPath).data.prestige == prestige
+        && getAfter(claimPath).data.previousXp == resource.data.xp
+        && getAfter(claimPath).data.lifetimeXp == resource.data.lifetimeXp
+        && getAfter(claimPath).data.createdAt == request.time
+        && existsAfter(ledgerPath)
+        && getAfter(ledgerPath).data.uid == uid
+        && getAfter(ledgerPath).data.sourceType == "prestige"
+        && getAfter(ledgerPath).data.sourceKey == key
+        && getAfter(ledgerPath).data.xp == 0
+        && getAfter(ledgerPath).data.coin == 0
+        && getAfter(ledgerPath).data.balanceAfter == resource.data.coin
+        && getAfter(ledgerPath).data.prestige == prestige
+        && getAfter(ledgerPath).data.createdAt == request.time;
     }
 
     function validPrestige(uid) {
       let nextPrestige = resource.data.prestige + 1;
-      let claimId = uid + "_" + nextPrestige;
-      let claimPath = /databases/$(database)/documents/progressionPrestigeClaims/$(claimId);
-      let ledgerId = "prestige_" + uid + "_" + nextPrestige;
-      let ledgerPath = /databases/$(database)/documents/progressionLedger/$(ledgerId);
       return resource.data.xp >= 26000
         && resource.data.prestige < 3
         && request.resource.data.prestige == nextPrestige
@@ -192,21 +237,18 @@
         && request.resource.data.unlocked == resource.data.unlocked
         && request.resource.data.equipped == resource.data.equipped
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["xp", "prestige", "updatedAt"])
-        && existsAfter(claimPath)
-        && getAfter(claimPath).data.uid == uid
-        && getAfter(claimPath).data.prestige == nextPrestige
-        && getAfter(claimPath).data.previousXp == resource.data.xp
-        && getAfter(claimPath).data.lifetimeXp == resource.data.lifetimeXp
-        && getAfter(claimPath).data.createdAt == request.time
-        && existsAfter(ledgerPath)
-        && getAfter(ledgerPath).data.uid == uid
-        && getAfter(ledgerPath).data.sourceType == "prestige"
-        && getAfter(ledgerPath).data.sourceKey == nextPrestige.toString()
-        && getAfter(ledgerPath).data.xp == 0
-        && getAfter(ledgerPath).data.coin == 0
-        && getAfter(ledgerPath).data.balanceAfter == resource.data.coin
-        && getAfter(ledgerPath).data.prestige == nextPrestige
-        && getAfter(ledgerPath).data.createdAt == request.time;
+        && (
+          (nextPrestige == 1 && validPrestigeDocs(uid, 1, "p1"))
+          || (nextPrestige == 2 && validPrestigeDocs(uid, 2, "p2"))
+          || (nextPrestige == 3 && validPrestigeDocs(uid, 3, "p3"))
+        );
+    }
+
+    function validProfileIdentity(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.nickname == resource.data.nickname;
     }
 
     match /progressionProfiles/{uid} {
@@ -224,21 +266,12 @@
         && request.resource.data.eventCount == 0
         && request.resource.data.unlocked.size() == 0
         && request.resource.data.equipped is map);
-      allow update: if isAdmin() || (isApprovedMember()
-        && request.auth.uid == uid
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.nickname == resource.data.nickname
-        && ((request.resource.data.prestige == resource.data.prestige
-          && ((request.resource.data.xp == resource.data.xp
-            && request.resource.data.lifetimeXp == resource.data.lifetimeXp
-            && request.resource.data.seasonXp == resource.data.seasonXp
-            && request.resource.data.meetCount == resource.data.meetCount
-            && request.resource.data.creatorCount == resource.data.creatorCount
-            && request.resource.data.eventCount == resource.data.eventCount
-            && (validAnyVaultUnlock() || validEquipOnly()))
-            || validMeetReward(uid)
-            || validAnyWeeklyReward(uid)))
-          || validPrestige(uid)));
+      allow update: if isAdmin();
+      allow update: if isApprovedMember() && validProfileIdentity(uid) && validEquipOnly();
+      allow update: if isApprovedMember() && validProfileIdentity(uid) && validVaultUnlock();
+      allow update: if isApprovedMember() && validProfileIdentity(uid) && validMeetReward(uid);
+      allow update: if isApprovedMember() && validProfileIdentity(uid) && validWeeklyReward(uid);
+      allow update: if isApprovedMember() && validProfileIdentity(uid) && validPrestige(uid);
       allow delete: if isAdmin();
     }
 
@@ -253,7 +286,6 @@
         && request.auth.uid == uid
         && request.resource.data.uid == uid
         && currentMeetExists()
-        && currentMeet().keys().hasAll(["startAt"])
         && currentMeet().startAt is timestamp
         && request.time >= currentMeet().startAt
         && confirmedAttendance(uid)
@@ -276,49 +308,40 @@
     }
 
     function validMeetLedger(ledgerId) {
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       return request.resource.data.sourceType == "meet_attendance"
         && confirmedAttendance(request.auth.uid)
         && request.resource.data.xp == 100
         && request.resource.data.coin == 50
-        && request.resource.data.balanceAfter == getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.coin
+        && request.resource.data.balanceAfter == getAfter(profilePath).data.coin
+        && getAfter(profilePath).data.coin == get(profilePath).data.coin + 50
         && requiredText(request.resource.data.sourceKey, 80)
         && ledgerId == request.auth.uid + "_" + request.resource.data.sourceKey
         && request.resource.data.meetStartAt == currentMeet().startAt
         && request.resource.data.createdAt == request.time
         && existsAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid))
-        && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.claimNonce == request.resource.data.sourceKey
-        && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.updatedAt == request.time;
+        && getAfter(/databases/$(database)/documents/progressionMeetClaims/$(request.auth.uid)).data.claimNonce == request.resource.data.sourceKey;
     }
 
-    function validVaultSpendCreate(ledgerId, itemId, price) {
+    function validVaultSpendCreate(ledgerId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
-      return ledgerId == "spend_" + request.auth.uid + "_" + itemId
-        && request.resource.data.sourceType == "vault_spend"
-        && request.resource.data.sourceKey == itemId
-        && request.resource.data.itemId == itemId
+      let itemId = request.resource.data.itemId;
+      let price = 0 - request.resource.data.coin;
+      return request.resource.data.sourceType == "vault_spend"
         && request.resource.data.xp == 0
-        && request.resource.data.coin == 0 - price
+        && request.resource.data.coin < 0
+        && request.resource.data.sourceKey == itemId
+        && ledgerId == "spend_" + request.auth.uid + "_" + itemId
+        && validVaultTerms(itemId, price, get(profilePath).data.xp)
         && request.resource.data.balanceAfter == getAfter(profilePath).data.coin
         && getAfter(profilePath).data.coin == get(profilePath).data.coin - price
         && getAfter(profilePath).data.unlocked.toSet().hasAny([itemId])
         && request.resource.data.createdAt == request.time;
     }
 
-    function validAnyVaultSpendCreate(ledgerId) {
-      return validVaultSpendCreate(ledgerId, "frame-crimson", 700)
-        || validVaultSpendCreate(ledgerId, "aura-red-moon", 1800)
-        || validVaultSpendCreate(ledgerId, "garage-neon", 2200)
-        || validVaultSpendCreate(ledgerId, "shizuki-kitsune", 4500)
-        || validVaultSpendCreate(ledgerId, "title-night-rider", 900)
-        || validVaultSpendCreate(ledgerId, "entrance-kishin", 5000)
-        || validVaultSpendCreate(ledgerId, "creator-red-moon", 2600)
-        || validVaultSpendCreate(ledgerId, "trophy-vault", 1200);
-    }
-
     function validWeeklyLedger(ledgerId) {
-      let claimId = request.auth.uid + "_" + request.resource.data.weekId + "_" + request.resource.data.missionId;
-      let claimPath = /databases/$(database)/documents/progressionMissionClaims/$(claimId);
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
+      let claimPath = /databases/$(database)/documents/progressionMissionClaims/$(request.auth.uid + "_" + request.resource.data.weekId + "_" + request.resource.data.missionId);
       return request.resource.data.sourceType == "weekly_mission"
         && activeCurrentWeek()
         && request.resource.data.weekId == currentWeek().weekId
@@ -330,33 +353,40 @@
         && getAfter(profilePath).data.coin == get(profilePath).data.coin + request.resource.data.coin
         && request.resource.data.createdAt == request.time
         && existsAfter(claimPath)
-        && getAfter(claimPath).data.rewardCoin == request.resource.data.coin
+        && getAfter(claimPath).data.rewardCoin == request.resource.data.coin;
+    }
+
+    function validPrestigeLedgerKey(ledgerId, prestige, key) {
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
+      let claimPath = /databases/$(database)/documents/progressionPrestigeClaims/$(request.auth.uid + "_" + key);
+      return ledgerId == "prestige_" + request.auth.uid + "_" + key
+        && request.resource.data.sourceType == "prestige"
+        && request.resource.data.sourceKey == key
+        && request.resource.data.xp == 0
+        && request.resource.data.coin == 0
+        && request.resource.data.balanceAfter == get(profilePath).data.coin
+        && request.resource.data.prestige == prestige
+        && request.resource.data.createdAt == request.time
+        && getAfter(profilePath).data.prestige == prestige
+        && getAfter(profilePath).data.xp == 0
+        && existsAfter(claimPath)
+        && getAfter(claimPath).data.prestige == prestige
         && getAfter(claimPath).data.createdAt == request.time;
     }
 
     function validPrestigeLedger(ledgerId) {
-      let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
-      let nextPrestige = get(profilePath).data.prestige + 1;
-      let claimPath = /databases/$(database)/documents/progressionPrestigeClaims/$(request.auth.uid + "_" + nextPrestige);
-      return ledgerId == "prestige_" + request.auth.uid + "_" + nextPrestige
-        && request.resource.data.sourceType == "prestige"
-        && request.resource.data.sourceKey == nextPrestige.toString()
-        && request.resource.data.xp == 0
-        && request.resource.data.coin == 0
-        && request.resource.data.balanceAfter == get(profilePath).data.coin
-        && request.resource.data.prestige == nextPrestige
-        && request.resource.data.createdAt == request.time
-        && getAfter(profilePath).data.prestige == nextPrestige
-        && getAfter(profilePath).data.xp == 0
-        && existsAfter(claimPath)
-        && getAfter(claimPath).data.createdAt == request.time;
+      return (request.resource.data.prestige == 1 && validPrestigeLedgerKey(ledgerId, 1, "p1"))
+        || (request.resource.data.prestige == 2 && validPrestigeLedgerKey(ledgerId, 2, "p2"))
+        || (request.resource.data.prestige == 3 && validPrestigeLedgerKey(ledgerId, 3, "p3"));
     }
 
     match /progressionLedger/{ledgerId} {
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
-      allow create: if isAdmin() || (isApprovedMember()
-        && request.resource.data.uid == request.auth.uid
-        && (validMeetLedger(ledgerId) || validAnyVaultSpendCreate(ledgerId) || validWeeklyLedger(ledgerId) || validPrestigeLedger(ledgerId)));
+      allow create: if isAdmin();
+      allow create: if isApprovedMember() && request.resource.data.uid == request.auth.uid && validMeetLedger(ledgerId);
+      allow create: if isApprovedMember() && request.resource.data.uid == request.auth.uid && validVaultSpendCreate(ledgerId);
+      allow create: if isApprovedMember() && request.resource.data.uid == request.auth.uid && validWeeklyLedger(ledgerId);
+      allow create: if isApprovedMember() && request.resource.data.uid == request.auth.uid && validPrestigeLedger(ledgerId);
       allow update, delete: if isAdmin();
     }
 
@@ -387,7 +417,8 @@
 
     match /progressionWeekly/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
-      allow create, update: if isAdmin() || (isApprovedMember() && request.auth.uid == uid && validWeeklyMeetWrite(uid));
+      allow create, update: if isAdmin();
+      allow create, update: if isApprovedMember() && request.auth.uid == uid && validWeeklyMeetWrite(uid);
       allow delete: if isAdmin();
     }
 
@@ -434,6 +465,12 @@
       allow delete: if isAdmin();
     }
 
+    function validPrestigeClaimId(uid, claimId, prestige) {
+      return (prestige == 1 && claimId == uid + "_p1")
+        || (prestige == 2 && claimId == uid + "_p2")
+        || (prestige == 3 && claimId == uid + "_p3");
+    }
+
     match /progressionPrestigeClaims/{claimId} {
       allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if isApprovedMember()
@@ -441,7 +478,7 @@
         && request.resource.data.prestige is int
         && request.resource.data.prestige >= 1
         && request.resource.data.prestige <= 3
-        && claimId == request.auth.uid + "_" + request.resource.data.prestige
+        && validPrestigeClaimId(request.auth.uid, claimId, request.resource.data.prestige)
         && request.resource.data.previousXp >= 26000
         && request.resource.data.lifetimeXp >= request.resource.data.previousXp
         && request.resource.data.createdAt == request.time
@@ -464,7 +501,8 @@
         && requiredText(request.resource.data.nickname, 60)
         && request.resource.data.type in ["rank_up", "cosmetic_unlock", "event_win", "creator_approved", "meet_attendance"]
         && requiredText(request.resource.data.title, 120)
-        && request.resource.data.detail is string && request.resource.data.detail.size() <= 240
+        && request.resource.data.detail is string
+        && request.resource.data.detail.size() <= 240
         && requiredText(request.resource.data.targetUrl, 160)
         && request.resource.data.targetUrl.matches("^/.*")
         && request.resource.data.reactions == 0
@@ -508,7 +546,7 @@
     }
 
     match /socialReactions/{reactionId} {
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == resource.data.uid);
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
       allow create: if isApprovedMember()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.targetType in ["feed", "profile", "gallery", "garage"]
