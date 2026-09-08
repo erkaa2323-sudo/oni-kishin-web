@@ -22,6 +22,22 @@ const replacements = [
     }`
   ],
   [
+`      allow update: if isAdmin() || (isApprovedMember()
+        && profileIdentityV3(uid)
+        && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"])
+              && validEquipV3())
+          || (request.resource.data.diff(resource.data).affectedKeys().hasAny(["lastAction"])
+              && validEconomyProfileUpdateV3(uid))));`,
+`      allow update: if isAdmin() ? true
+        : request.auth == null ? false
+        : request.auth.uid != uid ? false
+        : !isApprovedMember() ? false
+        : !profileIdentityV3(uid) ? false
+        : request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"]) ? validEquipV3()
+        : request.resource.data.diff(resource.data).affectedKeys().hasAny(["lastAction"]) ? validEconomyProfileUpdateV3(uid)
+        : false;`
+  ],
+  [
 `    function validLedgerCreateV3(ledgerId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       let profile = getAfter(profilePath).data;
@@ -111,6 +127,45 @@ const replacements = [
         : achievementId == "legend" ? lifetimeXp >= 26000
         : false;
     }`
+  ],
+  [
+`    function validAchievementClaimV3(claimId) {
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
+      let profile = get(profilePath).data;
+      let achievementId = request.resource.data.get("achievementId", "");
+      return exists(profilePath)
+        && request.resource.data.keys().hasOnly(["uid", "achievementId", "meetCount", "creatorCount", "unlockedCount", "lifetimeXp", "claimedAt"])
+        && request.resource.data.get("uid", "") == request.auth.uid
+        && requiredText(achievementId, 80)
+        && claimId == request.auth.uid + "_" + achievementId
+        && request.resource.data.get("claimedAt", null) == request.time
+        && achievementEligibleV3(achievementId, profile)
+        && request.resource.data.get("meetCount", -1) == profile.get("meetCount", 0)
+        && request.resource.data.get("creatorCount", -1) == profile.get("creatorCount", 0)
+        && request.resource.data.get("unlockedCount", -1) == profile.get("unlocked", []).size()
+        && request.resource.data.get("lifetimeXp", -1) == profile.get("lifetimeXp", 0);
+    }`,
+`    function validAchievementClaimV3(claimId) {
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
+      let achievementId = request.resource.data.get("achievementId", "");
+      return !exists(profilePath) ? false
+        : !request.resource.data.keys().hasOnly(["uid", "achievementId", "meetCount", "creatorCount", "unlockedCount", "lifetimeXp", "claimedAt"]) ? false
+        : request.resource.data.get("uid", "") != request.auth.uid ? false
+        : !requiredText(achievementId, 80) ? false
+        : claimId != request.auth.uid + "_" + achievementId ? false
+        : request.resource.data.get("claimedAt", null) != request.time ? false
+        : !achievementEligibleV3(achievementId, get(profilePath).data) ? false
+        : request.resource.data.get("meetCount", -1) != get(profilePath).data.get("meetCount", 0) ? false
+        : request.resource.data.get("creatorCount", -1) != get(profilePath).data.get("creatorCount", 0) ? false
+        : request.resource.data.get("unlockedCount", -1) != get(profilePath).data.get("unlocked", []).size() ? false
+        : request.resource.data.get("lifetimeXp", -1) == get(profilePath).data.get("lifetimeXp", 0);
+    }`
+  ],
+  [
+`      allow create: if isApprovedMember() && validAchievementClaimV3(claimId);`,
+`      allow create: if request.auth == null ? false
+        : !isApprovedMember() ? false
+        : validAchievementClaimV3(claimId);`
   ]
 ];
 
