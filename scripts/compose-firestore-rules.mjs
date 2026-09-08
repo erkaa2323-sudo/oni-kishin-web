@@ -7,11 +7,14 @@ export function composeRules() {
   for (const [file, needle] of [
     ["firestore.creator.rules.fragment", "match /creatorPublishRequests/"],
     ["firestore.nexus.rules.fragment", "match /pushSubscriptions/"],
-    ["firestore.progression.rules.fragment", "match /progressionProfiles/"],
+    ["firestore.progression.v3.rules.fragment", "function currentWeekPathV3()"],
   ]) {
     if (!rules.includes(needle))
       rules = rules.replace(marker, `${readFileSync(file, "utf8").trimEnd()}\n\n${marker}`);
   }
   return rules;
 }
-writeFileSync("firestore.test.generated.rules", composeRules());
+
+const composed = composeRules();
+writeFileSync("firestore.test.generated.rules", composed);
+writeFileSync("firestore.economy-audit.rules", composed);
