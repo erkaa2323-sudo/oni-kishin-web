@@ -36,14 +36,12 @@ export type WeeklyConfig = {
   enabled: boolean;
 };
 
-export const ONI_ACHIEVEMENTS = [
-  { id: "first-blood", name: "FIRST BLOOD", description: "Анхны meet attendance reward ав.", test: (s: ProgressionStats) => s.meets >= 1 },
-  { id: "night-rider", name: "NIGHT RIDER", description: "10 meet-д оролц.", test: (s: ProgressionStats) => s.meets >= 10 },
-  { id: "content-creator", name: "CONTENT CREATOR", description: "5 Creator asset Gallery-д батлуул.", test: (s: ProgressionStats) => s.creator >= 5 },
-  { id: "collector", name: "VAULT SEEKER", description: "5 cosmetic unlock хий.", test: (s: ProgressionStats) => s.unlocked >= 5 },
-  { id: "kishin", name: "KISHIN", description: "8,500 lifetime XP хүр.", test: (s: ProgressionStats) => s.lifetimeXp >= 8500 },
-  { id: "legend", name: "LEGEND", description: "26,000 lifetime XP хүр.", test: (s: ProgressionStats) => s.lifetimeXp >= 26000 },
-] as const;
+export type SeasonConfig = {
+  seasonId: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  enabled: boolean;
+};
 
 export type ProgressionStats = {
   meets: number;
@@ -52,6 +50,32 @@ export type ProgressionStats = {
   unlocked: number;
   lifetimeXp: number;
 };
+
+export type AchievementId =
+  | "first-blood"
+  | "night-rider"
+  | "content-creator"
+  | "collector"
+  | "kishin"
+  | "legend";
+
+export const ONI_ACHIEVEMENTS = [
+  { id: "first-blood", name: "FIRST BLOOD", description: "Анхны баталгаажсан Meet attendance reward ав.", test: (s: ProgressionStats) => s.meets >= 1 },
+  { id: "night-rider", name: "NIGHT RIDER", description: "10 баталгаажсан Meet-д оролц.", test: (s: ProgressionStats) => s.meets >= 10 },
+  { id: "content-creator", name: "CONTENT CREATOR", description: "5 Creator asset Gallery-д батлуул.", test: (s: ProgressionStats) => s.creator >= 5 },
+  { id: "collector", name: "VAULT SEEKER", description: "5 cosmetic unlock хий.", test: (s: ProgressionStats) => s.unlocked >= 5 },
+  { id: "kishin", name: "KISHIN", description: "8,500 lifetime XP хүр.", test: (s: ProgressionStats) => s.lifetimeXp >= 8500 },
+  { id: "legend", name: "LEGEND", description: "26,000 lifetime XP хүр.", test: (s: ProgressionStats) => s.lifetimeXp >= 26000 },
+] as const satisfies ReadonlyArray<{
+  id: AchievementId;
+  name: string;
+  description: string;
+  test: (stats: ProgressionStats) => boolean;
+}>;
+
+export function achievementById(id: string) {
+  return ONI_ACHIEVEMENTS.find((achievement) => achievement.id === id) ?? null;
+}
 
 export const WEEKLY_MISSIONS = [
   { id: "meet-2", label: "2 Meet оролц", target: 2, rewardCoin: 300, kind: "meet" as const },
