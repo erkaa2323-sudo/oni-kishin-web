@@ -71,12 +71,6 @@ jobs:
           grep -q 'afterProfileFreshV3' firestore.economy-audit.rules
           grep -q '? validVaultProfileV3' firestore.economy-audit.rules
           grep -q '? meetCount >= 1' firestore.economy-audit.rules
-          echo '=== FIRESTORE LINE CONTEXT 588-600 ==='
-          nl -ba firestore.economy-audit.rules | sed -n '588,600p'
-          echo '=== FIRESTORE LINE CONTEXT 651-663 ==='
-          nl -ba firestore.economy-audit.rules | sed -n '651,663p'
-          echo '=== FIRESTORE LINE CONTEXT 746-758 ==='
-          nl -ba firestore.economy-audit.rules | sed -n '746,758p'
 
       - name: Install rules test harness
         run: bun add --no-save @firebase/rules-unit-testing
@@ -92,21 +86,7 @@ jobs:
           }
           JSON
           bunx firebase-tools@14.16.0 emulators:exec --only firestore --project demo-oni-economy --config firebase.economy-audit.json "bun scripts/economy-rules-test.mjs && bun scripts/economy-rule-coverage-report.mjs" 2>&1 | tee economy-emulator.log
-          grep -q 'ECONOMY_SECURITY_INTEGRATION_OK' economy-emulator.log
-          grep -q 'RULE_COVERAGE_FOCUSED_OK' economy-emulator.log
-          if grep -q 'maximum of 1000 expressions' economy-emulator.log; then
-            echo "=== FIRESTORE DEBUG: EXPRESSION LIMIT ==="
-            grep -in -C 12 '1000 expressions' firestore-debug.log || true
-            echo "Firestore rules exceeded expression limit"
-            exit 1
-          fi
-          if grep -q 'evaluation error' economy-emulator.log; then
-            echo "=== FIRESTORE DEBUG: EVALUATION ERRORS ==="
-            grep -in -C 15 'evaluation error' firestore-debug.log || true
-            grep -in -C 15 'Error' firestore-debug.log | tail -n 240 || true
-            echo "Firestore rules emitted an evaluation error"
-            exit 1
-          fi
+          bun scripts/economy-emulator-log-audit.mjs
 
       - name: Economy invariants
         shell: bash
@@ -129,6 +109,7 @@ jobs:
           grep -q 'firestore.progression.v3.rules.fragment' .github/workflows/economy-audit-only.yml
           grep -q 'economy-v3-ternary-patch.mjs' .github/workflows/economy-audit-only.yml
           grep -q 'economy-rule-coverage-report.mjs' .github/workflows/economy-audit-only.yml
+          grep -q 'economy-emulator-log-audit.mjs' .github/workflows/economy-audit-only.yml
           if grep -q 'uses: actions/deploy-pages' .github/workflows/economy-audit-only.yml; then exit 1; fi
           if grep -q 'uses: amondnet/vercel-action' .github/workflows/economy-audit-only.yml; then exit 1; fi
           echo "NO_DEPLOY_AUDIT_OK"
