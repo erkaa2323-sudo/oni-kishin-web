@@ -6,8 +6,12 @@ on:
     paths:
       - 'public/kei-live2d-host.html'
       - 'public/kei-pixi-texture-test.html'
+      - 'src/components/oni/KeiMeetHostCubism5.tsx'
+      - 'src/components/oni/RenMeetHost.tsx'
+      - 'src/routes/meet.tsx'
       - 'scripts/prepare-live2d-core.mjs'
       - 'tests/kei-browser-smoke.mjs'
+      - 'tests/kei-meet-integration.mjs'
       - '.github/workflows/kei-browser-smoke.yml'
   workflow_dispatch:
 
@@ -17,7 +21,7 @@ permissions:
 jobs:
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -41,3 +45,22 @@ jobs:
           exit 1
       - name: Verify visible Kei pixels in Chromium and WebKit
         run: node tests/kei-browser-smoke.mjs
+      - name: Build production app
+        run: bun run build
+      - name: Start built ONI app
+        env:
+          PORT: '4174'
+          HOST: '127.0.0.1'
+        run: |
+          node .output/server/index.mjs > /tmp/oni-app.log 2>&1 &
+          echo $! > /tmp/oni-app.pid
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:4174/meet >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/oni-app.log
+          exit 1
+      - name: Verify Kei inside real Meet page in Chromium and WebKit
+        env:
+          KEI_APP_ORIGIN: http://127.0.0.1:4174
+        run: node tests/kei-meet-integration.mjs
