@@ -1,0 +1,80 @@
+name: Economy V3 Freshness Patch
+
+on:
+  push:
+    branches:
+      - audit/oni-economy-v2
+    paths:
+      - .github/workflows/economy-v3-freshness-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/oni-economy-v2
+      - name: Patch v3 freshness without deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('firestore.progression.v3.rules.fragment')
+          s = p.read_text(encoding='utf-8')
+          old = '''        && data.lastAction.get("at", null) == request.time;'''
+          new = '''        && request.resource.data.updatedAt == request.time
+        && data.lastAction != resource.data.get("lastAction", {});'''
+          if old not in s:
+              raise SystemExit('freshProfileAction marker not found')
+          s = s.replace(old, new, 1)
+          old = '''    function afterActionMatchesV3(uid, typeName, key) {
+      let action = afterProfileActionV3(uid);
+      return action is map
+        && action.get("type", "") == typeName
+        && action.get("key", "") == key
+        && action.get("at", null) == request.time;
+    }'''
+          new = '''    function afterProfileFreshV3(uid) {
+      return getAfter(/databases/$(database)/documents/progressionProfiles/$(uid)).data.updatedAt == request.time;
+    }
+
+    function afterActionMatchesV3(uid, typeName, key) {
+      let action = afterProfileActionV3(uid);
+      return afterProfileFreshV3(uid)
+        && action is map
+        && action.get("type", "") == typeName
+        && action.get("key", "") == key;
+    }'''
+          if old not in s:
+              raise SystemExit('afterActionMatches block not found')
+          s = s.replace(old, new, 1)
+          old = '''      return action.get("at", null) == request.time
+        && request.resource.data.uid == request.auth.uid'''
+          new = '''      return afterProfileFreshV3(request.auth.uid)
+        && request.resource.data.uid == request.auth.uid'''
+          if old not in s:
+              raise SystemExit('ledger freshness marker not found')
+          s = s.replace(old, new, 1)
+          old = '''      return action.get("type", "") == "meet_reward"
+        && action.get("at", null) == request.time
+        && currentWeekExistsV3()'''
+          new = '''      return action.get("type", "") == "meet_reward"
+        && afterProfileFreshV3(uid)
+        && currentWeekExistsV3()'''
+          if old not in s:
+              raise SystemExit('weekly freshness marker not found')
+          s = s.replace(old, new, 1)
+          if 'get("at", null)' in s:
+              raise SystemExit('stale at-based freshness remains')
+          p.write_text(s, encoding='utf-8')
+          PY
+          git diff --check
+          git config user.name "ONI Audit Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add firestore.progression.v3.rules.fragment
+          git commit -m "Use request-time profile freshness in economy v3"
+          git push origin HEAD:audit/oni-economy-v2
