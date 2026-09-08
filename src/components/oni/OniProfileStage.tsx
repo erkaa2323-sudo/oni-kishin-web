@@ -51,11 +51,15 @@ export function OniProfileStage() {
   const rank = useMemo(() => (profile ? rankForXp(profile.xp) : null), [profile]);
   const nextRank = useMemo(() => (profile ? nextRankForXp(profile.xp) : null), [profile]);
   const level = profile ? levelForXp(profile.xp) : 1;
-  const progress = profile && nextRank && rank
-    ? Math.min(100, Math.max(0, ((profile.xp - rank.minXp) / (nextRank.minXp - rank.minXp)) * 100))
-    : profile
-      ? 100
-      : 0;
+  const progress =
+    profile && nextRank && rank
+      ? Math.min(
+          100,
+          Math.max(0, ((profile.xp - rank.minXp) / (nextRank.minXp - rank.minXp)) * 100),
+        )
+      : profile
+        ? 100
+        : 0;
 
   return (
     <div className="min-h-screen bg-ink text-foreground">
@@ -78,7 +82,9 @@ export function OniProfileStage() {
             <div className="glass-panel p-5 clip-notch sm:p-7">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <span className="hud-label text-crimson/80">{account.memberId || "ONI MEMBER"}</span>
+                  <span className="hud-label text-crimson/80">
+                    {account.memberId || "ONI MEMBER"}
+                  </span>
                   <h2 className="mt-2 text-cinema text-4xl">{account.nickname}</h2>
                   <p className="mt-2 text-xs text-muted-foreground">CPM ID: {account.cpmId}</p>
                 </div>
@@ -89,11 +95,24 @@ export function OniProfileStage() {
               </div>
 
               <div className="mt-6 h-2 overflow-hidden bg-border/60">
-                <div className="h-full bg-crimson transition-[width] duration-500" style={{ width: `${progress}%` }} />
+                <div
+                  className="h-full bg-crimson transition-[width] duration-500"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
               <div className="mt-2 flex justify-between text-[0.65rem] text-muted-foreground">
-                <span>{profile ? `${profile.xp.toLocaleString()} XP` : loadingProfile ? "УНШИЖ БАЙНА…" : "0 XP"}</span>
-                <span>{nextRank ? `${nextRank.minXp.toLocaleString()} XP → ${nextRank.name}` : "MAX RANK"}</span>
+                <span>
+                  {profile
+                    ? `${profile.xp.toLocaleString()} XP`
+                    : loadingProfile
+                      ? "УНШИЖ БАЙНА…"
+                      : "0 XP"}
+                </span>
+                <span>
+                  {nextRank
+                    ? `${nextRank.minXp.toLocaleString()} XP → ${nextRank.name}`
+                    : "MAX RANK"}
+                </span>
               </div>
             </div>
 
@@ -121,30 +140,55 @@ export function OniProfileStage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Link to="/garage" className={`${statClass} group transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/garage"
+                className={`${statClass} group transition-colors hover:border-crimson/55`}
+              >
                 <Medal className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">GARAGE</p>
-                <p className="mt-1 text-xs text-muted-foreground">Өөрийн машин болон Crew garage руу орох.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Өөрийн машин болон Crew garage руу орох.
+                </p>
               </Link>
-              <Link to="/gallery" className={`${statClass} group transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/gallery"
+                className={`${statClass} group transition-colors hover:border-crimson/55`}
+              >
                 <Image className="h-4 w-4 text-crimson" aria-hidden="true" />
                 <p className="mt-3 text-cinema text-2xl">GALLERY</p>
-                <p className="mt-1 text-xs text-muted-foreground">Зураг, creator контент болон дурсамжаа харах.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Зураг, creator контент болон дурсамжаа харах.
+                </p>
               </Link>
-              <Link to="/meet" className={`${statClass} group transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/meet"
+                className={`${statClass} group transition-colors hover:border-crimson/55`}
+              >
                 <Users className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">MEET</p>
-                <p className="mt-1 text-xs text-muted-foreground">Meet бүртгэл болон оролцооны хэсэг.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Meet бүртгэл болон оролцооны хэсэг.
+                </p>
               </Link>
-              <Link to="/progression" className={`${statClass} group transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/progression"
+                className={`${statClass} group transition-colors hover:border-crimson/55`}
+              >
                 <Award className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">ACHIEVEMENTS</p>
-                <p className="mt-1 text-xs text-muted-foreground">Одоогоор {achievementCount} achievement claim хийсэн.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Одоогоор {achievementCount} achievement claim хийсэн.
+                </p>
               </Link>
-              <Link to="/progression" className={`${statClass} group transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/progression"
+                className={`${statClass} group transition-colors hover:border-crimson/55`}
+              >
                 <Coins className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">ARCHIVE</p>
-                <p className="mt-1 text-xs text-muted-foreground">XP, Coin, reward болон progression түүхээ харах.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  XP, Coin, reward болон progression түүхээ харах.
+                </p>
               </Link>
             </div>
           </section>
