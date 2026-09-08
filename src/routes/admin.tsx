@@ -2,12 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import "@/services/application-workflow";
 import { OniAdminPage } from "@/components/oni/OniAdminPage";
+import { OniEconomyAdminDock } from "@/components/oni/OniEconomyAdminDock";
 
 const description =
-  "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем, progression reward ба Live2D ONI AI админ copilot.";
+  "ONI CONTROL CENTER — Firebase нэвтрэлттэй гишүүд, гараж, анкет, уулзалт, систем, progression/economy reward ба Live2D ONI AI админ copilot.";
 
 function AdminRoutePage() {
-  return <OniAdminPage />;
+  return (
+    <>
+      <OniAdminPage />
+      <OniEconomyAdminDock />
+    </>
+  );
 }
 
 export const Route = createFileRoute("/admin")({
