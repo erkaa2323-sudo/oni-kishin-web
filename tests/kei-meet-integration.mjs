@@ -5,9 +5,11 @@ const engines = [['chromium', chromium], ['webkit', webkit]];
 let failed = false;
 
 async function inspectKeiFrame(page) {
-  const frame = page.frames().find((candidate) => candidate.url().includes('/kei-live2d-host.html'));
-  if (!frame) return { frameFound: false, alpha: -1, width: 0, height: 0, loadingText: '', diag: null, cubism: null };
-  return frame.evaluate(() => {
+  const iframe = await page.$('iframe[title="Kei Cubism 5 Meet host"]');
+  if (!iframe) return { frameFound: false, alpha: -1, width: 0, height: 0, loadingText: '', frameUrl: '', diag: null, cubism: null };
+  const frame = await iframe.contentFrame();
+  if (!frame) return { frameFound: false, alpha: -1, width: 0, height: 0, loadingText: '', frameUrl: '', diag: null, cubism: null };
+  const result = await frame.evaluate(() => {
     const canvas = document.querySelector('canvas');
     const loadingText = document.querySelector('#loading')?.textContent?.trim() || '';
     let alpha = -1;
@@ -36,6 +38,7 @@ async function inspectKeiFrame(page) {
       cubism: window.__KEICUBISM__ || null,
     };
   });
+  return { ...result, frameUrl: frame.url() };
 }
 
 for (const [name, browserType] of engines) {
@@ -59,12 +62,15 @@ for (const [name, browserType] of engines) {
     await page.waitForSelector('iframe[title="Kei Cubism 5 Meet host"]', { timeout: 30000 });
 
     // Parent only flips to VISIBLE after the child reports a real pixel-verified ready event.
-    await page.waitForFunction(() => document.body.innerText.includes('VISIBLE'), null, { timeout: 30000 });
+    await page.waitForFunction(() => {
+      const badges = Array.from(document.querySelectorAll('span'));
+      return badges.some((el) => el.textContent?.trim() === 'VISIBLE');
+    }, null, { timeout: 30000 });
     await page.waitForTimeout(600);
 
     const frameResult = await inspectKeiFrame(page);
+    const parentVisible = await page.locator('span', { hasText: /^VISIBLE$/ }).count().then((n) => n > 0);
     const body = await page.locator('body').innerText();
-    const parentVisible = body.includes('VISIBLE');
     const parentError = body.includes('RENDER ERROR') || body.includes('KEI RENDER ERROR');
     const ok = status === 200 && parentVisible && !parentError && frameResult.frameFound && frameResult.alpha > 0 && !/RENDER ERROR/i.test(frameResult.loadingText);
 
