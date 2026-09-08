@@ -455,7 +455,7 @@
         && get(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.prestige + 1 == request.resource.data.prestige
         && get(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.xp == request.resource.data.previousXp
         && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.lastAction.type == "prestige"
-        && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.lastAction.key == request.resource.data.prestige.toString()
+        && validPrestigeKey(request.resource.data.prestige, getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.lastAction.key)
         && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.prestige == request.resource.data.prestige
         && getAfter(/databases/$(database)/documents/progressionProfiles/$(request.auth.uid)).data.xp == 0;
       allow update: if false;
