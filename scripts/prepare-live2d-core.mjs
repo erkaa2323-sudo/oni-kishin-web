@@ -15,26 +15,32 @@ const CUBISM_OUTPUTS = [
 ];
 
 const CDN_OUTPUTS = [
-  {
-    name: "PixiJS 6.5.10",
-    url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js",
-    destination: "public/vendor/live2d/pixi.min.js",
-  },
-  {
-    name: "pixi-live2d-display 0.4.0",
-    url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js",
-    destination: "public/vendor/live2d/cubism4.min.js",
-  },
-  {
-    name: "PixiJS license",
-    url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/LICENSE",
-    destination: "public/vendor/live2d/licenses/PIXI-LICENSE",
-  },
-  {
-    name: "pixi-live2d-display license",
-    url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/LICENSE",
-    destination: "public/vendor/live2d/licenses/PIXI-LIVE2D-DISPLAY-LICENSE",
-  },
+  { name: "PixiJS 6.5.10", url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js", destination: "public/vendor/live2d/pixi.min.js" },
+  { name: "pixi-live2d-display 0.4.0", url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js", destination: "public/vendor/live2d/cubism4.min.js" },
+  { name: "PixiJS license", url: "https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/LICENSE", destination: "public/vendor/live2d/licenses/PIXI-LICENSE" },
+  { name: "pixi-live2d-display license", url: "https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/LICENSE", destination: "public/vendor/live2d/licenses/PIXI-LIVE2D-DISPLAY-LICENSE" },
+];
+
+const KEI_BASES = [
+  "https://raw.githubusercontent.com/zou-hong-run/ai-xiaoyou-web/39fe1a76517416c503a74caf8efb46e477dd95ce/public/model/kei_zh",
+  "https://raw.githubusercontent.com/NathanCavallier/alice_ai/628e96197bbcd02273f9af50d749df17c34c6137/web/public/assets/live2d_models/kei_basic_free",
+];
+
+const KEI_ASSETS = [
+  "kei_basic_free.model3.json",
+  "kei_basic_free.moc3",
+  "kei_basic_free.2048/texture_00.png",
+  "kei_basic_free.physics3.json",
+  "kei_basic_free.cdi3.json",
+  "kei_basic_free.motionsync3.json",
+  "motions/01_kei_en.motion3.json",
+  "motions/01_kei_jp.motion3.json",
+  "motions/01_kei_ko.motion3.json",
+  "motions/01_kei_zh.motion3.json",
+  "sounds/01_kei_en.wav",
+  "sounds/01_kei_jp.wav",
+  "sounds/01_kei_ko.wav",
+  "sounds/01_kei_zh.wav",
 ];
 
 function findEocd(buffer) {
@@ -50,12 +56,8 @@ function extractZipEntry(buffer, wantedName) {
   const eocd = findEocd(buffer);
   const entryCount = buffer.readUInt16LE(eocd + 10);
   let offset = buffer.readUInt32LE(eocd + 16);
-
   for (let index = 0; index < entryCount; index += 1) {
-    if (buffer.readUInt32LE(offset) !== 0x02014b50) {
-      throw new Error(`Invalid central directory signature at ${offset}`);
-    }
-
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) throw new Error(`Invalid central directory signature at ${offset}`);
     const method = buffer.readUInt16LE(offset + 10);
     const compressedSize = buffer.readUInt32LE(offset + 20);
     const uncompressedSize = buffer.readUInt32LE(offset + 24);
@@ -64,41 +66,37 @@ function extractZipEntry(buffer, wantedName) {
     const commentLength = buffer.readUInt16LE(offset + 32);
     const localOffset = buffer.readUInt32LE(offset + 42);
     const name = buffer.subarray(offset + 46, offset + 46 + nameLength).toString("utf8");
-
     if (name === wantedName) {
-      if (buffer.readUInt32LE(localOffset) !== 0x04034b50) {
-        throw new Error(`Invalid local header for ${wantedName}`);
-      }
-
+      if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error(`Invalid local header for ${wantedName}`);
       const localNameLength = buffer.readUInt16LE(localOffset + 26);
       const localExtraLength = buffer.readUInt16LE(localOffset + 28);
       const dataStart = localOffset + 30 + localNameLength + localExtraLength;
       const compressed = buffer.subarray(dataStart, dataStart + compressedSize);
-
       let output;
       if (method === 0) output = Buffer.from(compressed);
       else if (method === 8) output = inflateRawSync(compressed);
       else throw new Error(`Unsupported ZIP compression method ${method} for ${wantedName}`);
-
-      if (output.length !== uncompressedSize) {
-        throw new Error(`ZIP size mismatch for ${wantedName}: ${output.length} != ${uncompressedSize}`);
-      }
+      if (output.length !== uncompressedSize) throw new Error(`ZIP size mismatch for ${wantedName}: ${output.length} != ${uncompressedSize}`);
       return output;
     }
-
     offset += 46 + nameLength + extraLength + commentLength;
   }
-
   throw new Error(`ZIP entry not found: ${wantedName}`);
 }
 
 async function fetchBuffer(url, timeoutMs) {
-  const response = await fetch(url, {
-    redirect: "follow",
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
   return Buffer.from(await response.arrayBuffer());
+}
+
+async function fetchFirst(urls, timeoutMs) {
+  let lastError;
+  for (const url of urls) {
+    try { return await fetchBuffer(url, timeoutMs); }
+    catch (error) { lastError = error; }
+  }
+  throw lastError ?? new Error("No source available");
 }
 
 async function writeOutput(destination, data) {
@@ -112,10 +110,7 @@ async function prepareCubismCore() {
   console.log(`[live2d] preparing official Cubism SDK ${SDK_VERSION}`);
   const archive = await fetchBuffer(ARCHIVE_URL, 45_000);
   const actualSha256 = createHash("sha256").update(archive).digest("hex");
-  if (actualSha256 !== ARCHIVE_SHA256) {
-    throw new Error(`Cubism SDK checksum mismatch: ${actualSha256}`);
-  }
-
+  if (actualSha256 !== ARCHIVE_SHA256) throw new Error(`Cubism SDK checksum mismatch: ${actualSha256}`);
   for (const [entry, destination] of CUBISM_OUTPUTS) {
     const data = extractZipEntry(archive, entry);
     const digest = await writeOutput(destination, data);
@@ -129,28 +124,34 @@ async function prepareCdnRuntime({ name, url, destination }) {
   console.log(`[live2d] prepared ${name} -> ${destination} (sha256:${digest})`);
 }
 
+async function prepareKeiModel() {
+  console.log("[live2d] caching Kei model locally");
+  for (const asset of KEI_ASSETS) {
+    const urls = KEI_BASES.map((base) => `${base}/${asset}`);
+    const data = await fetchFirst(urls, 25_000);
+    const destination = `public/vendor/live2d/kei/${asset}`;
+    const digest = await writeOutput(destination, data);
+    console.log(`[live2d] prepared Kei ${asset} (${data.length} bytes, sha256:${digest})`);
+  }
+}
+
 async function main() {
   const tasks = [
     ["Cubism Core", prepareCubismCore],
     ...CDN_OUTPUTS.map((asset) => [asset.name, () => prepareCdnRuntime(asset)]),
+    ["Kei model cache", prepareKeiModel],
   ];
-
   let failed = 0;
   for (const [name, run] of tasks) {
-    try {
-      await run();
-    } catch (error) {
+    try { await run(); }
+    catch (error) {
       failed += 1;
-      console.warn(`[live2d] ${name} local cache unavailable; runtime CDN fallback remains enabled.`);
+      console.warn(`[live2d] ${name} local cache unavailable; runtime fallback remains enabled.`);
       console.warn(error instanceof Error ? error.message : error);
     }
   }
-
-  if (failed === 0) {
-    console.log("[live2d] local-first runtime cache ready");
-  } else {
-    console.log(`[live2d] completed with ${failed} fallback asset(s); build may continue safely`);
-  }
+  if (failed === 0) console.log("[live2d] local-first runtime + Kei model cache ready");
+  else console.log(`[live2d] completed with ${failed} fallback asset(s); build may continue safely`);
 }
 
 main();

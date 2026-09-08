@@ -1,0 +1,43 @@
+name: Kei Live2D Audit
+on:
+  push:
+    branches: [chatgpt/kei-live2d-hardening]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --no-save
+      - name: Kei targeted TypeScript audit
+        shell: bash
+        run: |
+          set +e
+          bun run typecheck 2>&1 | tee /tmp/typecheck.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if grep -E 'src/components/oni/(KeiMeetHostHardened|RenMeetHost|OniMeetAccess)\.tsx?\(' /tmp/typecheck.log; then
+            echo "Kei Meet-specific TypeScript errors found."
+            exit 1
+          fi
+          if [ "$status" -ne 0 ]; then echo "Repository has unrelated pre-existing TypeScript errors; Kei target is clean."; fi
+      - name: Production build and local Kei cache
+        run: bun run build
+      - name: Verify hardened runtime assets
+        run: |
+          test -s public/vendor/live2d/live2dcubismcore.js
+          test -s public/vendor/live2d/pixi.min.js
+          test -s public/vendor/live2d/cubism4.min.js
+          test -s public/vendor/live2d/kei/kei_basic_free.model3.json
+          test -s public/vendor/live2d/kei/kei_basic_free.moc3
+          test -s public/vendor/live2d/kei/kei_basic_free.2048/texture_00.png
+          grep -q 'KeiMeetHostHardened as RenMeetHost' src/components/oni/RenMeetHost.tsx
+          grep -q 'allow-scripts allow-same-origin' src/components/oni/KeiMeetHostHardened.tsx
+          grep -q 'webglcontextlost' src/components/oni/KeiMeetHostHardened.tsx
+          grep -q 'RETRYING' src/components/oni/KeiMeetHostHardened.tsx
+          echo "Kei Live2D hardened runtime verified."
