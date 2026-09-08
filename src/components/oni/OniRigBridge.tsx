@@ -27,7 +27,9 @@ function stateFromElement(element: HTMLElement): OniState {
 
 function isVisible(element: HTMLElement) {
   const style = window.getComputedStyle(element);
-  return style.display !== "none" && style.visibility !== "hidden" && element.getClientRects().length > 0;
+  return (
+    style.display !== "none" && style.visibility !== "hidden" && element.getClientRects().length > 0
+  );
 }
 
 function sameTargets(current: RigTarget[], next: RigTarget[]) {
@@ -102,7 +104,9 @@ export function OniRigBridge() {
     const read = () => {
       const visible = elements.filter(isVisible);
       const active = visible.length ? visible : elements.slice(0, 1);
-      const next = active.slice(0, 1).map((element) => ({ element, state: stateFromElement(element) }));
+      const next = active
+        .slice(0, 1)
+        .map((element) => ({ element, state: stateFromElement(element) }));
       setTargets((current) => (sameTargets(current, next) ? current : next));
     };
     const observers = elements.map((element) => {

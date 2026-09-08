@@ -12,34 +12,49 @@ const Payload = z.object({
 
 export type CreatorGenerateResult =
   | { ok: true; imageUrl: string; text: string }
-  | { ok: false; code: "UNAUTHENTICATED" | "NOT_APPROVED" | "CONFIG_REQUIRED" | "GENERATION_FAILED"; message: string };
+  | {
+      ok: false;
+      code: "UNAUTHENTICATED" | "NOT_APPROVED" | "CONFIG_REQUIRED" | "GENERATION_FAILED";
+      message: string;
+    };
 
 const FIREBASE_API_KEY = "AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw";
 const PROJECT_ID = "oni-kishin-f59b4";
 const MODEL = "google/gemini-3.1-flash-image-preview";
 
-function stringField(doc: any, key: string) {
+function stringField(
+  doc: { fields?: Record<string, { stringValue?: unknown }> } | null,
+  key: string,
+) {
   const value = doc?.fields?.[key]?.stringValue;
   return typeof value === "string" ? value : "";
 }
 
 async function approvedMember(idToken: string) {
-  const authRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
+  const authRes = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    },
+  );
   if (!authRes.ok) return { ok: false as const, code: "UNAUTHENTICATED" as const };
-  const authJson = await authRes.json() as { users?: Array<{ localId?: string }> };
+  const authJson = (await authRes.json()) as { users?: Array<{ localId?: string }> };
   const uid = authJson.users?.[0]?.localId;
   if (!uid) return { ok: false as const, code: "UNAUTHENTICATED" as const };
-  const memberRes = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/memberAccounts/${encodeURIComponent(uid)}`, {
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
+  const memberRes = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/memberAccounts/${encodeURIComponent(uid)}`,
+    {
+      headers: { Authorization: `Bearer ${idToken}` },
+    },
+  );
   if (!memberRes.ok) return { ok: false as const, code: "NOT_APPROVED" as const };
   const member = await memberRes.json();
   const status = stringField(member, "status");
-  return status === "approved" ? { ok: true as const, uid } : { ok: false as const, code: "NOT_APPROVED" as const };
+  return status === "approved"
+    ? { ok: true as const, uid }
+    : { ok: false as const, code: "NOT_APPROVED" as const };
 }
 
 function aspect(preset: z.infer<typeof Payload>["preset"]) {
@@ -50,12 +65,26 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
   .validator((input: unknown) => Payload.parse(input))
   .handler(async ({ data }): Promise<CreatorGenerateResult> => {
     const member = await approvedMember(data.idToken);
-    if (!member.ok) return member.code === "UNAUTHENTICATED"
-      ? { ok: false, code: "UNAUTHENTICATED", message: "Creator ашиглахын тулд эхлээд нэвтэрнэ үү." }
-      : { ok: false, code: "NOT_APPROVED", message: "Creator нь зөвшөөрөгдсөн ONI member-д нээлттэй." };
+    if (!member.ok)
+      return member.code === "UNAUTHENTICATED"
+        ? {
+            ok: false,
+            code: "UNAUTHENTICATED",
+            message: "Creator ашиглахын тулд эхлээд нэвтэрнэ үү.",
+          }
+        : {
+            ok: false,
+            code: "NOT_APPROVED",
+            message: "Creator нь зөвшөөрөгдсөн ONI member-д нээлттэй.",
+          };
 
     const token = process.env["AI_GATEWAY_API_KEY"] || process.env["VERCEL_OIDC_TOKEN"];
-    if (!token) return { ok: false, code: "CONFIG_REQUIRED", message: "AI Gateway credential production орчинд тохируулагдаагүй байна." };
+    if (!token)
+      return {
+        ok: false,
+        code: "CONFIG_REQUIRED",
+        message: "AI Gateway credential production орчинд тохируулагдаагүй байна.",
+      };
 
     const prompt = `Edit the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. Preserve the exact car identity, body proportions, paint colors, decals and wheel design from the source image. Do not invent sponsor logos. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, mobile-first social design. ${data.note || "Keep the car as the hero and make the result feel official, cinematic and premium."}`;
 
@@ -65,26 +94,64 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: MODEL,
-          messages: [{ role: "user", content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: data.sourceDataUrl } },
-          ] }],
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: data.sourceDataUrl } },
+              ],
+            },
+          ],
           modalities: ["text", "image"],
           stream: false,
         }),
       });
       if (!response.ok) {
-        console.error("[oni-creator] gateway failed", response.status, await response.text().catch(() => ""));
-        return { ok: false, code: "GENERATION_FAILED", message: "Зураг үүсгэж чадсангүй. Дахин оролдоно уу." };
+        console.error(
+          "[oni-creator] gateway failed",
+          response.status,
+          await response.text().catch(() => ""),
+        );
+        return {
+          ok: false,
+          code: "GENERATION_FAILED",
+          message: "Зураг үүсгэж чадсангүй. Дахин оролдоно уу.",
+        };
       }
-      const json = await response.json() as any;
+      const json = (await response.json()) as {
+        choices?: Array<{
+          message?: {
+            images?: Array<{ type?: string; image_url?: { url?: string } }>;
+            content?: unknown;
+          };
+        }>;
+      };
       const message = json?.choices?.[0]?.message;
       const images = Array.isArray(message?.images) ? message.images : [];
-      const imageUrl = images.find((img: any) => img?.type === "image_url" && typeof img?.image_url?.url === "string")?.image_url?.url;
-      if (!imageUrl) return { ok: false, code: "GENERATION_FAILED", message: "AI зураг буцаасангүй. Дахин оролдоно уу." };
-      return { ok: true, imageUrl, text: typeof message?.content === "string" ? message.content.slice(0, 1200) : "" };
+      const imageUrl = images.find(
+        (img) => img?.type === "image_url" && typeof img?.image_url?.url === "string",
+      )?.image_url?.url;
+      if (!imageUrl)
+        return {
+          ok: false,
+          code: "GENERATION_FAILED",
+          message: "AI зураг буцаасангүй. Дахин оролдоно уу.",
+        };
+      return {
+        ok: true,
+        imageUrl,
+        text: typeof message?.content === "string" ? message.content.slice(0, 1200) : "",
+      };
     } catch (error) {
-      console.error("[oni-creator] generation error", error instanceof Error ? error.message : "unknown");
-      return { ok: false, code: "GENERATION_FAILED", message: "Creator түр алдаа гаргалаа. Дахин оролдоно уу." };
+      console.error(
+        "[oni-creator] generation error",
+        error instanceof Error ? error.message : "unknown",
+      );
+      return {
+        ok: false,
+        code: "GENERATION_FAILED",
+        message: "Creator түр алдаа гаргалаа. Дахин оролдоно уу.",
+      };
     }
   });

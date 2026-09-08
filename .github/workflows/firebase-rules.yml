@@ -71,20 +71,11 @@ jobs:
           PY
       - name: Compose and create Firebase Rules ruleset
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          base=Path("firestore.rules").read_text(encoding="utf-8"); marker="    match /{document=**} { allow read, write: if false; }"
-          if marker not in base: raise SystemExit("Firestore deny-all marker not found; refusing unsafe composition")
-          fragments=[("firestore.creator.rules.fragment","match /creatorPublishRequests/"),("firestore.nexus.rules.fragment","match /pushSubscriptions/"),("firestore.progression.rules.fragment","match /progressionProfiles/")]
-          combined=base
-          for path,needle in fragments:
-            if needle not in combined: combined=combined.replace(marker,Path(path).read_text(encoding="utf-8").rstrip()+"\n\n"+marker,1)
-          Path("/tmp/firestore.combined.rules").write_text(combined,encoding="utf-8")
-          PY
+          node scripts/compose-firestore-rules.mjs
           python - <<'PY' > /tmp/ruleset.json
           import json
           from pathlib import Path
-          print(json.dumps({"source":{"files":[{"name":"firestore.rules","content":Path("/tmp/firestore.combined.rules").read_text(encoding="utf-8")}]}}))
+          print(json.dumps({"source":{"files":[{"name":"firestore.rules","content":Path("firestore.test.generated.rules").read_text(encoding="utf-8")}]}}))
           PY
           curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${ACCESS_TOKEN}" -H "Content-Type: application/json" -X POST --data-binary @/tmp/ruleset.json "https://firebaserules.googleapis.com/v1/projects/${FIREBASE_PROJECT}/rulesets" > /tmp/ruleset-response.json
           RULESET_NAME="$(python - <<'PY'

@@ -1,10 +1,17 @@
+import { isAdminEmail } from "@/lib/admin-authorization";
 import { createServerFn } from "@tanstack/react-start";
-import { createCipheriv, createECDH, createHmac, createPrivateKey, randomBytes, sign } from "node:crypto";
+import {
+  createCipheriv,
+  createECDH,
+  createHmac,
+  createPrivateKey,
+  randomBytes,
+  sign,
+} from "node:crypto";
 import { z } from "zod";
 
 const FIREBASE_API_KEY = "AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw";
 const PROJECT_ID = "oni-kishin-f59b4";
-const ADMIN_EMAIL = "erkaa130@gmail.com";
 const PUSH_CONFIG_DOC = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/pushConfig/vapid`;
 const PUSH_SUBSCRIPTIONS = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/pushSubscriptions`;
 
@@ -52,14 +59,17 @@ function hkdfExpand(prk: Buffer, info: Buffer, length: number) {
 }
 
 async function verifyAdmin(idToken: string) {
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
-  });
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    },
+  );
   if (!response.ok) return false;
-  const data = await response.json() as { users?: Array<{ email?: string }> };
-  return data.users?.[0]?.email?.trim().toLowerCase() === ADMIN_EMAIL;
+  const data = (await response.json()) as { users?: Array<{ email?: string }> };
+  return isAdminEmail(data.users?.[0]?.email);
 }
 
 function stringField(doc: FirestoreDocument, key: string) {
@@ -68,9 +78,11 @@ function stringField(doc: FirestoreDocument, key: string) {
 }
 
 async function loadPushConfig(idToken: string): Promise<PushConfig | null> {
-  const response = await fetch(PUSH_CONFIG_DOC, { headers: { Authorization: `Bearer ${idToken}` } });
+  const response = await fetch(PUSH_CONFIG_DOC, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
   if (!response.ok) return null;
-  const doc = await response.json() as FirestoreDocument;
+  const doc = (await response.json()) as FirestoreDocument;
   const publicKey = stringField(doc, "publicKey");
   const privateKey = stringField(doc, "privateKey");
   return publicKey && privateKey ? { publicKey, privateKey } : null;
@@ -85,7 +97,10 @@ async function listSubscriptions(idToken: string): Promise<PushSubscriptionRow[]
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const response = await fetch(url, { headers: { Authorization: `Bearer ${idToken}` } });
     if (!response.ok) throw new Error(`subscriptions_${response.status}`);
-    const data = await response.json() as { documents?: FirestoreDocument[]; nextPageToken?: string };
+    const data = (await response.json()) as {
+      documents?: FirestoreDocument[];
+      nextPageToken?: string;
+    };
     for (const doc of data.documents ?? []) {
       if (!doc.name) continue;
       const endpoint = stringField(doc, "endpoint");
@@ -109,7 +124,8 @@ async function listSubscriptions(idToken: string): Promise<PushSubscriptionRow[]
 function makeVapidJwt(endpoint: string, config: PushConfig) {
   const publicRaw = b64urlDecode(config.publicKey);
   const privateRaw = b64urlDecode(config.privateKey);
-  if (publicRaw.length !== 65 || publicRaw[0] !== 4 || privateRaw.length !== 32) throw new Error("invalid_vapid_key");
+  if (publicRaw.length !== 65 || publicRaw[0] !== 4 || privateRaw.length !== 32)
+    throw new Error("invalid_vapid_key");
   const jwk = {
     kty: "EC",
     crv: "P-256",
@@ -119,11 +135,13 @@ function makeVapidJwt(endpoint: string, config: PushConfig) {
   };
   const key = createPrivateKey({ key: jwk, format: "jwk" });
   const header = b64urlEncode(JSON.stringify({ typ: "JWT", alg: "ES256" }));
-  const payload = b64urlEncode(JSON.stringify({
-    aud: new URL(endpoint).origin,
-    exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
-    sub: "mailto:erkaa2323@gmail.com",
-  }));
+  const payload = b64urlEncode(
+    JSON.stringify({
+      aud: new URL(endpoint).origin,
+      exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
+      sub: "mailto:erkaa2323@gmail.com",
+    }),
+  );
   const unsigned = `${header}.${payload}`;
   const signature = sign("sha256", Buffer.from(unsigned), { key, dsaEncoding: "ieee-p1363" });
   return `${unsigned}.${b64urlEncode(signature)}`;
@@ -132,7 +150,8 @@ function makeVapidJwt(endpoint: string, config: PushConfig) {
 function encryptPayload(subscription: PushSubscriptionRow, payload: string) {
   const clientPublic = b64urlDecode(subscription.p256dh);
   const authSecret = b64urlDecode(subscription.auth);
-  if (clientPublic.length !== 65 || clientPublic[0] !== 4 || authSecret.length === 0) throw new Error("invalid_subscription_key");
+  if (clientPublic.length !== 65 || clientPublic[0] !== 4 || authSecret.length === 0)
+    throw new Error("invalid_subscription_key");
 
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
@@ -161,7 +180,12 @@ async function deleteStaleSubscription(idToken: string, docName: string) {
   }).catch(() => undefined);
 }
 
-async function sendOne(subscription: PushSubscriptionRow, config: PushConfig, body: string, url: string) {
+async function sendOne(
+  subscription: PushSubscriptionRow,
+  config: PushConfig,
+  body: string,
+  url: string,
+) {
   const payload = JSON.stringify({
     title: "Shizuki",
     body,
@@ -193,11 +217,19 @@ export const sendNexusMeetPush = createServerFn({ method: "POST" })
   .validator((input: unknown) => SendMeetPayload.parse(input))
   .handler(async ({ data }): Promise<NexusMeetPushResult> => {
     if (!(await verifyAdmin(data.idToken))) {
-      return { ok: false, code: "UNAUTHENTICATED", message: "Push илгээх админ эрх баталгаажаагүй байна." };
+      return {
+        ok: false,
+        code: "UNAUTHENTICATED",
+        message: "Push илгээх админ эрх баталгаажаагүй байна.",
+      };
     }
     const config = await loadPushConfig(data.idToken);
     if (!config) {
-      return { ok: false, code: "CONFIG_REQUIRED", message: "ONI NEXUS push key хараахан үүсээгүй байна." };
+      return {
+        ok: false,
+        code: "CONFIG_REQUIRED",
+        message: "ONI NEXUS push key хараахан үүсээгүй байна.",
+      };
     }
     try {
       const subscriptions = await listSubscriptions(data.idToken);
@@ -216,16 +248,26 @@ export const sendNexusMeetPush = createServerFn({ method: "POST" })
             await deleteStaleSubscription(data.idToken, subscription.docName);
           } else {
             failed += 1;
-            console.error("[oni-nexus] push failed", response.status, await response.text().catch(() => ""));
+            console.error(
+              "[oni-nexus] push failed",
+              response.status,
+              await response.text().catch(() => ""),
+            );
           }
         } catch (error) {
           failed += 1;
-          console.error("[oni-nexus] push exception", error instanceof Error ? error.message : "unknown");
+          console.error(
+            "[oni-nexus] push exception",
+            error instanceof Error ? error.message : "unknown",
+          );
         }
       }
       return { ok: true, sent, stale, failed };
     } catch (error) {
-      console.error("[oni-nexus] broadcast failed", error instanceof Error ? error.message : "unknown");
+      console.error(
+        "[oni-nexus] broadcast failed",
+        error instanceof Error ? error.message : "unknown",
+      );
       return { ok: false, code: "SEND_FAILED", message: "Meet push broadcast амжилтгүй боллоо." };
     }
   });

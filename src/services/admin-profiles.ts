@@ -1,3 +1,4 @@
+import { isAdminEmail } from "@/lib/admin-authorization";
 /**
  * Authorization (separate from authentication).
  *
@@ -17,7 +18,6 @@ export type AdminProfile = {
 };
 
 const VALID_ROLES: AdminRole[] = ["owner", "admin", "moderator"];
-const OWNER_EMAILS = new Set(["erkaa130@gmail.com"]);
 
 export function isValidRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (VALID_ROLES as string[]).includes(value);
@@ -25,23 +25,23 @@ export function isValidRole(value: unknown): value is AdminRole {
 
 /** Centralized, reusable permission check. */
 export function hasPermission(profile: AdminProfile | null, permission: AdminPermission): boolean {
-  if (!profile) return false;
+  if (!isAuthorizedAdmin(profile) || !profile) return false;
   return ROLE_PERMISSIONS[profile.role]?.includes(permission) ?? false;
 }
 
 export function isAuthorizedAdmin(profile: AdminProfile | null): boolean {
-  return !!profile && isValidRole(profile.role);
+  return !!profile && profile.role === "owner" && isAdminEmail(profile.email);
 }
 
 /**
- * Read the caller's own authorization. No role row = not authorized.
+ * Resolve the caller against the existing Firebase owner allowlist.
  * Any error is treated as "not authorized" (fail closed).
  */
 export async function fetchAdminProfile(
   uid: string,
   email?: string | null,
 ): Promise<ServiceResult<AdminProfile>> {
-  const normalizedEmail = email?.trim().toLowerCase() ?? "";
-  if (!OWNER_EMAILS.has(normalizedEmail)) return fail("unauthorized");
+  const normalizedEmail = email ?? "";
+  if (!isAdminEmail(normalizedEmail)) return fail("unauthorized");
   return ok({ uid, email: normalizedEmail, displayName: "ONI OWNER", role: "owner" });
 }

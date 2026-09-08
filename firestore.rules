@@ -139,6 +139,10 @@ service cloud.firestore {
         && request.resource.data.status == "Шинэ"
         && requiredText(request.resource.data.orderNo, 40) && requiredText(request.resource.data.productId, 120)
         && requiredText(request.resource.data.productName, 180)
+        && exists(/databases/$(database)/documents/products/$(request.resource.data.productId))
+        && request.resource.data.productName == get(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.name
+        && request.resource.data.unitPrice == get(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.price
+        && request.resource.data.total == get(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.price * request.resource.data.quantity
         && isNumber(request.resource.data.unitPrice) && request.resource.data.unitPrice >= 0 && request.resource.data.unitPrice <= 1000000000
         && request.resource.data.quantity is int && request.resource.data.quantity >= 1 && request.resource.data.quantity <= 99
         && isNumber(request.resource.data.total) && request.resource.data.total >= 0 && request.resource.data.total <= 1000000000

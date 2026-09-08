@@ -74,9 +74,12 @@ function resolveHostState(
 
 function baseCopy(state: HostState, nickname?: string, notice?: string) {
   const rider = nickname?.trim() || "Rider";
-  if (state === "access") return `${rider}, ROOM ID ба PASSWORD бэлэн боллоо. Meet access хэсгээс аваарай.`;
-  if (state === "registered") return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Kei мэдэгдэнэ.`;
-  if (state === "denied") return notice?.trim() || "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
+  if (state === "access")
+    return `${rider}, ROOM ID ба PASSWORD бэлэн боллоо. Meet access хэсгээс аваарай.`;
+  if (state === "registered")
+    return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Kei мэдэгдэнэ.`;
+  if (state === "denied")
+    return notice?.trim() || "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
   if (state === "loading") return "Crew мэдээлэл болон Meet slot-ийг шалгаж байна…";
   if (state === "live") return "ONI MEET эхэллээ. Бүртгүүлсэн Rider бол room access-аа шалгаарай.";
   if (state === "starting") return "ONI MEET удахгүй эхэлнэ. Бүртгэлээ одоо баталгаажуулаарай.";
@@ -88,7 +91,8 @@ function baseCopy(state: HostState, nickname?: string, notice?: string) {
 }
 
 function countdownCopy(phase: CountdownPhase, seconds: number) {
-  if (phase === "ten") return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
+  if (phase === "ten")
+    return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
   if (phase === "five") return "5 минут. Crew check дуусгаж, Meet-д ороход бэлэн байгаарай.";
   if (phase === "one") return "1 минут. ONI MEET launch sequence эхэллээ.";
   if (phase === "final10") return `${Math.max(1, seconds)}… ONI MEET эхлэх гэж байна.`;
@@ -162,9 +166,13 @@ export function KeiMeetHostStable({
   const countdownActive =
     countdownPhase !== "none" && state !== "access" && state !== "loading" && state !== "denied";
   const reactionState = countdownActive ? `countdown-${countdownPhase}` : state;
-  const label = countdownActive ? countdownLabel(countdownPhase, countdownSeconds) : modeLabel(state);
+  const label = countdownActive
+    ? countdownLabel(countdownPhase, countdownSeconds)
+    : modeLabel(state);
   const signal = countdownActive ? countdownSignal(countdownPhase) : signalLabel(state);
-  const copy = countdownActive ? countdownCopy(countdownPhase, countdownSeconds) : baseCopy(state, nickname, notice);
+  const copy = countdownActive
+    ? countdownCopy(countdownPhase, countdownSeconds)
+    : baseCopy(state, nickname, notice);
   const positive = state === "access" || state === "registered";
   const hot = countdownActive || state === "access" || state === "live" || state === "starting";
 
@@ -184,7 +192,7 @@ window.addEventListener('message',function(event){var data=event.data;if(!data||
 document.addEventListener('visibilitychange',function(){if(!app||!app.ticker)return;try{if(document.hidden)app.ticker.stop();else{app.ticker.start();queueFit()}}catch(e){}});
 (async function(){try{await loadScript(RUNTIME_URLS.pixi,function(){return !!(window.PIXI&&PIXI.Application)},'Pixi');await loadScript(RUNTIME_URLS.core,function(){return !!window.Live2DCubismCore},'Cubism');await loadScript(RUNTIME_URLS.cubism4,function(){return !!(window.PIXI&&PIXI.live2d&&PIXI.live2d.Live2DModel)},'Live2D');if(typeof PIXI.live2d.Live2DModel.registerTicker==='function')PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);if(PIXI.live2d.config){PIXI.live2d.config.sound=false;PIXI.live2d.config.motionSync=false}app=new PIXI.Application({transparent:true,antialias:!mobile,autoStart:true,resolution:Math.min(window.devicePixelRatio||1,mobile?1:1.4),autoDensity:true,powerPreference:mobile?'low-power':'high-performance'});if(app.ticker){app.ticker.maxFPS=mobile?30:60;app.ticker.minFPS=20}stage.appendChild(app.view);model=await loadModelAt(0);if(disposed)return;model.anchor.set(.5,.5);app.stage.addChild(model);fit();requestAnimationFrame(function(){fit();applyState(currentState,true)});setTimeout(fit,180);setTimeout(fit,650);if('ResizeObserver'in window){observer=new ResizeObserver(queueFit);observer.observe(stage)}else window.addEventListener('resize',queueFit,{passive:true});if(loading)loading.remove();send('ready');if(!reduceMotion)idleTimer=setInterval(function(){if(model&&!document.hidden&&(currentState==='idle'||currentState==='scheduled'))focus(Math.sin(Date.now()/5200)*.14,-.035,false)},4200)}catch(error){console.error(error);if(loading)loading.textContent='KEI // VISUAL OFFLINE';send('failed')}})();
 window.addEventListener('beforeunload',function(){disposed=true;if(resizeRaf)cancelAnimationFrame(resizeRaf);if(idleTimer)clearInterval(idleTimer);if(observer)observer.disconnect();window.removeEventListener('resize',queueFit);try{if(model)model.destroy({children:true,texture:true,baseTexture:true})}catch(e){}try{if(app)app.destroy(true,{children:true,texture:true,baseTexture:true})}catch(e){}});
-})();<\/script></body></html>`,
+})();</script></body></html>`,
     [],
   );
 
@@ -228,30 +236,40 @@ window.addEventListener('beforeunload',function(){disposed=true;if(resizeRaf)can
   return (
     <div
       className={`relative h-full min-h-0 overflow-hidden border bg-black/55 shadow-[0_24px_80px_rgba(0,0,0,0.62)] clip-notch ${
-        positive
-          ? "border-emerald-400/25"
-          : hot
-            ? "border-crimson/35"
-            : "border-white/10"
+        positive ? "border-emerald-400/25" : hot ? "border-crimson/35" : "border-white/10"
       }`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(195,18,45,0.22),rgba(39,4,11,0.08)_35%,transparent_70%)]" />
-      {hot ? <div className="pointer-events-none absolute left-1/2 top-[48%] h-[42%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-crimson/10 shadow-[0_0_80px_rgba(225,29,72,0.12)] motion-safe:animate-pulse" /> : null}
+      {hot ? (
+        <div className="pointer-events-none absolute left-1/2 top-[48%] h-[42%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-crimson/10 shadow-[0_0_80px_rgba(225,29,72,0.12)] motion-safe:animate-pulse" />
+      ) : null}
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
-        <div className="text-[0.42rem] font-semibold tracking-[0.24em] text-white/35">ONI // MEET HOST</div>
+        <div className="text-[0.42rem] font-semibold tracking-[0.24em] text-white/35">
+          ONI // MEET HOST
+        </div>
         <div className="mt-1 flex items-center gap-2">
-          <span className="text-[0.64rem] font-semibold tracking-[0.26em] text-white/85 sm:text-[0.72rem]">KEI</span>
-          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45">{label}</span>
+          <span className="text-[0.64rem] font-semibold tracking-[0.26em] text-white/85 sm:text-[0.72rem]">
+            KEI
+          </span>
+          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45">
+            {label}
+          </span>
         </div>
       </div>
 
       <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/8 bg-black/30 px-2 py-1.5 sm:right-4 sm:top-4">
-        <span className={`h-1.5 w-1.5 rounded-full ${runtime === "ready" ? "bg-emerald-300" : runtime === "failed" ? "bg-crimson" : "bg-white/30"}`} />
-        <span className="text-[0.42rem] font-semibold tracking-[0.16em] text-white/45">{runtime === "ready" ? "LINKED" : runtime === "failed" ? "OFFLINE" : "SYNC"}</span>
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${runtime === "ready" ? "bg-emerald-300" : runtime === "failed" ? "bg-crimson" : "bg-white/30"}`}
+        />
+        <span className="text-[0.42rem] font-semibold tracking-[0.16em] text-white/45">
+          {runtime === "ready" ? "LINKED" : runtime === "failed" ? "OFFLINE" : "SYNC"}
+        </span>
       </div>
 
-      <div className="pointer-events-none absolute left-3 top-[4.2rem] z-10 text-[2.35rem] font-black tracking-[-0.08em] text-white/[0.025] sm:left-4 sm:text-[3.2rem]">KEI</div>
+      <div className="pointer-events-none absolute left-3 top-[4.2rem] z-10 text-[2.35rem] font-black tracking-[-0.08em] text-white/[0.025] sm:left-4 sm:text-[3.2rem]">
+        KEI
+      </div>
 
       <iframe
         key={frameKey}
@@ -263,17 +281,33 @@ window.addEventListener('beforeunload',function(){disposed=true;if(resizeRaf)can
         onLoad={() => setRuntime("loading")}
       />
 
-      {runtime === "loading" ? <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/25">LINKING KEI…</div> : null}
-      {runtime === "failed" ? <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/30">KEI VISUAL OFFLINE</div> : null}
+      {runtime === "loading" ? (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/25">
+          LINKING KEI…
+        </div>
+      ) : null}
+      {runtime === "failed" ? (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-[0.46rem] tracking-[0.22em] text-white/30">
+          KEI VISUAL OFFLINE
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}>{signal}</div>
-            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">{copy}</p>
+            <div
+              className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
+            >
+              {signal}
+            </div>
+            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
+              {copy}
+            </p>
           </div>
           <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
-            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">{participants}/{capacity ?? "∞"}</div>
+            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">
+              {participants}/{capacity ?? "∞"}
+            </div>
             <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
           </div>
         </div>

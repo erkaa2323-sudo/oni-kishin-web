@@ -1,24 +1,47 @@
-import { chromium, webkit } from 'playwright';
+import { chromium, webkit } from "playwright";
 
-const origin = process.env.KEI_APP_ORIGIN || 'http://127.0.0.1:4174';
-const engines = [['chromium', chromium], ['webkit', webkit]];
+const origin = process.env.KEI_APP_ORIGIN || "http://127.0.0.1:4174";
+const engines = [
+  ["chromium", chromium],
+  ["webkit", webkit],
+];
 let failed = false;
 
 async function inspectKeiFrame(page) {
   const iframe = await page.$('iframe[title="Kei Cubism 5 Meet host"]');
-  if (!iframe) return { frameFound: false, alpha: -1, width: 0, height: 0, loadingText: '', frameUrl: '', diag: null, cubism: null };
+  if (!iframe)
+    return {
+      frameFound: false,
+      alpha: -1,
+      width: 0,
+      height: 0,
+      loadingText: "",
+      frameUrl: "",
+      diag: null,
+      cubism: null,
+    };
   const frame = await iframe.contentFrame();
-  if (!frame) return { frameFound: false, alpha: -1, width: 0, height: 0, loadingText: '', frameUrl: '', diag: null, cubism: null };
+  if (!frame)
+    return {
+      frameFound: false,
+      alpha: -1,
+      width: 0,
+      height: 0,
+      loadingText: "",
+      frameUrl: "",
+      diag: null,
+      cubism: null,
+    };
   const result = await frame.evaluate(() => {
-    const canvas = document.querySelector('canvas');
-    const loadingText = document.querySelector('#loading')?.textContent?.trim() || '';
+    const canvas = document.querySelector("canvas");
+    const loadingText = document.querySelector("#loading")?.textContent?.trim() || "";
     let alpha = -1;
     let width = 0;
     let height = 0;
     if (canvas) {
       width = canvas.width;
       height = canvas.height;
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
       if (gl && width > 0 && height > 0) {
         const data = new Uint8Array(width * height * 4);
         gl.finish();
@@ -52,37 +75,62 @@ for (const [name, browserType] of engines) {
     });
     const consoleErrors = [];
     const pageErrors = [];
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
     });
-    page.on('pageerror', (err) => pageErrors.push(String(err?.stack || err)));
+    page.on("pageerror", (err) => pageErrors.push(String(err?.stack || err)));
 
-    const response = await page.goto(`${origin}/meet`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    const response = await page.goto(`${origin}/meet`, {
+      waitUntil: "domcontentloaded",
+      timeout: 45000,
+    });
     const status = response?.status() ?? 0;
     await page.waitForSelector('iframe[title="Kei Cubism 5 Meet host"]', { timeout: 30000 });
 
     // Parent only flips to VISIBLE after the child reports a real pixel-verified ready event.
-    await page.waitForFunction(() => {
-      const badges = Array.from(document.querySelectorAll('span'));
-      return badges.some((el) => el.textContent?.trim() === 'VISIBLE');
-    }, null, { timeout: 30000 });
+    await page.waitForFunction(
+      () => {
+        const badges = Array.from(document.querySelectorAll("span"));
+        return badges.some((el) => el.textContent?.trim() === "VISIBLE");
+      },
+      null,
+      { timeout: 30000 },
+    );
     await page.waitForTimeout(600);
 
     const frameResult = await inspectKeiFrame(page);
-    const parentVisible = await page.locator('span', { hasText: /^VISIBLE$/ }).count().then((n) => n > 0);
-    const body = await page.locator('body').innerText();
-    const parentError = body.includes('RENDER ERROR') || body.includes('KEI RENDER ERROR');
-    const ok = status === 200 && parentVisible && !parentError && frameResult.frameFound && frameResult.alpha > 0 && !/RENDER ERROR/i.test(frameResult.loadingText);
+    const parentVisible = await page
+      .locator("span", { hasText: /^VISIBLE$/ })
+      .count()
+      .then((n) => n > 0);
+    const body = await page.locator("body").innerText();
+    const parentError = body.includes("RENDER ERROR") || body.includes("KEI RENDER ERROR");
+    const ok =
+      status === 200 &&
+      parentVisible &&
+      !parentError &&
+      frameResult.frameFound &&
+      frameResult.alpha > 0 &&
+      !/RENDER ERROR/i.test(frameResult.loadingText);
 
-    console.log(`\n[${name}][meet-integration]`, JSON.stringify({ status, parentVisible, parentError, ...frameResult }));
-    if (consoleErrors.length) console.log(`[${name}][meet-integration] console-error:`, consoleErrors.join('\n'));
-    if (pageErrors.length) console.log(`[${name}][meet-integration] pageerror:`, pageErrors.join('\n'));
+    console.log(
+      `\n[${name}][meet-integration]`,
+      JSON.stringify({ status, parentVisible, parentError, ...frameResult }),
+    );
+    if (consoleErrors.length)
+      console.log(`[${name}][meet-integration] console-error:`, consoleErrors.join("\n"));
+    if (pageErrors.length)
+      console.log(`[${name}][meet-integration] pageerror:`, pageErrors.join("\n"));
 
     if (!ok) {
       failed = true;
-      console.error(`[${name}][meet-integration] FAILED: /meet did not expose a pixel-verified VISIBLE Kei host.`);
+      console.error(
+        `[${name}][meet-integration] FAILED: /meet did not expose a pixel-verified VISIBLE Kei host.`,
+      );
     } else {
-      console.log(`[${name}][meet-integration] PASS: /meet parent VISIBLE and Kei iframe alpha pixels verified.`);
+      console.log(
+        `[${name}][meet-integration] PASS: /meet parent VISIBLE and Kei iframe alpha pixels verified.`,
+      );
     }
     await page.close();
   } catch (err) {

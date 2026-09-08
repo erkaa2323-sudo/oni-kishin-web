@@ -61,11 +61,7 @@ export function OniCrewStage() {
     setActiveId(visible[nextIndex]!.id);
   };
 
-  const recoverPortrait = (
-    image: HTMLImageElement,
-    member: CrewMember,
-    rosterIndex: number,
-  ) => {
+  const recoverPortrait = (image: HTMLImageElement, member: CrewMember, rosterIndex: number) => {
     image.onerror = null;
     image.src = fallbackPortrait(member.callsign, member.title, Math.max(0, rosterIndex));
   };
@@ -91,7 +87,9 @@ export function OniCrewStage() {
               src={active.portrait}
               alt=""
               aria-hidden="true"
-              onError={(event) => recoverPortrait(event.currentTarget, active, roster.indexOf(active))}
+              onError={(event) =>
+                recoverPortrait(event.currentTarget, active, roster.indexOf(active))
+              }
             />
           ) : null}
           <div className="crew-select__atmosphere" aria-hidden="true" />
@@ -170,7 +168,9 @@ export function OniCrewStage() {
                     width={1024}
                     height={1536}
                     decoding="async"
-                    onError={(event) => recoverPortrait(event.currentTarget, active, roster.indexOf(active))}
+                    onError={(event) =>
+                      recoverPortrait(event.currentTarget, active, roster.indexOf(active))
+                    }
                   />
                 ) : (
                   <span>ЗУРАГ БАЙХГҮЙ</span>

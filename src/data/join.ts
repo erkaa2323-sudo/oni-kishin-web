@@ -203,7 +203,10 @@ export async function checkJoinMembershipStatus(
       state: "accepted",
       memberId: active.id,
       nickname:
-        cleanText(data.nick) || cleanText(data.nickname) || cleanText(data.name) || watch.cpmNickname,
+        cleanText(data.nick) ||
+        cleanText(data.nickname) ||
+        cleanText(data.name) ||
+        watch.cpmNickname,
     };
   } catch {
     // Network/rules failures must never invent an acceptance or rejection.

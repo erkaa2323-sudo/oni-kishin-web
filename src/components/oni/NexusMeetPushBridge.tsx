@@ -1,3 +1,4 @@
+import { isAdminEmail } from "@/lib/admin-authorization";
 import { useEffect, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, type DocumentData } from "firebase/firestore";
@@ -5,7 +6,6 @@ import { doc, onSnapshot, type DocumentData } from "firebase/firestore";
 import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 import { sendNexusMeetPush } from "@/lib/nexus-push.functions";
 
-const ADMIN_EMAIL = "erkaa130@gmail.com";
 const STORAGE_KEY = "oni:nexus:last-meet-push";
 
 function timestampKey(value: unknown) {
@@ -41,59 +41,72 @@ export function NexusMeetPushBridge() {
       unsubscribeMeet.current?.();
       unsubscribeMeet.current = null;
 
-      if (!user || user.email?.trim().toLowerCase() !== ADMIN_EMAIL) return;
+      if (!user || !isAdminEmail(user.email)) return;
 
       let initialized = false;
       let previousCreatedAt = "";
 
-      unsubscribeMeet.current = onSnapshot(doc(firebaseDb, "meets", "current"), async (snapshot) => {
-        if (!snapshot.exists()) {
-          initialized = true;
-          previousCreatedAt = "";
-          return;
-        }
-
-        const data = snapshot.data();
-        const createdAt = timestampKey(data["createdAt"]);
-        const status = stringValue(data, "status").toLowerCase();
-        const title = stringValue(data, "title") || "ONI MEET";
-
-        if (!initialized) {
-          initialized = true;
-          previousCreatedAt = createdAt;
-          return;
-        }
-
-        const isAnnounceable = status === "scheduled" || status === "live";
-        const isNewMeet = !!createdAt && createdAt !== previousCreatedAt;
-        previousCreatedAt = createdAt;
-        if (!isAnnounceable || !isNewMeet) return;
-
-        try {
-          if (localStorage.getItem(STORAGE_KEY) === createdAt) return;
-        } catch {
-          // Storage is an optimization only; server-side admin verification remains authoritative.
-        }
-
-        try {
-          const idToken = await user.getIdToken();
-          const result = await sendNexusMeetPush({ data: { idToken, meetTitle: title, url: "/meet" } });
-          if (!result.ok) {
-            console.warn("[oni-nexus] meet push skipped", result.code, result.message);
+      unsubscribeMeet.current = onSnapshot(
+        doc(firebaseDb, "meets", "current"),
+        async (snapshot) => {
+          if (!snapshot.exists()) {
+            initialized = true;
+            previousCreatedAt = "";
             return;
           }
-          try {
-            localStorage.setItem(STORAGE_KEY, createdAt);
-          } catch {
-            // Ignore storage failures after a successful broadcast.
+
+          const data = snapshot.data();
+          const createdAt = timestampKey(data["createdAt"]);
+          const status = stringValue(data, "status").toLowerCase();
+          const title = stringValue(data, "title") || "ONI MEET";
+
+          if (!initialized) {
+            initialized = true;
+            previousCreatedAt = createdAt;
+            return;
           }
-          console.info("[oni-nexus] meet push", { sent: result.sent, stale: result.stale, failed: result.failed });
-        } catch (error) {
-          console.warn("[oni-nexus] meet push bridge failed", error instanceof Error ? error.message : "unknown");
-        }
-      }, (error) => {
-        console.warn("[oni-nexus] meet watcher unavailable", error.message);
-      });
+
+          const isAnnounceable = status === "scheduled" || status === "live";
+          const isNewMeet = !!createdAt && createdAt !== previousCreatedAt;
+          previousCreatedAt = createdAt;
+          if (!isAnnounceable || !isNewMeet) return;
+
+          try {
+            if (localStorage.getItem(STORAGE_KEY) === createdAt) return;
+          } catch {
+            // Storage is an optimization only; server-side admin verification remains authoritative.
+          }
+
+          try {
+            const idToken = await user.getIdToken();
+            const result = await sendNexusMeetPush({
+              data: { idToken, meetTitle: title, url: "/meet" },
+            });
+            if (!result.ok) {
+              console.warn("[oni-nexus] meet push skipped", result.code, result.message);
+              return;
+            }
+            try {
+              localStorage.setItem(STORAGE_KEY, createdAt);
+            } catch {
+              // Ignore storage failures after a successful broadcast.
+            }
+            console.info("[oni-nexus] meet push", {
+              sent: result.sent,
+              stale: result.stale,
+              failed: result.failed,
+            });
+          } catch (error) {
+            console.warn(
+              "[oni-nexus] meet push bridge failed",
+              error instanceof Error ? error.message : "unknown",
+            );
+          }
+        },
+        (error) => {
+          console.warn("[oni-nexus] meet watcher unavailable", error.message);
+        },
+      );
     });
 
     return () => {

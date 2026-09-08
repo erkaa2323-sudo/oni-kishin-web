@@ -5,5 +5,16 @@ export const ONI_APPROVED_CHARACTER = {
   palette: ["black", "charcoal", "neon-pink", "soft-pink"],
   traits: ["long-black-pink-hair", "pink-horns", "pink-eyes", "black-streetwear", "oni-branding"],
   rigTarget: "web-native-live2d",
-  states: ["idle", "listening", "thinking", "speaking", "happy", "excited", "concerned", "serious", "surprised", "music"],
+  states: [
+    "idle",
+    "listening",
+    "thinking",
+    "speaking",
+    "happy",
+    "excited",
+    "concerned",
+    "serious",
+    "surprised",
+    "music",
+  ],
 } as const;

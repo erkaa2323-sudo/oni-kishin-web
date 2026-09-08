@@ -27,7 +27,12 @@ const FILE_BY_LAYER: Record<OniRigLayerId, string> = {
 };
 
 function normalizePath(path: string) {
-  return path.split("/").pop()?.replace(/\.(png|webp)$/i, "") ?? "";
+  return (
+    path
+      .split("/")
+      .pop()
+      ?.replace(/\.(png|webp)$/i, "") ?? ""
+  );
 }
 
 const urlByBaseName = new Map<string, string>();
@@ -49,7 +54,9 @@ export function getOniRigAssetCoverage() {
       counts.set(name, (counts.get(name) ?? 0) + 1);
       return counts;
     }, new Map<string, number>()),
-  ).filter(([, count]) => count > 1).map(([name]) => name);
+  )
+    .filter(([, count]) => count > 1)
+    .map(([name]) => name);
 
   return {
     total: entries.length,
