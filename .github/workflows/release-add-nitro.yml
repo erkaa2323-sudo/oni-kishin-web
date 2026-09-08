@@ -1,0 +1,49 @@
+name: Temporary Nitro Lockfile Fix
+
+on:
+  push:
+    branches:
+      - final/release-2026-09-08
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-nitro-lockfile-fix
+  cancel-in-progress: true
+
+jobs:
+  lock:
+    if: ${{ !contains(github.event.head_commit.message, '[skip nitro-fix]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: final/release-2026-09-08
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm install --global npm@11.9.0
+      - name: Add exact Nitro V3 peer dependency
+        run: npm install --save-dev --save-exact nitro@3.0.260903-beta --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify only package manifests changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          unexpected="$(git diff --name-only | grep -Ev '^(package.json|package-lock.json)$' || true)"
+          if [ -n "$unexpected" ]; then
+            echo "$unexpected"
+            exit 1
+          fi
+          grep -q '"nitro": "3.0.260903-beta"' package.json
+      - name: Commit lockfile fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "build: add required Nitro V3 peer dependency [skip nitro-fix]"
+          git push origin HEAD:final/release-2026-09-08
