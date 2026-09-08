@@ -177,12 +177,18 @@ export function OniEconomyAdminDock() {
                 </p>
                 <h2 className="mt-1 text-xl font-semibold">ЭДИЙН ЗАСАГ БА ШАГНАЛ</h2>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="p-2 text-white/60" aria-label="Хаах">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="p-2 text-white/60"
+                aria-label="Хаах"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <p className="mt-2 text-xs leading-5 text-white/45">
-              Уулзалтын оролцоо, долоо хоногийн шагнал, улирал болон гишүүний ONI үлдэгдлийг энд удирдана.
+              Уулзалтын оролцоо, долоо хоногийн шагнал, улирал болон гишүүний ONI үлдэгдлийг энд
+              удирдана.
             </p>
             {notice ? (
               <p className="mt-4 border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
@@ -197,7 +203,8 @@ export function OniEconomyAdminDock() {
                   <h3 className="font-semibold">УУЛЗАЛТЫН ОРОЛЦОО</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Зөвхөн бүртгүүлсэн байх нь шагнал өгөхгүй. Админ оролцоог баталгаажуулсны дараа тухайн гишүүн уулзалтын XP болон ONI шагналаа авна.
+                  Зөвхөн бүртгүүлсэн байх нь шагнал өгөхгүй. Админ оролцоог баталгаажуулсны дараа
+                  тухайн гишүүн уулзалтын XP болон ONI шагналаа авна.
                 </p>
                 <div className="mt-4 max-h-64 divide-y divide-white/10 overflow-auto">
                   {attendance.length ? (
@@ -222,7 +229,9 @@ export function OniEconomyAdminDock() {
                       </div>
                     ))
                   ) : (
-                    <p className="py-4 text-xs text-white/35">Одоогийн уулзалтад бүртгүүлсэн гишүүн алга.</p>
+                    <p className="py-4 text-xs text-white/35">
+                      Одоогийн уулзалтад бүртгүүлсэн гишүүн алга.
+                    </p>
                   )}
                 </div>
               </section>
@@ -283,7 +292,8 @@ export function OniEconomyAdminDock() {
                   <h3 className="font-semibold">УЛИРЛЫН УДИРДЛАГА</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Шинэ улирал эхлүүлэхэд өмнөх улирлын чансаа архивлагдаж, улирлын XP 0 болно. Нийт хуримтлуулсан XP хэвээр үлдэнэ.
+                  Шинэ улирал эхлүүлэхэд өмнөх улирлын чансаа архивлагдаж, улирлын XP 0 болно. Нийт
+                  хуримтлуулсан XP хэвээр үлдэнэ.
                 </p>
                 <div className="mt-4 space-y-3">
                   <input
@@ -321,7 +331,8 @@ export function OniEconomyAdminDock() {
                   <h3 className="font-semibold">ONI ҮЛДЭГДЭЛ ЗАСВАРЛАХ</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-white/45">
-                  Гараар хийсэн өөрчлөлт бүр шалтгаан, админы ID болон өөрчлөлтийн дараах үлдэгдэлтэйгээ үйлдлийн бүртгэлд хадгалагдана.
+                  Гараар хийсэн өөрчлөлт бүр шалтгаан, админы ID болон өөрчлөлтийн дараах
+                  үлдэгдэлтэйгээ үйлдлийн бүртгэлд хадгалагдана.
                 </p>
                 <div className="mt-4 space-y-3">
                   <select
