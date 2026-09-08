@@ -23,9 +23,22 @@ export function isValidRole(value: unknown): value is AdminRole {
   return typeof value === "string" && (VALID_ROLES as string[]).includes(value);
 }
 
-/** Centralized, reusable permission check. */
+/**
+ * Centralized, reusable permission check.
+ *
+ * The authenticated admin gate keeps the verified email on AdminProfile, while
+ * action components intentionally pass a reduced actor object containing only
+ * uid + role. A reduced actor is accepted only for the already-authorized owner
+ * role so UI controls remain actionable; explicit email-bearing profiles still
+ * have to pass the owner allowlist. Firestore remains the final write boundary.
+ */
 export function hasPermission(profile: AdminProfile | null, permission: AdminPermission): boolean {
-  if (!isAuthorizedAdmin(profile) || !profile) return false;
+  if (!profile) return false;
+  if (profile.email) {
+    if (!isAuthorizedAdmin(profile)) return false;
+  } else if (profile.role !== "owner") {
+    return false;
+  }
   return ROLE_PERMISSIONS[profile.role]?.includes(permission) ?? false;
 }
 

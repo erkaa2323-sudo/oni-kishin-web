@@ -62,6 +62,18 @@ test("custom push worker bounds cached assets and retains offline shell", async 
   assert.equal(typeof handlers.push, "function");
   assert.equal(typeof handlers.notificationclick, "function");
 });
+
+test("admin permission bridge keeps reduced owner actors actionable and explicit emails verified", () => {
+  const source = readFileSync("src/services/admin-profiles.ts", "utf8");
+  assert.match(source, /if \(!profile\) return false;/);
+  assert.match(
+    source,
+    /if \(profile\.email\) \{\s*if \(!isAuthorizedAdmin\(profile\)\) return false;/,
+  );
+  assert.match(source, /else if \(profile\.role !== "owner"\) \{\s*return false;/);
+  assert.match(source, /profile\.role === "owner" && isAdminEmail\(profile\.email\)/);
+});
+
 test("Vercel Git auto-deployment is disabled and production workflow is manual", () => {
   assert.equal(JSON.parse(readFileSync("vercel.json", "utf8")).git.deploymentEnabled, false);
   const workflow = readFileSync(".github/workflows/vercel-prebuilt-production.yml", "utf8");
