@@ -36,7 +36,18 @@ const report = Array.isArray(coverage.report) ? coverage.report : [];
 console.log("RULE_COVERAGE_REPORT_ROOT_COUNT", report.length);
 console.log(
   "RULE_COVERAGE_REPORT_ROOT_META",
-  JSON.stringify(report.slice(0, 12).map((node, index) => ({ index, meta: compactMeta(node), valueCount: node?.values?.length ?? 0, childCount: node?.children?.length ?? 0 })), null, 2),
+  JSON.stringify(
+    report
+      .slice(0, 12)
+      .map((node, index) => ({
+        index,
+        meta: compactMeta(node),
+        valueCount: node?.values?.length ?? 0,
+        childCount: node?.children?.length ?? 0,
+      })),
+    null,
+    2,
+  ),
 );
 
 const hits = [];
@@ -44,7 +55,10 @@ const walk = (node, path, ancestors) => {
   if (!node || typeof node !== "object" || Array.isArray(node)) return;
   const meta = compactMeta(node);
   const nextAncestors = [...ancestors, { path, meta }].slice(-8);
-  if (Array.isArray(node.values) && node.values.some((entry) => valueHasUndefined(entry?.value ?? entry))) {
+  if (
+    Array.isArray(node.values) &&
+    node.values.some((entry) => valueHasUndefined(entry?.value ?? entry))
+  ) {
     hits.push({
       path,
       meta,
@@ -53,7 +67,9 @@ const walk = (node, path, ancestors) => {
     });
   }
   if (Array.isArray(node.children)) {
-    node.children.forEach((child, index) => walk(child, `${path}.children[${index}]`, nextAncestors));
+    node.children.forEach((child, index) =>
+      walk(child, `${path}.children[${index}]`, nextAncestors),
+    );
   }
 };
 

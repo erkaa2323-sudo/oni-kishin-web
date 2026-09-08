@@ -25,7 +25,7 @@ export function OniCosmeticBridge() {
         doc(firebaseDb, "progressionProfiles", user.uid),
         (snap) => {
           const value = snap.exists() ? snap.data()["equipped"] : null;
-          setEquipped(value && typeof value === "object" ? value as Equipped : EMPTY);
+          setEquipped(value && typeof value === "object" ? (value as Equipped) : EMPTY);
         },
         () => setEquipped(EMPTY),
       );
@@ -41,7 +41,9 @@ export function OniCosmeticBridge() {
   const aura = active.has("aura-red-moon");
   const garage = active.has("garage-neon") && pathname.startsWith("/garage");
   const shizuki = active.has("shizuki-kitsune") && pathname.startsWith("/oni-ai");
-  const title = active.has("title-night-rider") && (pathname.startsWith("/crew") || pathname.startsWith("/progression"));
+  const title =
+    active.has("title-night-rider") &&
+    (pathname.startsWith("/crew") || pathname.startsWith("/progression"));
   const entrance = active.has("entrance-kishin") && pathname.startsWith("/meet");
   const creator = active.has("creator-red-moon") && pathname.startsWith("/gallery");
   const trophy = active.has("trophy-vault") && pathname.startsWith("/progression");
@@ -69,8 +71,9 @@ export function OniCosmeticBridge() {
 
   if (![frame, aura, garage, shizuki, title, entrance, creator, trophy].some(Boolean)) return null;
 
-  return <>
-    <style>{`
+  return (
+    <>
+      <style>{`
       .oni-cosmetic-layer{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
       .oni-crimson-frame{position:fixed;inset:max(env(safe-area-inset-top),4px) 4px max(env(safe-area-inset-bottom),4px);z-index:72;pointer-events:none;border:1px solid rgba(244,63,94,.5);box-shadow:inset 0 0 34px rgba(225,29,72,.12),0 0 22px rgba(225,29,72,.08)}
       .oni-crimson-frame:before,.oni-crimson-frame:after{content:"";position:absolute;width:72px;height:2px;background:linear-gradient(90deg,transparent,#fb7185)}
@@ -89,15 +92,35 @@ export function OniCosmeticBridge() {
       @keyframes oniArrivalOut{0%,62%{opacity:1}100%{opacity:0;visibility:hidden}}
       @media(prefers-reduced-motion:reduce){.oni-red-moon-aura,.oni-foxfire,.oni-kishin-arrival,.oni-kishin-arrival span{animation:none}.oni-kishin-arrival{display:none}}
     `}</style>
-    {aura ? <div className="oni-red-moon-aura" aria-hidden="true" /> : null}
-    {frame ? <div className="oni-crimson-frame" aria-hidden="true" /> : null}
-    {garage || shizuki || creator ? <div className="oni-cosmetic-layer" aria-hidden="true">
-      {garage ? <div className="oni-neon-garage" /> : null}
-      {creator ? <div className="oni-creator-moon" /> : null}
-      {shizuki ? <><i className="oni-foxfire"/><i className="oni-foxfire"/><i className="oni-foxfire"/></> : null}
-    </div> : null}
-    {title ? <div className="oni-cosmetic-badge">NIGHT RIDER</div> : null}
-    {trophy ? <div className="oni-cosmetic-badge" style={{ top: "calc(env(safe-area-inset-top) + 104px)" }}>TROPHY SLOT +1</div> : null}
-    {entrance ? <div className="oni-kishin-arrival" aria-hidden="true"><span>KISHIN ARRIVAL</span></div> : null}
-  </>;
+      {aura ? <div className="oni-red-moon-aura" aria-hidden="true" /> : null}
+      {frame ? <div className="oni-crimson-frame" aria-hidden="true" /> : null}
+      {garage || shizuki || creator ? (
+        <div className="oni-cosmetic-layer" aria-hidden="true">
+          {garage ? <div className="oni-neon-garage" /> : null}
+          {creator ? <div className="oni-creator-moon" /> : null}
+          {shizuki ? (
+            <>
+              <i className="oni-foxfire" />
+              <i className="oni-foxfire" />
+              <i className="oni-foxfire" />
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      {title ? <div className="oni-cosmetic-badge">NIGHT RIDER</div> : null}
+      {trophy ? (
+        <div
+          className="oni-cosmetic-badge"
+          style={{ top: "calc(env(safe-area-inset-top) + 104px)" }}
+        >
+          TROPHY SLOT +1
+        </div>
+      ) : null}
+      {entrance ? (
+        <div className="oni-kishin-arrival" aria-hidden="true">
+          <span>KISHIN ARRIVAL</span>
+        </div>
+      ) : null}
+    </>
+  );
 }

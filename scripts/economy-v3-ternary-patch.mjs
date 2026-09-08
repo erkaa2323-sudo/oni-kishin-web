@@ -10,40 +10,40 @@ if (rules.includes("function isEconomyAdminV3()")) {
 
 const replacements = [
   [
-`    function validEconomyProfileUpdateV3(uid) {
+    `    function validEconomyProfileUpdateV3(uid) {
       let typeName = request.resource.data.get("lastAction", {}).get("type", "");
       return (typeName == "vault_unlock" && validVaultProfileV3(uid))
         || (typeName == "weekly_claim" && validWeeklyProfileV3(uid))
         || (typeName == "meet_reward" && validMeetProfileV3(uid))
         || (typeName == "prestige" && validPrestigeProfileV3(uid));
     }`,
-`    function validEconomyProfileUpdateV3(uid) {
+    `    function validEconomyProfileUpdateV3(uid) {
       let typeName = request.resource.data.get("lastAction", {}).get("type", "");
       return typeName == "vault_unlock" ? validVaultProfileV3(uid)
         : typeName == "weekly_claim" ? validWeeklyProfileV3(uid)
         : typeName == "meet_reward" ? validMeetProfileV3(uid)
         : typeName == "prestige" ? validPrestigeProfileV3(uid)
         : false;
-    }`
+    }`,
   ],
   [
-`      allow update: if isAdmin() || (isApprovedMember()
+    `      allow update: if isAdmin() || (isApprovedMember()
         && profileIdentityV3(uid)
         && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"])
               && validEquipV3())
           || (request.resource.data.diff(resource.data).affectedKeys().hasAny(["lastAction"])
               && validEconomyProfileUpdateV3(uid))));`,
-`      allow update: if isAdmin() ? true
+    `      allow update: if isAdmin() ? true
         : request.auth == null ? false
         : request.auth.uid != uid ? false
         : !isApprovedMember() ? false
         : !profileIdentityV3(uid) ? false
         : request.resource.data.diff(resource.data).affectedKeys().hasOnly(["equipped", "updatedAt"]) ? validEquipV3()
         : request.resource.data.diff(resource.data).affectedKeys().hasAny(["lastAction"]) ? validEconomyProfileUpdateV3(uid)
-        : false;`
+        : false;`,
   ],
   [
-`    function validLedgerCreateV3(ledgerId) {
+    `    function validLedgerCreateV3(ledgerId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       let profile = getAfter(profilePath).data;
       let action = profile.get("lastAction", {});
@@ -73,7 +73,7 @@ const replacements = [
           && request.resource.data.get("sourceKey", "") == actionKey
           && ledgerId == "prestige_" + request.auth.uid + "_" + actionKey));
     }`,
-`    function validLedgerCreateV3(ledgerId) {
+    `    function validLedgerCreateV3(ledgerId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       let profile = getAfter(profilePath).data;
       let action = profile.get("lastAction", {});
@@ -104,10 +104,10 @@ const replacements = [
           && request.resource.data.get("sourceKey", "") == actionKey
           && ledgerId == "prestige_" + request.auth.uid + "_" + actionKey)
         : false;
-    }`
+    }`,
   ],
   [
-`    function achievementEligibleV3(achievementId, profile) {
+    `    function achievementEligibleV3(achievementId, profile) {
       let meetCount = profile.get("meetCount", 0);
       let creatorCount = profile.get("creatorCount", 0);
       let unlocked = profile.get("unlocked", []);
@@ -119,7 +119,7 @@ const replacements = [
         || (achievementId == "kishin" && lifetimeXp >= 8500)
         || (achievementId == "legend" && lifetimeXp >= 26000);
     }`,
-`    function achievementEligibleV3(achievementId, profile) {
+    `    function achievementEligibleV3(achievementId, profile) {
       let meetCount = profile.get("meetCount", 0);
       let creatorCount = profile.get("creatorCount", 0);
       let unlocked = profile.get("unlocked", []);
@@ -131,10 +131,10 @@ const replacements = [
         : achievementId == "kishin" ? lifetimeXp >= 8500
         : achievementId == "legend" ? lifetimeXp >= 26000
         : false;
-    }`
+    }`,
   ],
   [
-`    function validAchievementClaimV3(claimId) {
+    `    function validAchievementClaimV3(claimId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       let profile = get(profilePath).data;
       let achievementId = request.resource.data.get("achievementId", "");
@@ -150,7 +150,7 @@ const replacements = [
         && request.resource.data.get("unlockedCount", -1) == profile.get("unlocked", []).size()
         && request.resource.data.get("lifetimeXp", -1) == profile.get("lifetimeXp", 0);
     }`,
-`    function validAchievementClaimV3(claimId) {
+    `    function validAchievementClaimV3(claimId) {
       let profilePath = /databases/$(database)/documents/progressionProfiles/$(request.auth.uid);
       let achievementId = request.resource.data.get("achievementId", "");
       return !exists(profilePath) ? false
@@ -164,14 +164,14 @@ const replacements = [
         : request.resource.data.get("creatorCount", -1) != get(profilePath).data.get("creatorCount", 0) ? false
         : request.resource.data.get("unlockedCount", -1) != get(profilePath).data.get("unlocked", []).size() ? false
         : request.resource.data.get("lifetimeXp", -1) == get(profilePath).data.get("lifetimeXp", 0);
-    }`
+    }`,
   ],
   [
-`      allow create: if isApprovedMember() && validAchievementClaimV3(claimId);`,
-`      allow create: if request.auth == null ? false
+    `      allow create: if isApprovedMember() && validAchievementClaimV3(claimId);`,
+    `      allow create: if request.auth == null ? false
         : !isApprovedMember() ? false
-        : validAchievementClaimV3(claimId);`
-  ]
+        : validAchievementClaimV3(claimId);`,
+  ],
 ];
 
 for (const [before, after] of replacements) {

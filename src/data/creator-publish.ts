@@ -33,19 +33,28 @@ export type CreatorPublishRequest = {
 const asIso = (value: unknown) => {
   if (value instanceof Timestamp) return value.toDate().toISOString();
   if (value && typeof value === "object" && "toDate" in value) {
-    try { return (value as { toDate: () => Date }).toDate().toISOString(); } catch { return ""; }
+    try {
+      return (value as { toDate: () => Date }).toDate().toISOString();
+    } catch {
+      return "";
+    }
   }
   return typeof value === "string" ? value : "";
 };
 const asNumber = (value: unknown) => Math.max(0, Number(value ?? 0));
-const millis = (value: unknown) => value && typeof value === "object" && "toMillis" in value ? Number((value as { toMillis: () => number }).toMillis()) : 0;
+const millis = (value: unknown) =>
+  value && typeof value === "object" && "toMillis" in value
+    ? Number((value as { toMillis: () => number }).toMillis())
+    : 0;
 
 const fromDoc = (id: string, row: Record<string, unknown>): CreatorPublishRequest => ({
   id,
   uid: String(row["uid"] ?? ""),
   nickname: String(row["nickname"] ?? ""),
   cpmId: String(row["cpmId"] ?? ""),
-  preset: (["profile", "garage", "instagram", "meet", "crew"].includes(String(row["preset"]))) ? String(row["preset"]) as CreatorPublishPreset : "profile",
+  preset: ["profile", "garage", "instagram", "meet", "crew"].includes(String(row["preset"]))
+    ? (String(row["preset"]) as CreatorPublishPreset)
+    : "profile",
   title: String(row["title"] ?? "ONI CREATOR"),
   image: String(row["image"] ?? ""),
   status: row["status"] === "approved" || row["status"] === "rejected" ? row["status"] : "pending",
@@ -61,9 +70,13 @@ export async function submitCreatorPublishRequest(input: {
   image: string;
 }): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
   const user = firebaseAuth.currentUser;
-  if (!user) return { ok: false, message: "Gallery-д илгээхийн тулд member account-аараа нэвтэрнэ үү." };
+  if (!user)
+    return { ok: false, message: "Gallery-д илгээхийн тулд member account-аараа нэвтэрнэ үү." };
   if (!input.image.startsWith("data:image/jpeg;base64,") || input.image.length > 900_000)
-    return { ok: false, message: "Gallery asset хэт том байна. Дахин generate хийгээд оролдоно уу." };
+    return {
+      ok: false,
+      message: "Gallery asset хэт том байна. Дахин generate хийгээд оролдоно уу.",
+    };
 
   const accountSnap = await getDoc(doc(firebaseDb, "memberAccounts", user.uid));
   if (!accountSnap.exists() || accountSnap.data()["status"] !== "approved")
@@ -72,7 +85,8 @@ export async function submitCreatorPublishRequest(input: {
   const ref = doc(collection(firebaseDb, "creatorPublishRequests"));
   await setDoc(ref, {
     uid: user.uid,
-    nickname: input.nickname.trim().slice(0, 60) || String(accountSnap.data()["nickname"] ?? "ONI MEMBER"),
+    nickname:
+      input.nickname.trim().slice(0, 60) || String(accountSnap.data()["nickname"] ?? "ONI MEMBER"),
     cpmId: input.cpmId.trim().slice(0, 60) || String(accountSnap.data()["cpmId"] ?? ""),
     preset: input.preset,
     title: input.title.trim().slice(0, 100) || "ONI CREATOR",
@@ -83,7 +97,9 @@ export async function submitCreatorPublishRequest(input: {
   return { ok: true, id: ref.id };
 }
 
-export async function listCreatorPublishRequests(status?: CreatorPublishStatus): Promise<CreatorPublishRequest[]> {
+export async function listCreatorPublishRequests(
+  status?: CreatorPublishStatus,
+): Promise<CreatorPublishRequest[]> {
   const q = status
     ? query(collection(firebaseDb, "creatorPublishRequests"), where("status", "==", status))
     : query(collection(firebaseDb, "creatorPublishRequests"));
@@ -111,7 +127,10 @@ export async function reviewCreatorPublishRequest(id: string, decision: "approve
         const configRef = doc(firebaseDb, "progressionMissions", "currentWeek");
         const weeklyRef = doc(firebaseDb, "progressionWeekly", row.uid);
         const [profileSnap, ledgerSnap, configSnap, weeklySnap] = await Promise.all([
-          tx.get(profileRef), tx.get(ledgerRef), tx.get(configRef), tx.get(weeklyRef),
+          tx.get(profileRef),
+          tx.get(ledgerRef),
+          tx.get(configRef),
+          tx.get(weeklyRef),
         ]);
         if (!ledgerSnap.exists()) {
           const currentCoin = profileSnap.exists() ? asNumber(profileSnap.data()["coin"]) : 0;
@@ -161,7 +180,10 @@ export async function reviewCreatorPublishRequest(id: string, decision: "approve
             const end = millis(config["endsAt"]);
             const now = Date.now();
             if (config["enabled"] === true && weekId && start && end && now >= start && now < end) {
-              const old = weeklySnap.exists() && String(weeklySnap.data()["weekId"] ?? "") === weekId ? weeklySnap.data() : null;
+              const old =
+                weeklySnap.exists() && String(weeklySnap.data()["weekId"] ?? "") === weekId
+                  ? weeklySnap.data()
+                  : null;
               tx.set(weeklyRef, {
                 uid: row.uid,
                 weekId,

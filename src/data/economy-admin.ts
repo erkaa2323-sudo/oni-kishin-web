@@ -14,12 +14,14 @@ import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 
 const ADMIN_EMAIL = "erkaa130@gmail.com";
 const n = (value: unknown) => Math.max(0, Number(value ?? 0));
-const toIso = (value: unknown) => value && typeof value === "object" && "toDate" in value
-  ? (value as { toDate: () => Date }).toDate().toISOString()
-  : null;
-const millis = (value: unknown) => value && typeof value === "object" && "toMillis" in value
-  ? Number((value as { toMillis: () => number }).toMillis())
-  : 0;
+const toIso = (value: unknown) =>
+  value && typeof value === "object" && "toDate" in value
+    ? (value as { toDate: () => Date }).toDate().toISOString()
+    : null;
+const millis = (value: unknown) =>
+  value && typeof value === "object" && "toMillis" in value
+    ? Number((value as { toMillis: () => number }).toMillis())
+    : 0;
 
 function requireAdmin() {
   const user = firebaseAuth.currentUser;
@@ -57,7 +59,9 @@ export async function listCurrentMeetAttendanceCandidates(): Promise<AttendanceC
   ]);
   if (!meetSnap.exists()) return [];
   const currentStart = millis(meetSnap.data()["startAt"]);
-  const confirmed = new Map(attendanceSnap.docs.map((row) => [row.id, millis(row.data()["meetStartAt"])]));
+  const confirmed = new Map(
+    attendanceSnap.docs.map((row) => [row.id, millis(row.data()["meetStartAt"])]),
+  );
   return participantSnap.docs
     .filter((row) => !currentStart || millis(row.data()["meetStartAt"]) === currentStart)
     .map((row) => ({
@@ -77,7 +81,8 @@ export async function confirmCurrentMeetAttendance(uid: string) {
   ]);
   if (!meetSnap.exists() || !participantSnap.exists()) throw new Error("participant_not_found");
   const start = meetSnap.data()["startAt"];
-  if (!start || millis(participantSnap.data()["meetStartAt"]) !== millis(start)) throw new Error("meet_mismatch");
+  if (!start || millis(participantSnap.data()["meetStartAt"]) !== millis(start))
+    throw new Error("meet_mismatch");
   await setDoc(doc(firebaseDb, "meetAttendance", uid), {
     uid,
     meetId: "current",
@@ -97,13 +102,27 @@ export async function getEconomyWeekConfig(): Promise<EconomyWeekConfig | null> 
   const snap = await getDoc(doc(firebaseDb, "progressionMissions", "currentWeek"));
   if (!snap.exists()) return null;
   const row = snap.data();
-  return { weekId: String(row["weekId"] ?? ""), startsAt: toIso(row["startsAt"]), endsAt: toIso(row["endsAt"]), enabled: row["enabled"] === true };
+  return {
+    weekId: String(row["weekId"] ?? ""),
+    startsAt: toIso(row["startsAt"]),
+    endsAt: toIso(row["endsAt"]),
+    enabled: row["enabled"] === true,
+  };
 }
 
-export async function configureEconomyWeek(input: { weekId: string; startsAt: Date; endsAt: Date; enabled: boolean }) {
+export async function configureEconomyWeek(input: {
+  weekId: string;
+  startsAt: Date;
+  endsAt: Date;
+  enabled: boolean;
+}) {
   const admin = requireAdmin();
-  const weekId = input.weekId.trim().replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80);
-  if (!weekId || input.endsAt.getTime() <= input.startsAt.getTime()) throw new Error("invalid_week");
+  const weekId = input.weekId
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .slice(0, 80);
+  if (!weekId || input.endsAt.getTime() <= input.startsAt.getTime())
+    throw new Error("invalid_week");
   await setDoc(doc(firebaseDb, "progressionMissions", "currentWeek"), {
     weekId,
     startsAt: Timestamp.fromDate(input.startsAt),
@@ -119,19 +138,34 @@ export async function getEconomySeasonConfig(): Promise<EconomySeasonConfig | nu
   const snap = await getDoc(doc(firebaseDb, "progressionMissions", "currentSeason"));
   if (!snap.exists()) return null;
   const row = snap.data();
-  return { seasonId: String(row["seasonId"] ?? ""), startsAt: toIso(row["startsAt"]), endsAt: toIso(row["endsAt"]), enabled: row["enabled"] === true };
+  return {
+    seasonId: String(row["seasonId"] ?? ""),
+    startsAt: toIso(row["startsAt"]),
+    endsAt: toIso(row["endsAt"]),
+    enabled: row["enabled"] === true,
+  };
 }
 
-export async function startNewEconomySeason(input: { seasonId: string; startsAt: Date; endsAt: Date }) {
+export async function startNewEconomySeason(input: {
+  seasonId: string;
+  startsAt: Date;
+  endsAt: Date;
+}) {
   const admin = requireAdmin();
-  const seasonId = input.seasonId.trim().replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80);
-  if (!seasonId || input.endsAt.getTime() <= input.startsAt.getTime()) throw new Error("invalid_season");
+  const seasonId = input.seasonId
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .slice(0, 80);
+  if (!seasonId || input.endsAt.getTime() <= input.startsAt.getTime())
+    throw new Error("invalid_season");
   const [profiles, currentSeason] = await Promise.all([
     getDocs(collection(firebaseDb, "progressionProfiles")),
     getDoc(doc(firebaseDb, "progressionMissions", "currentSeason")),
   ]);
   if (profiles.size > 200) throw new Error("season_batch_too_large");
-  const previousSeasonId = currentSeason.exists() ? String(currentSeason.data()["seasonId"] ?? "unassigned") : "unassigned";
+  const previousSeasonId = currentSeason.exists()
+    ? String(currentSeason.data()["seasonId"] ?? "unassigned")
+    : "unassigned";
   const batch = writeBatch(firebaseDb);
   for (const profile of profiles.docs) {
     const row = profile.data();
@@ -163,7 +197,8 @@ export async function adjustMemberCoin(input: { uid: string; amount: number; rea
   const admin = requireAdmin();
   const amount = Math.trunc(input.amount);
   const reason = input.reason.trim().slice(0, 160);
-  if (!input.uid || !amount || !reason || Math.abs(amount) > 10000) throw new Error("invalid_adjustment");
+  if (!input.uid || !amount || !reason || Math.abs(amount) > 10000)
+    throw new Error("invalid_adjustment");
   const profileRef = doc(firebaseDb, "progressionProfiles", input.uid);
   return runTransaction(firebaseDb, async (tx) => {
     const profile = await tx.get(profileRef);
