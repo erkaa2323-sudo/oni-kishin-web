@@ -1,6 +1,17 @@
-import { collection, doc, onSnapshot, query, where, type Unsubscribe } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  where,
+  type Unsubscribe,
+} from "firebase/firestore";
 
-import { MEET_REGISTRATION_GRACE_MS, type MeetParticipant, type MeetSession } from "@/data/meet";
+import {
+  MEET_REGISTRATION_GRACE_MS,
+  type MeetParticipant,
+  type MeetSession,
+} from "@/data/meet";
 import { firebaseDb } from "@/integrations/firebase/client";
 
 function dateValue(value: unknown): string | null {
@@ -100,7 +111,8 @@ export function subscribeMeetParticipants(
           const participants = snapshot.docs
             .filter(
               (entry) =>
-                entry.id !== "__counter__" && timeValue(entry.data()["meetStartAt"]) === currentStart,
+                entry.id !== "__counter__" &&
+                timeValue(entry.data()["meetStartAt"]) === currentStart,
             )
             .map((entry) => {
               const row = entry.data();
