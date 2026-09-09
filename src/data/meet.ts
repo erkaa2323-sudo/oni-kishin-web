@@ -39,8 +39,7 @@ export const CPM_LAUNCH_FALLBACK_LABEL = "CAR PARKING MULTIPLAYER НЭЭХ";
 
 /** Platform-safe store target; iOS users are never sent to Google Play. */
 export function cpmLaunchUrl(userAgent?: string): string {
-  const ua =
-    (userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : "")) || "";
+  const ua = (userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : "")) || "";
   const isIOS =
     /iPad|iPhone|iPod/i.test(ua) ||
     (/Macintosh/i.test(ua) && typeof navigator !== "undefined" && navigator.maxTouchPoints > 1);
@@ -48,14 +47,7 @@ export function cpmLaunchUrl(userAgent?: string): string {
 }
 
 export type MeetLifecycle =
-  | "none"
-  | "scheduled"
-  | "starting_soon"
-  | "open"
-  | "closed"
-  | "full"
-  | "active"
-  | "ended";
+  "none" | "scheduled" | "starting_soon" | "open" | "closed" | "full" | "active" | "ended";
 
 export type MeetSession = {
   id: string;
@@ -76,8 +68,7 @@ export type MeetParticipant = {
 export type MeetCredentials = { roomId: string; password: string };
 
 export type MeetLoad =
-  | { status: "ok"; session: MeetSession | null }
-  | { status: "error"; reason: string };
+  { status: "ok"; session: MeetSession | null } | { status: "error"; reason: string };
 
 export type VerificationInput = {
   cpmNickname: string;
@@ -114,15 +105,9 @@ function timestampMs(value: unknown): number | null {
     return Number.isNaN(time) ? null : time;
   }
   if (value && typeof value === "object") {
-    if (
-      "toMillis" in value &&
-      typeof (value as { toMillis?: unknown }).toMillis === "function"
-    )
+    if ("toMillis" in value && typeof (value as { toMillis?: unknown }).toMillis === "function")
       return (value as { toMillis: () => number }).toMillis();
-    if (
-      "toDate" in value &&
-      typeof (value as { toDate?: unknown }).toDate === "function"
-    )
+    if ("toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function")
       return (value as { toDate: () => Date }).toDate().getTime();
   }
   return null;
@@ -159,12 +144,7 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
 }
 
 export function canRegister(life: MeetLifecycle): boolean {
-  return (
-    life === "open" ||
-    life === "scheduled" ||
-    life === "starting_soon" ||
-    life === "active"
-  );
+  return life === "open" || life === "scheduled" || life === "starting_soon" || life === "active";
 }
 
 export const LIFECYCLE_LABEL: Record<MeetLifecycle, string> = {
@@ -188,9 +168,7 @@ export const REGISTRATION_MESSAGE: Record<RegistrationOutcome, string> = {
   error: "Бүртгэл хийх үед алдаа гарлаа. Дахин оролдоно уу.",
 };
 
-function snapshotCredentials(
-  data: Record<string, unknown> | undefined,
-): MeetCredentials | null {
+function snapshotCredentials(data: Record<string, unknown> | undefined): MeetCredentials | null {
   if (!data) return null;
   const roomId = String(data["roomId"] ?? "").trim();
   const password = String(data["password"] ?? "").trim();
@@ -223,8 +201,7 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         : null);
     const registered = participants.docs.filter(
       (entry) =>
-        entry.id !== "__counter__" &&
-        sameMeetStart(entry.data()["meetStartAt"], row["startAt"]),
+        entry.id !== "__counter__" && sameMeetStart(entry.data()["meetStartAt"], row["startAt"]),
     ).length;
     return {
       status: "ok",
@@ -264,9 +241,7 @@ export async function fetchParticipants(meetId: string): Promise<MeetParticipant
         const row = entry.data();
         const joined = row["joinedAt"];
         return {
-          cpmNickname: String(
-            row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER",
-          ),
+          cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
           registeredAt:
             joined && typeof joined.toDate === "function"
               ? joined.toDate().toISOString()
@@ -320,14 +295,11 @@ export async function registerForMeet(
   const member = await getDoc(doc(firebaseDb, "members", account.memberId)).catch(() => null);
   if (!member?.exists()) return "invalid";
   const memberData = member.data();
-  if (memberData["status"] === "inactive" || memberData["status"] === "archived")
-    return "invalid";
+  if (memberData["status"] === "inactive" || memberData["status"] === "archived") return "invalid";
   const canonicalNick = String(
     memberData["nick"] || memberData["nickname"] || memberData["name"] || nick,
   ).trim();
-  const canonicalCpmId = String(
-    memberData["cpmid"] || memberData["cpmId"] || cpmId,
-  ).trim();
+  const canonicalCpmId = String(memberData["cpmid"] || memberData["cpmId"] || cpmId).trim();
 
   const participantId = user.uid;
   const meetRef = doc(firebaseDb, "meets", "current");
@@ -365,8 +337,7 @@ export async function registerForMeet(
       const slotIndex = slotSnapshots
         .slice(0, capacity)
         .findIndex(
-          (slot) =>
-            !slot.exists() || !sameMeetStart(slot.data()["meetStartAt"], meet["startAt"]),
+          (slot) => !slot.exists() || !sameMeetStart(slot.data()["meetStartAt"], meet["startAt"]),
         );
       if (slotIndex < 0) return "meet_full" as const;
       const slotRef = slotRefs[slotIndex]!;
