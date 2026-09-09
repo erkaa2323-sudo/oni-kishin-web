@@ -16,7 +16,6 @@ import { OniWorldTransition } from "../components/oni/OniWorldTransition";
 import { OniNexusDock } from "../components/oni/OniNexusDock";
 import { NexusMeetPushBridge } from "../components/oni/NexusMeetPushBridge";
 import { OniProgressionRewardBridge } from "../components/oni/OniProgressionRewardBridge";
-import { OniCosmeticBridge } from "../components/oni/OniCosmeticBridge";
 
 const RECOVERY_KEY = "oni:last-hard-recovery";
 const isRecoverableClientLoadError = (error: Error) =>
@@ -172,7 +171,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <NexusMeetPushBridge />
       <OniProgressionRewardBridge />
-      <OniCosmeticBridge />
       <OniOfflineBanner />
       <OniWorldTransition>
         <Outlet />

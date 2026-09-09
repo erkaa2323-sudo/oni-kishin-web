@@ -1,25 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import {
-  Check,
-  Coins,
-  ExternalLink,
-  Instagram,
-  LockKeyhole,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Users,
-  X,
-} from "lucide-react";
+import { Check, ExternalLink, Instagram, LockKeyhole, ShoppingBag, Users, X } from "lucide-react";
 import { firebaseAuth } from "@/integrations/firebase/client";
-import { equipVaultItem, getMyProgression, unlockVaultItem } from "@/data/progression";
+import { getMyProgression } from "@/data/progression";
 import {
   getPublicShopPurchaseFeed,
   purchaseCpmService,
   type PublicShopPurchase,
 } from "@/data/shop";
-import { ONI_VAULT, type OniProgressionProfile } from "@/lib/oni-progression";
+import type { OniProgressionProfile } from "@/lib/oni-progression";
 import { CPM_SERVICE_CATALOG, SHOP_ADMIN_INSTAGRAM_URL, type CpmService } from "@/lib/oni-shop";
 import { OniFooter } from "./OniFooter";
 import { OniHudNav } from "./OniHudNav";
@@ -96,33 +85,6 @@ export function OniShopV2Stage() {
     }
   };
 
-  const actCosmetic = async (itemId: string, owned: boolean) => {
-    if (!profile || busy) return;
-    setBusy(`cosmetic:${itemId}`);
-    setNotice("");
-    try {
-      if (owned) await equipVaultItem(itemId);
-      else await unlockVaultItem(itemId);
-      await load();
-      setNotice(
-        owned
-          ? "Premium cosmetic EQUIP хийгдлээ. Effect сайт дээр шууд идэвхжинэ."
-          : "Premium cosmetic амжилттай unlock хийгдлээ. Coin автоматаар хасагдсан.",
-      );
-    } catch (error) {
-      const code = error instanceof Error ? error.message : "failed";
-      setNotice(
-        code === "coin_required"
-          ? "ONI Coin хүрэлцэхгүй байна."
-          : code === "rank_required"
-            ? "Энэ cosmetic-д шаардлагатай XP хараахан хүрээгүй байна."
-            : "Cosmetic үйлдлийг баталгаажуулж чадсангүй.",
-      );
-    } finally {
-      setBusy("");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-ink text-white">
       <OniHudNav />
@@ -135,9 +97,8 @@ export function OniShopV2Stage() {
               COIN-ОО УТГАТАЙ ЗАРЦУУЛ.
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-white/58">
-              CPM дотор хийгдэх үйлчилгээ болон ONI HUB-ийн premium cosmetic-ийг нэг Coin wallet-аас
-              авна. CPM үйлчилгээ худалдан авмагц Coin автоматаар хасагдаж, админтай Instagram-аар
-              холбогдох цонх гарна.
+              Car Parking Multiplayer дотор хийгдэх үйлчилгээнүүдийг ONI Coin wallet-аас авна.
+              Худалдан авмагц Coin автоматаар хасагдаж, админтай Instagram-аар холбогдох цонх гарна.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <div className="border border-white/10 bg-black/25 px-4 py-3">
@@ -153,12 +114,6 @@ export function OniShopV2Stage() {
                   CPM ҮЙЛЧИЛГЭЭ
                 </span>
                 <strong className="mt-1 block text-2xl">{CPM_SERVICE_CATALOG.length}</strong>
-              </div>
-              <div className="border border-white/10 bg-black/25 px-4 py-3">
-                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">
-                  ONI COSMETIC
-                </span>
-                <strong className="mt-1 block text-2xl">{ONI_VAULT.length}</strong>
               </div>
             </div>
           </div>
@@ -251,78 +206,6 @@ export function OniShopV2Stage() {
                           : busy === `service:${service.id}`
                             ? "БАТАЛГААЖУУЛЖ БАЙНА…"
                             : "ХУДАЛДАН АВАХ"}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="mt-14" aria-labelledby="cosmetic-title">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-xs tracking-[0.28em] text-crimson">ONI COSMETICS</p>
-              <h2 id="cosmetic-title" className="mt-2 text-3xl font-semibold">
-                ХҮЧТЭЙ PREMIUM EFFECT
-              </h2>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-white/48">
-                Эдгээр нь CPM үйлчилгээ биш. ONI HUB дээр EQUIP хиймэгц Profile, Crew, Garage, Meet,
-                Gallery болон ONI AI хэсгийн харагдацыг илт өөрчилнө.
-              </p>
-            </div>
-            <span className="text-xs text-white/35">
-              {profile?.unlocked.length ?? 0} / {ONI_VAULT.length} UNLOCKED
-            </span>
-          </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {ONI_VAULT.map((item) => {
-              const owned = !!profile?.unlocked.includes(item.id);
-              const equipped = profile?.equipped[item.category] === item.id;
-              const affordable =
-                !!profile && profile.coin >= item.price && profile.xp >= item.minXp;
-              return (
-                <article
-                  key={item.id}
-                  className={`flex min-h-72 flex-col border p-4 ${equipped ? "border-crimson/60 bg-[radial-gradient(circle_at_top,rgba(225,29,72,.14),transparent_45%),rgba(255,255,255,.025)] shadow-[0_0_35px_rgba(225,29,72,.09)]" : "border-white/10 bg-white/[0.025]"}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.6rem] font-semibold tracking-[0.2em] text-crimson">
-                      {item.rarity}
-                    </span>
-                    {equipped ? (
-                      <Check className="h-4 w-4 text-emerald-300" />
-                    ) : owned ? (
-                      <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 text-white/35" />
-                    )}
-                  </div>
-                  <div className="mt-5 flex h-20 items-center justify-center border border-crimson/15 bg-[radial-gradient(circle,rgba(225,29,72,.19),transparent_66%)] text-crimson">
-                    <Sparkles className="h-8 w-8 drop-shadow-[0_0_18px_rgba(244,63,94,.7)]" />
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold">{item.name}</h3>
-                  <p className="mt-2 text-xs leading-5 text-white/46">{item.description}</p>
-                  <div className="mt-auto pt-5">
-                    <div className="flex justify-between text-xs text-white/55">
-                      <span>🪙 {item.price.toLocaleString()}</span>
-                      <span>{item.minXp.toLocaleString()} XP</span>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={!profile || equipped || (!owned && !affordable) || busy.length > 0}
-                      onClick={() => void actCosmetic(item.id, owned)}
-                      className="mt-3 min-h-11 w-full border border-crimson/45 bg-crimson/10 text-xs font-semibold tracking-[0.14em] disabled:opacity-35"
-                    >
-                      {!profile
-                        ? "НЭВТРЭХ ШААРДЛАГАТАЙ"
-                        : equipped
-                          ? "EQUIPPED · LIVE"
-                          : owned
-                            ? "EQUIP"
-                            : !affordable
-                              ? "COIN / XP ХҮРЭЛЦЭХГҮЙ"
-                              : "UNLOCK"}
                     </button>
                   </div>
                 </article>

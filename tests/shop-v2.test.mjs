@@ -6,7 +6,7 @@ const catalog = readFileSync("src/lib/oni-shop.ts", "utf8");
 const data = readFileSync("src/data/shop.ts", "utf8");
 const route = readFileSync("src/routes/shop.tsx", "utf8");
 const stage = readFileSync("src/components/oni/OniShopV2Stage.tsx", "utf8");
-const fx = readFileSync("src/components/oni/OniCosmeticBridge.tsx", "utf8");
+const root = readFileSync("src/routes/__root.tsx", "utf8");
 
 const serviceIds = [...catalog.matchAll(/\bid: "([a-z0-9-]+)"/g)].map((match) => match[1]);
 
@@ -41,12 +41,9 @@ test("Shop V2 keeps public feed privacy-separated from private orders", () => {
   assert.match(stage, /Account-ийн нууц мэдээлэл нийтэд харагдахгүй/);
 });
 
-test("Shop route is isolated from progression and premium effects are visibly amplified", () => {
+test("Shop V2 keeps CPM services and removes the retired cosmetic UI", () => {
   assert.match(route, /OniShopV2Stage/);
   assert.doesNotMatch(route, /OniProgressionStage/);
-  assert.match(fx, /pathname\.startsWith\("\/profile"\)/);
-  assert.match(fx, /oni-crimson-node/);
-  assert.match(fx, /oni-red-moon-aura:before/);
-  assert.match(fx, /oni-night-rider-title/);
-  assert.match(fx, /oniGarageDrift/);
+  assert.doesNotMatch(stage, /ONI_VAULT|actCosmetic|ONI COSMETICS|PREMIUM EFFECT/);
+  assert.doesNotMatch(root, /OniCosmeticBridge/);
 });

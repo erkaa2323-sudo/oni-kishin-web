@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Flame, Heart, Sparkles, Trophy, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Heart, Sparkles, Trophy, Zap } from "lucide-react";
 import {
   fetchPublicMemberProfile,
   fetchSocialFeed,
@@ -7,8 +7,7 @@ import {
   type PublicMemberProfile,
   type SocialEvent,
 } from "@/data/social";
-import { ONI_VAULT, levelForXp } from "@/lib/oni-progression";
-import { OniCosmeticFx } from "./OniCosmeticFx";
+import { levelForXp } from "@/lib/oni-progression";
 
 const REACTIONS = ["🔥", "🖤", "⚡", "👹"] as const;
 export function OniSocialHub({ activeNickname }: { activeNickname: string }) {
@@ -38,14 +37,6 @@ export function OniSocialHub({ activeNickname }: { activeNickname: string }) {
       live = false;
     };
   }, [activeNickname]);
-  const equippedIds = useMemo(
-    () => (profile ? Object.values(profile.profile.equipped) : []),
-    [profile],
-  );
-  const equipped = useMemo(
-    () => equippedIds.map((id) => ONI_VAULT.find((x) => x.id === id)).filter(Boolean),
-    [equippedIds],
-  );
   const react = async (e: SocialEvent, emoji: (typeof REACTIONS)[number]) => {
     setBusy(e.id);
     setNotice("");
@@ -72,8 +63,7 @@ export function OniSocialHub({ activeNickname }: { activeNickname: string }) {
           <p className="hud-label text-crimson">CLAN FEED</p>
           <h2 className="mt-2 text-3xl font-semibold">NEXUS ACTIVITY</h2>
           <p className="mt-2 text-sm text-white/45">
-            Achievement, event win, content approval, unlock зэрэг public activity энд автоматаар
-            гарна.
+            Achievement, event win, content approval зэрэг public activity энд автоматаар гарна.
           </p>
           {notice ? (
             <p className="mt-4 border border-crimson/25 bg-crimson/5 p-3 text-xs">{notice}</p>
@@ -120,92 +110,66 @@ export function OniSocialHub({ activeNickname }: { activeNickname: string }) {
         </div>
         <aside>
           {profile ? (
-            <OniCosmeticFx
-              effectIds={equippedIds}
-              entranceKey={profile.profile.uid}
-              className="sticky top-24 border border-crimson/30"
-            >
-              <div className="bg-crimson/[.045] p-5">
-                <p className="hud-label text-crimson">MEMBER PROFILE</p>
-                <h2 className="mt-3 text-3xl font-semibold">{profile.profile.nickname}</h2>
-                <p className="mt-1 text-sm text-white/55">
-                  LV.{levelForXp(profile.profile.xp)} · {profile.rank} · Prestige{" "}
-                  {profile.profile.prestige}
-                </p>
-                <div className="mt-5 grid grid-cols-3 gap-px bg-white/10">
-                  <div className="bg-ink p-3">
-                    <Zap className="h-4 w-4 text-crimson" />
-                    <strong className="mt-2 block">{profile.profile.meetCount}</strong>
-                    <span className="text-[.6rem] text-white/40">MEET</span>
-                  </div>
-                  <div className="bg-ink p-3">
-                    <Trophy className="h-4 w-4 text-crimson" />
-                    <strong className="mt-2 block">{profile.profile.eventCount}</strong>
-                    <span className="text-[.6rem] text-white/40">EVENT</span>
-                  </div>
-                  <div className="bg-ink p-3">
-                    <Sparkles className="h-4 w-4 text-crimson" />
-                    <strong className="mt-2 block">{profile.profile.creatorCount}</strong>
-                    <span className="text-[.6rem] text-white/40">CONTENT</span>
-                  </div>
+            <div className="sticky top-24 border border-crimson/30 bg-crimson/[.045] p-5">
+              <p className="hud-label text-crimson">MEMBER PROFILE</p>
+              <h2 className="mt-3 text-3xl font-semibold">{profile.profile.nickname}</h2>
+              <p className="mt-1 text-sm text-white/55">
+                LV.{levelForXp(profile.profile.xp)} · {profile.rank} · Prestige{" "}
+                {profile.profile.prestige}
+              </p>
+              <div className="mt-5 grid grid-cols-3 gap-px bg-white/10">
+                <div className="bg-ink p-3">
+                  <Zap className="h-4 w-4 text-crimson" />
+                  <strong className="mt-2 block">{profile.profile.meetCount}</strong>
+                  <span className="text-[.6rem] text-white/40">MEET</span>
                 </div>
-                <div className="mt-5">
-                  <p className="text-xs tracking-[.18em] text-white/40">EQUIPPED / BADGES</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {equipped.length ? (
-                      equipped.map((x) => (
-                        <span
-                          key={x!.id}
-                          className="border border-crimson/25 bg-crimson/5 px-2.5 py-1.5 text-[.65rem]"
-                        >
-                          {x!.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-white/35">
-                        Одоогоор cosmetic equip хийгээгүй.
-                      </span>
-                    )}
-                  </div>
+                <div className="bg-ink p-3">
+                  <Trophy className="h-4 w-4 text-crimson" />
+                  <strong className="mt-2 block">{profile.profile.eventCount}</strong>
+                  <span className="text-[.6rem] text-white/40">EVENT</span>
                 </div>
-                <div className="mt-5">
-                  <p className="text-xs tracking-[.18em] text-white/40">GARAGE SHOWCASE</p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    {profile.vehicles.slice(0, 2).map((v) => (
-                      <article key={v.id} className="overflow-hidden border border-white/10">
-                        <img src={v.image} alt={v.name} className="h-28 w-full object-cover" />
-                        <div className="p-3">
-                          <strong className="text-sm">{v.name}</strong>
-                          <p className="text-xs text-white/40">{v.summary}</p>
-                        </div>
-                      </article>
-                    ))}
-                    {!profile.vehicles.length ? (
-                      <p className="text-xs text-white/35">Garage showcase хоосон.</p>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <p className="text-xs tracking-[.18em] text-white/40">RECENT ACTIVITY</p>
-                  <div className="mt-2 space-y-2">
-                    {profile.recent.map((e) => (
-                      <div key={e.id} className="border-l border-crimson/40 pl-3">
-                        <p className="text-sm">{e.title}</p>
-                        <p className="text-xs text-white/35">{e.detail}</p>
-                      </div>
-                    ))}
-                    {!profile.recent.length ? (
-                      <p className="text-xs text-white/35">Recent activity алга.</p>
-                    ) : null}
-                  </div>
+                <div className="bg-ink p-3">
+                  <Sparkles className="h-4 w-4 text-crimson" />
+                  <strong className="mt-2 block">{profile.profile.creatorCount}</strong>
+                  <span className="text-[.6rem] text-white/40">CONTENT</span>
                 </div>
               </div>
-            </OniCosmeticFx>
+              <div className="mt-5">
+                <p className="text-xs tracking-[.18em] text-white/40">GARAGE SHOWCASE</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  {profile.vehicles.slice(0, 2).map((v) => (
+                    <article key={v.id} className="overflow-hidden border border-white/10">
+                      <img src={v.image} alt={v.name} className="h-28 w-full object-cover" />
+                      <div className="p-3">
+                        <strong className="text-sm">{v.name}</strong>
+                        <p className="text-xs text-white/40">{v.summary}</p>
+                      </div>
+                    </article>
+                  ))}
+                  {!profile.vehicles.length ? (
+                    <p className="text-xs text-white/35">Garage showcase хоосон.</p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="mt-5">
+                <p className="text-xs tracking-[.18em] text-white/40">RECENT ACTIVITY</p>
+                <div className="mt-2 space-y-2">
+                  {profile.recent.map((e) => (
+                    <div key={e.id} className="border-l border-crimson/40 pl-3">
+                      <p className="text-sm">{e.title}</p>
+                      <p className="text-xs text-white/35">{e.detail}</p>
+                    </div>
+                  ))}
+                  {!profile.recent.length ? (
+                    <p className="text-xs text-white/35">Recent activity алга.</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="border border-white/10 p-5 text-sm text-white/40">
               <Heart className="mb-3 h-5 w-5 text-crimson" />
-              Гишүүн сонгоход progression profile, badges, garage showcase, recent activity энд
-              гарна.
+              Гишүүн сонгоход progression profile, garage showcase, recent activity энд гарна.
             </div>
           )}
         </aside>

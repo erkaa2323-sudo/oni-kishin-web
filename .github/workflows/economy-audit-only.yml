@@ -120,7 +120,7 @@ jobs:
           check meet_reward grep -q 'lastAction: { type: "meet_reward"' src/data/progression.ts
           check prestige_action grep -q 'lastAction: { type: "prestige"' src/data/progression.ts
           check balanceAfter grep -q 'balanceAfter' src/data/progression.ts
-          check cosmetic_bridge grep -q 'OniCosmeticBridge' src/routes/__root.tsx
+          check shop_v2 grep -q 'CPM ДОТОР ХИЙГДЭХ ҮЙЛЧИЛГЭЭ' src/components/oni/OniShopV2Stage.tsx
           check economy_admin grep -q 'OniEconomyAdminDock' src/routes/admin.tsx
           check claim_reward_ui grep -q 'CLAIM REWARD' src/components/oni/OniProgressionStage.tsx
           check prestige_ui grep -q 'PRESTIGE ASCENSION' src/components/oni/OniProgressionStage.tsx
