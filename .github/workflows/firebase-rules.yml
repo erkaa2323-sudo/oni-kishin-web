@@ -2,6 +2,9 @@ name: Deploy Firebase Rules
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - ops/firebase-shop-v2-deploy
 
 permissions:
   contents: read
@@ -12,7 +15,7 @@ concurrency:
 
 jobs:
   deploy-rules:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ops/firebase-shop-v2-deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
