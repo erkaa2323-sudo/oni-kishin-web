@@ -15,7 +15,11 @@ export type CreatorGenerateResult =
   | { ok: true; imageUrl: string; text: string }
   | {
       ok: false;
-      code: "UNAUTHENTICATED" | "NOT_APPROVED" | "CONFIG_REQUIRED" | "GENERATION_FAILED";
+      code:
+        | "UNAUTHENTICATED"
+        | "NOT_APPROVED"
+        | "CONFIG_REQUIRED"
+        | "GENERATION_FAILED";
       message: string;
     };
 
@@ -40,17 +44,22 @@ async function approvedMember(idToken: string) {
       body: JSON.stringify({ idToken }),
     },
   );
-  if (!authRes.ok) return { ok: false as const, code: "UNAUTHENTICATED" as const };
-  const authJson = (await authRes.json()) as { users?: Array<{ localId?: string }> };
+  if (!authRes.ok)
+    return { ok: false as const, code: "UNAUTHENTICATED" as const };
+  const authJson = (await authRes.json()) as {
+    users?: Array<{ localId?: string }>;
+  };
   const uid = authJson.users?.[0]?.localId;
-  if (!uid) return { ok: false as const, code: "UNAUTHENTICATED" as const };
+  if (!uid)
+    return { ok: false as const, code: "UNAUTHENTICATED" as const };
   const memberRes = await fetch(
     `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/memberAccounts/${encodeURIComponent(uid)}`,
     {
       headers: { Authorization: `Bearer ${idToken}` },
     },
   );
-  if (!memberRes.ok) return { ok: false as const, code: "NOT_APPROVED" as const };
+  if (!memberRes.ok)
+    return { ok: false as const, code: "NOT_APPROVED" as const };
   const member = await memberRes.json();
   const status = stringField(member, "status");
   return status === "approved"
@@ -59,11 +68,18 @@ async function approvedMember(idToken: string) {
 }
 
 function aspect(preset: z.infer<typeof Payload>["preset"]) {
-  return preset === "profile" ? "1:1" : preset === "garage" || preset === "crew" ? "16:9" : "4:5";
+  return preset === "profile"
+    ? "1:1"
+    : preset === "garage" || preset === "crew"
+      ? "16:9"
+      : "4:5";
 }
 
 function decodeImageDataUrl(sourceDataUrl: string) {
-  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i.exec(sourceDataUrl);
+  const match =
+    /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i.exec(
+      sourceDataUrl,
+    );
   if (!match?.[1] || !match[2]) return null;
 
   try {
@@ -76,7 +92,8 @@ function decodeImageDataUrl(sourceDataUrl: string) {
 }
 
 function isGatewayConfigError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error ?? "");
+  const message =
+    error instanceof Error ? error.message : String(error ?? "");
   return /AI_GATEWAY_API_KEY|VERCEL_OIDC_TOKEN|OIDC|authentication|credential|unauthorized|\b401\b/i.test(
     message,
   );
@@ -104,7 +121,8 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "GENERATION_FAILED",
-        message: "Оруулсан зураг уншигдсангүй. PNG эсвэл JPG зургаар дахин оролдоно уу.",
+        message:
+          "Оруулсан зураг уншигдсангүй. PNG эсвэл JPG зургаар дахин оролдоно уу.",
       };
 
     const prompt = `Edit the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Return the edited image as image output, not description only. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. Preserve the exact car identity, body proportions, paint colors, decals and wheel design from the source image. Do not invent sponsor logos. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, mobile-first social design. ${data.note || "Keep the car as the hero and make the result feel official, cinematic and premium."}`;
@@ -129,7 +147,9 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
         ],
       });
 
-      const image = result.files.find((file) => file.mediaType?.startsWith("image/"));
+      const image = result.files.find((file) =>
+        file.mediaType?.startsWith("image/"),
+      );
       if (!image)
         return {
           ok: false,
@@ -156,7 +176,8 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
         return {
           ok: false,
           code: "CONFIG_REQUIRED",
-          message: "AI Gateway холболт идэвхгүй байна. Production OIDC/Gateway тохиргоог шалгана уу.",
+          message:
+            "AI Gateway холболт идэвхгүй байна. Production OIDC/Gateway тохиргоог шалгана уу.",
         };
 
       return {
