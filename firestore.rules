@@ -182,6 +182,7 @@ service cloud.firestore {
         && exists(memberPath)
         && existsAfter(/databases/$(database)/documents/meetSlots/$(data.slotId))
         && getAfter(/databases/$(database)/documents/meetSlots/$(data.slotId)).data.participantId == participantId
+        && getAfter(/databases/$(database)/documents/meetSlots/$(data.slotId)).data.meetStartAt == data.meetStartAt
         && (member.get("nick", "") == data.nick || member.get("nickname", "") == data.nick || member.get("name", "") == data.nick)
         && (member.get("cpmid", "") == data.cpmId || member.get("cpmId", "") == data.cpmId)
         && member.get("status", "active") != "inactive" && member.get("status", "active") != "archived";
@@ -191,6 +192,7 @@ service cloud.firestore {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == participantId);
       allow create: if validParticipantBase(participantId);
       allow update: if validParticipantBase(participantId)
+        && resource.data.meetStartAt != currentMeet().startAt
         && resource.data.memberId == request.resource.data.memberId && resource.data.meetId == request.resource.data.meetId
         && resource.data.source == request.resource.data.source && resource.data.nick == request.resource.data.nick
         && resource.data.name == request.resource.data.name && resource.data.cpmId == request.resource.data.cpmId;
@@ -201,12 +203,27 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isApprovedMember() && meetRegistrationOpen()
         && request.auth.uid == participantId
-        && hasOnlyKeys(request.resource.data, ["meetId", "nickname", "joinedAt"])
-        && hasAllKeys(request.resource.data, ["meetId", "nickname", "joinedAt"])
-        && request.resource.data.meetId == "current" && request.resource.data.joinedAt is timestamp
+        && hasOnlyKeys(request.resource.data, ["meetId", "meetStartAt", "nickname", "joinedAt"])
+        && hasAllKeys(request.resource.data, ["meetId", "meetStartAt", "nickname", "joinedAt"])
+        && request.resource.data.meetId == "current"
+        && request.resource.data.meetStartAt is timestamp
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && request.resource.data.joinedAt is timestamp
         && existsAfter(/databases/$(database)/documents/meetParticipants/$(participantId))
-        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.nick == request.resource.data.nickname;
-      allow update: if false;
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.nick == request.resource.data.nickname
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.meetStartAt == request.resource.data.meetStartAt;
+      allow update: if isApprovedMember() && meetRegistrationOpen()
+        && request.auth.uid == participantId
+        && resource.data.get("meetStartAt", request.time) != currentMeet().startAt
+        && hasOnlyKeys(request.resource.data, ["meetId", "meetStartAt", "nickname", "joinedAt"])
+        && hasAllKeys(request.resource.data, ["meetId", "meetStartAt", "nickname", "joinedAt"])
+        && request.resource.data.meetId == "current"
+        && request.resource.data.meetStartAt is timestamp
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && request.resource.data.joinedAt is timestamp
+        && existsAfter(/databases/$(database)/documents/meetParticipants/$(participantId))
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.nick == request.resource.data.nickname
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(participantId)).data.meetStartAt == request.resource.data.meetStartAt;
       allow delete: if isAdmin();
     }
 
@@ -215,21 +232,41 @@ service cloud.firestore {
       allow create: if isApprovedMember() && meetRegistrationOpen() && validMeetSlotId(slotId)
         && request.auth.uid == request.resource.data.participantId
         && get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId == request.resource.data.memberId
-        && hasOnlyKeys(request.resource.data, ["meetId", "participantId", "memberId", "createdAt"])
-        && hasAllKeys(request.resource.data, ["meetId", "participantId", "memberId", "createdAt"])
-        && request.resource.data.meetId == "current" && requiredText(request.resource.data.participantId, 120)
+        && hasOnlyKeys(request.resource.data, ["meetId", "meetStartAt", "participantId", "memberId", "createdAt"])
+        && hasAllKeys(request.resource.data, ["meetId", "meetStartAt", "participantId", "memberId", "createdAt"])
+        && request.resource.data.meetId == "current"
+        && request.resource.data.meetStartAt is timestamp
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && requiredText(request.resource.data.participantId, 120)
         && requiredText(request.resource.data.memberId, 80) && request.resource.data.createdAt is timestamp
         && existsAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId))
         && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.slotId == slotId
-        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.memberId == request.resource.data.memberId;
-      allow update: if false;
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.memberId == request.resource.data.memberId
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.meetStartAt == request.resource.data.meetStartAt;
+      allow update: if isApprovedMember() && meetRegistrationOpen() && validMeetSlotId(slotId)
+        && resource.data.get("meetStartAt", request.time) != currentMeet().startAt
+        && request.auth.uid == request.resource.data.participantId
+        && get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId == request.resource.data.memberId
+        && hasOnlyKeys(request.resource.data, ["meetId", "meetStartAt", "participantId", "memberId", "createdAt"])
+        && hasAllKeys(request.resource.data, ["meetId", "meetStartAt", "participantId", "memberId", "createdAt"])
+        && request.resource.data.meetId == "current"
+        && request.resource.data.meetStartAt is timestamp
+        && request.resource.data.meetStartAt == currentMeet().startAt
+        && requiredText(request.resource.data.participantId, 120)
+        && requiredText(request.resource.data.memberId, 80) && request.resource.data.createdAt is timestamp
+        && existsAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId))
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.slotId == slotId
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.memberId == request.resource.data.memberId
+        && getAfter(/databases/$(database)/documents/meetParticipants/$(request.resource.data.participantId)).data.meetStartAt == request.resource.data.meetStartAt;
       allow delete: if isAdmin();
     }
 
     match /meetCredentials/{meetId} {
       allow read: if isAdmin() || (meetId == "current" && isApprovedMember()
         && currentMeetExists() && currentMeet().enabled == true
-        && currentMeet().keys().hasAll(["startAt"]) && currentMeet().startAt is timestamp
+        && currentMeet().keys().hasAll(["startAt", "createdAt"]) && currentMeet().startAt is timestamp && currentMeet().createdAt is timestamp
+        && resource.data.keys().hasAll(["updatedAt"]) && resource.data.updatedAt is timestamp
+        && resource.data.updatedAt >= currentMeet().createdAt
         && request.time >= currentMeet().startAt
         && (!currentMeet().keys().hasAny(["endsAt"]) || !(currentMeet().endsAt is timestamp) || request.time < currentMeet().endsAt)
         && exists(/databases/$(database)/documents/meetParticipants/$(request.auth.uid))
@@ -237,7 +274,8 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetStartAt == currentMeet().startAt
         && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.memberId == get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId
         && exists(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId))
-        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.participantId == request.auth.uid);
+        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.participantId == request.auth.uid
+        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.meetStartAt == currentMeet().startAt);
       allow create, update, delete: if isAdmin();
     }
 
