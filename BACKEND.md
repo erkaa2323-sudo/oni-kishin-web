@@ -19,6 +19,17 @@ Firebase Authentication identifies the user. A member account is not automatical
 
 Admin access accepts a Firebase custom `admin` claim when provisioned. The current owner e-mail remains a compatibility fallback during the migration so production administration is not accidentally locked out. Frontend checks never replace Firestore/server authorization.
 
+## ONI Creator AI
+
+Creator image editing runs server-side through Cloudflare Workers AI with `@cf/black-forest-labs/flux-2-klein-4b`. The client prepares a private sub-512px reference image for FLUX while keeping the higher-resolution local preview. Firebase approved-member verification remains mandatory before inference.
+
+Production requires these server-only environment variables:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+
+The Cloudflare token must have Workers AI access. Never expose either value through client-side `VITE_*` variables or commit them to the repository.
+
 ## ONI MEET
 
 Meet registration requires an approved member account. Registration data must match the linked member identity and the current Meet. Slot creation and participant creation are cross-validated in Firestore rules, capacity is bounded, and room credentials stay protected until the Meet lifecycle allows reveal to an eligible registered member.
