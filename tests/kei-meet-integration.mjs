@@ -13,6 +13,9 @@ async function inspectKeiFrame(page) {
     return {
       frameFound: false,
       alpha: -1,
+      alphaBounds: null,
+      frameFit: null,
+      frameContained: false,
       width: 0,
       height: 0,
       loadingText: "",
@@ -25,6 +28,9 @@ async function inspectKeiFrame(page) {
     return {
       frameFound: false,
       alpha: -1,
+      alphaBounds: null,
+      frameFit: null,
+      frameContained: false,
       width: 0,
       height: 0,
       loadingText: "",
@@ -35,7 +41,9 @@ async function inspectKeiFrame(page) {
   const result = await frame.evaluate(() => {
     const canvas = document.querySelector("canvas");
     const loadingText = document.querySelector("#loading")?.textContent?.trim() || "";
+    const frameFit = window.__KEIFRAME__ || null;
     let alpha = -1;
+    let alphaBounds = null;
     let width = 0;
     let height = 0;
     if (canvas) {
@@ -47,13 +55,43 @@ async function inspectKeiFrame(page) {
         gl.finish();
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data);
         let count = 0;
-        for (let i = 3; i < data.length; i += 64) if (data[i] > 8) count++;
+        let minX = width;
+        let minY = height;
+        let maxX = -1;
+        let maxY = -1;
+        for (let i = 3; i < data.length; i += 16) {
+          if (data[i] <= 8) continue;
+          count++;
+          const pixel = (i - 3) / 4;
+          const x = pixel % width;
+          const glY = Math.floor(pixel / width);
+          const y = height - 1 - glY;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
         alpha = count;
+        if (count > 0) alphaBounds = { minX, minY, maxX, maxY };
       }
     }
+    const tolerance = 16;
+    const leftSafe = frameFit ? (width - frameFit.usableW) * 0.5 : 0;
+    const rightSafe = frameFit ? width - leftSafe : width;
+    const frameContained = Boolean(
+      frameFit &&
+        alphaBounds &&
+        alphaBounds.minX >= leftSafe - tolerance &&
+        alphaBounds.maxX <= rightSafe + tolerance &&
+        alphaBounds.minY >= frameFit.topSafe - tolerance &&
+        alphaBounds.maxY <= height - frameFit.bottomSafe + tolerance,
+    );
     return {
       frameFound: true,
       alpha,
+      alphaBounds,
+      frameFit,
+      frameContained,
       width,
       height,
       loadingText,
@@ -111,6 +149,7 @@ for (const [name, browserType] of engines) {
       !parentError &&
       frameResult.frameFound &&
       frameResult.alpha > 0 &&
+      frameResult.frameContained &&
       !/RENDER ERROR/i.test(frameResult.loadingText);
 
     console.log(
@@ -125,11 +164,11 @@ for (const [name, browserType] of engines) {
     if (!ok) {
       failed = true;
       console.error(
-        `[${name}][meet-integration] FAILED: /meet did not expose a pixel-verified VISIBLE Kei host.`,
+        `[${name}][meet-integration] FAILED: /meet did not expose a pixel-verified, safe-framed Kei host.`,
       );
     } else {
       console.log(
-        `[${name}][meet-integration] PASS: /meet parent VISIBLE and Kei iframe alpha pixels verified.`,
+        `[${name}][meet-integration] PASS: /meet Kei pixels stay inside the mobile safe frame.`,
       );
     }
     await page.close();
