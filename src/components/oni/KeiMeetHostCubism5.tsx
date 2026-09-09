@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { MeetLifecycle } from "@/data/meet";
 
@@ -192,7 +192,7 @@ export function KeiMeetHostCubism5({
       }`}
       onPointerDown={interact}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_70%,rgba(195,18,45,0.22),rgba(39,4,11,0.08)_35%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_68%,rgba(195,18,45,0.24),rgba(39,4,11,0.08)_36%,transparent_72%)]" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
         <div className="text-[0.42rem] font-semibold tracking-[0.24em] text-white/35">
@@ -202,13 +202,13 @@ export function KeiMeetHostCubism5({
           <span className="text-[0.64rem] font-semibold tracking-[0.26em] text-white/85 sm:text-[0.72rem]">
             KEI
           </span>
-          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45">
+          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45 backdrop-blur-sm">
             {mode}
           </span>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/8 bg-black/30 px-2 py-1.5">
+      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/8 bg-black/30 px-2 py-1.5 backdrop-blur-sm">
         <span
           className={`h-1.5 w-1.5 rounded-full ${runtime === "ready" ? "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]" : runtime === "failed" ? "bg-crimson" : "bg-white/30"}`}
         />
@@ -222,7 +222,7 @@ export function KeiMeetHostCubism5({
         ref={frameRef}
         title="Kei Cubism 5 Meet host"
         src="/kei-live2d-host.html"
-        className="absolute inset-0 h-full w-full border-0 bg-transparent"
+        className="absolute left-1/2 top-1/2 h-full w-full origin-center -translate-x-1/2 -translate-y-1/2 scale-[1.68] border-0 bg-transparent sm:scale-[1.5] lg:scale-100"
         onLoad={() => setRuntime("loading")}
       />
 
@@ -237,25 +237,22 @@ export function KeiMeetHostCubism5({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div
-              className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
-            >
-              {signal}
-            </div>
-            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
-              {copy}
-            </p>
-          </div>
-          <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
-            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">
-              {participants}/{capacity ?? "∞"}
-            </div>
-            <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
-          </div>
+      <div className="pointer-events-none absolute bottom-3 left-3 z-20 w-[49%] max-w-[17rem] rounded-xl border border-white/8 bg-black/52 px-3 py-2.5 backdrop-blur-md sm:bottom-4 sm:left-4 sm:w-[46%] sm:px-4 sm:py-3 lg:w-[44%]">
+        <div
+          className={`mb-1 text-[0.4rem] font-semibold tracking-[0.18em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
+        >
+          {signal}
         </div>
+        <p className="line-clamp-3 text-[0.54rem] leading-relaxed text-white/82 sm:text-[0.62rem]">
+          {copy}
+        </p>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-xl border border-white/8 bg-black/52 px-3 py-2.5 text-right backdrop-blur-md sm:bottom-4 sm:right-4 sm:px-4 sm:py-3">
+        <div className="font-mono text-[0.9rem] font-semibold tracking-[0.06em] text-white/90 sm:text-[1rem]">
+          {participants}/{capacity ?? "∞"}
+        </div>
+        <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
       </div>
     </div>
   );
