@@ -8,9 +8,24 @@ import {
 import { Timestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 
 let env;
-const meetStart = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000);
+const meetStart = Timestamp.fromMillis(Date.now() - 60 * 1000);
 const meetStartAt = meetStart;
 const previousMeetStart = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+
+async function seedCurrentMeet(startAt = meetStart) {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "meets", "current"), {
+      title: "NEXT MEET",
+      enabled: true,
+      status: "scheduled",
+      startAt,
+      registrationClosesAt: Timestamp.fromMillis(startAt.toMillis() + 30 * 60 * 1000),
+      maxPlayers: 20,
+      createdAt: Timestamp.now(),
+    });
+  });
+}
 
 before(async () => {
   env = await initializeTestEnvironment({
@@ -43,16 +58,8 @@ before(async () => {
       cpmId: "ALICE01",
       status: "approved",
     });
-    await setDoc(doc(db, "meets", "current"), {
-      title: "NEXT MEET",
-      enabled: true,
-      status: "scheduled",
-      startAt: meetStart,
-      registrationClosesAt: Timestamp.fromMillis(meetStart.toMillis() + 20 * 60 * 1000),
-      maxPlayers: 20,
-      createdAt: Timestamp.now(),
-    });
   });
+  await seedCurrentMeet();
 });
 after(async () => {
   await env?.cleanup();
@@ -129,6 +136,39 @@ test("valid public Join still succeeds", async () => {
       status: "Шинэ",
     }),
   );
+});
+
+test("approved member cannot register before Meet start", async () => {
+  const futureStart = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000);
+  await seedCurrentMeet(futureStart);
+  const db = env.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
+  const batch = writeBatch(db);
+  batch.set(doc(db, "meetParticipants", "alice"), {
+    meetId: "current",
+    meetStartAt: futureStart,
+    memberId: "member-alice",
+    nick: "ALICE",
+    name: "ALICE",
+    cpmId: "ALICE01",
+    joinedAt: Timestamp.now(),
+    source: "website",
+    slotId: "current_01",
+  });
+  batch.set(doc(db, "meetSlots", "current_01"), {
+    meetId: "current",
+    meetStartAt: futureStart,
+    participantId: "alice",
+    memberId: "member-alice",
+    createdAt: Timestamp.now(),
+  });
+  batch.set(doc(db, "meetRoster", "alice"), {
+    meetId: "current",
+    meetStartAt: futureStart,
+    nickname: "ALICE",
+    joinedAt: Timestamp.now(),
+  });
+  await assertFails(batch.commit());
+  await seedCurrentMeet();
 });
 
 test("approved member can register all current Meet records atomically", async () => {
