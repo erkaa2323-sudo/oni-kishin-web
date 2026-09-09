@@ -3,6 +3,17 @@ nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(10) {
   display: none;
 }
 
+/* Stable admin order: ЕРӨНХИЙ → ХҮСЭЛТ → ГИШҮҮД → НЭВТРЭХ ХҮСЭЛТ → ... */
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(1) { order: 1; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) { order: 2; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(2) { order: 3; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) { order: 4; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(4) { order: 5; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(6) { order: 6; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) { order: 7; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(8) { order: 8; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(9) { order: 9; }
+
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) button span:last-child,
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) button span:last-child,
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) button span:last-child,
@@ -18,7 +29,7 @@ nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) button spa
 }
 
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) button span:last-child::after {
-  content: "ЭЛСЭЛТИЙН АНКЕТ";
+  content: "ХҮСЭЛТ";
   font-size: 0.7rem;
   letter-spacing: 0.12em;
 }
@@ -43,6 +54,14 @@ section[aria-label="CREW ACCOUNT"] h2::after {
   content: "ГИШҮҮНИЙ НЭВТРЭХ ХҮСЭЛТ";
   font-size: 1.5rem;
   line-height: 1.05;
+}
+
+/* Make admin controls reliable touch targets on iPhone/Samsung PWA. */
+nav[aria-label="Удирдлагын хэсгүүд"] button,
+main section button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
 }
 
 /* The original fixed launchers still own their dialogs/actions, but their launch buttons live in the admin nav now. */
