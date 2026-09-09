@@ -157,18 +157,40 @@
           raf = 0;
           if (!app || !model || disposed) return;
           const w = Math.max(1, stage.clientWidth),
-            h = Math.max(1, stage.clientHeight);
+            h = Math.max(1, stage.clientHeight),
+            compact = w < 700;
           app.renderer.resize(w, h);
           model.anchor.set(0.5, 0.5);
-          model.scale.set(1);
-          const baseW = Math.max(model.width, 1),
-            baseH = Math.max(model.height, 1);
-          const scale = Math.min((w * 0.92) / baseW, (h * 0.94) / baseH);
+
+          const currentScaleX = Math.max(Math.abs(model.scale.x || 1), 0.0001),
+            currentScaleY = Math.max(Math.abs(model.scale.y || 1), 0.0001),
+            baseW = Math.max(model.width / currentScaleX, 1),
+            baseH = Math.max(model.height / currentScaleY, 1),
+            topSafe = compact ? Math.min(58, h * 0.17) : 28,
+            bottomSafe = compact ? Math.min(112, h * 0.28) : 96,
+            usableH = Math.max(96, h - topSafe - bottomSafe),
+            usableW = w * (compact ? 0.82 : 0.9),
+            scale = Math.min(usableW / baseW, (usableH * 0.94) / baseH),
+            centerY = topSafe + usableH * 0.5;
+
           model.scale.set(scale);
-          model.position.set(w * 0.5, h * 0.515);
+          model.position.set(w * 0.5, centerY);
           model.visible = true;
           model.renderable = true;
           model.alpha = 1;
+          window.__KEIFRAME__ = {
+            compact,
+            width: w,
+            height: h,
+            baseW,
+            baseH,
+            topSafe,
+            bottomSafe,
+            usableH,
+            usableW,
+            scale,
+            centerY,
+          };
         }
         function queueFrame() {
           if (!raf && !disposed) raf = requestAnimationFrame(frameKei);
