@@ -19,4 +19,4 @@ jobs:
       - name: Dispatch verified production workflow
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run vercel-prebuilt-production.yml --ref main
+        run: gh workflow run vercel-prebuilt-production.yml --repo erkaa2323-sudo/oni-kishin-web --ref main
