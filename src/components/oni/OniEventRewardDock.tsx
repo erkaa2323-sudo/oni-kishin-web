@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { Award, Coins, Loader2, X } from "lucide-react";
 import { listMemberAccounts, type MemberAccount } from "@/data/member-auth";
 import {
+  adjustManualProgression,
   grantEventReward,
-  grantManualReward,
   type EventRewardPlacement,
 } from "@/data/progression-admin";
 
@@ -61,8 +61,8 @@ export function OniEventRewardDock() {
   }, [open]);
 
   const selected = useMemo(() => members.find((x) => x.uid === uid) ?? null, [members, uid]);
-  const manualXp = Math.max(0, Math.floor(Number(xp) || 0));
-  const manualCoin = Math.max(0, Math.floor(Number(coin) || 0));
+  const manualXp = Math.trunc(Number(xp) || 0);
+  const manualCoin = Math.trunc(Number(coin) || 0);
 
   const submitEvent = async () => {
     if (!selected || !eventId.trim()) {
@@ -94,21 +94,27 @@ export function OniEventRewardDock() {
 
   const submitManual = async () => {
     if (!selected || (manualXp === 0 && manualCoin === 0)) {
-      setNotice("Гишүүнээ сонгоод XP эсвэл ONI coin-оос дор хаяж нэгийг оруулна уу.");
+      setNotice("Гишүүнээ сонгоод XP эсвэл ONI coin-оос дор хаяж нэг өөрчлөлт оруулна уу.");
+      return;
+    }
+    if (!reason.trim()) {
+      setNotice("XP / ONI coin засвар хийх шалтгааныг заавал оруулна уу.");
       return;
     }
     setBusy(true);
     setNotice("");
     try {
-      const reward = await grantManualReward({
+      const result = await adjustManualProgression({
         uid: selected.uid,
         nickname: selected.nickname,
         xp: manualXp,
         coin: manualCoin,
         reason,
       });
+      const xpDelta = `${result.xp >= 0 ? "+" : ""}${result.xp}`;
+      const coinDelta = `${result.coin >= 0 ? "+" : ""}${result.coin}`;
       setNotice(
-        `${selected.nickname} · +${reward.xp} XP · +${reward.coin} ONI · шинэ үлдэгдэл ${reward.balanceAfter} ONI`,
+        `${selected.nickname} · ${xpDelta} XP · ${coinDelta} ONI · шинэ XP ${result.xpAfter.toLocaleString()} · шинэ ONI ${result.balanceAfter.toLocaleString()}`,
       );
       setXp("0");
       setCoin("0");
@@ -116,11 +122,17 @@ export function OniEventRewardDock() {
     } catch (error) {
       const code = error instanceof Error ? error.message : "failed";
       setNotice(
-        code === "reward_too_large"
-          ? "Нэг удаагийн олголт 1,000,000 XP / ONI-оос их байж болохгүй."
-          : code === "invalid_reward"
-            ? "XP эсвэл ONI coin-оос дор хаяж нэгийг 1-ээс их утгаар оруулна уу."
-            : "XP / ONI coin олгох үед алдаа гарлаа.",
+        code === "adjustment_too_large"
+          ? "Нэг удаагийн өөрчлөлт ±1,000,000 XP / ONI-оос их байж болохгүй."
+          : code === "negative_xp"
+            ? "XP-г 0-ээс доош оруулах боломжгүй. Хасах хэмжээг багасгана уу."
+            : code === "negative_balance"
+              ? "ONI coin-ыг 0-ээс доош оруулах боломжгүй. Хасах хэмжээг багасгана уу."
+              : code === "profile_not_found"
+                ? "Энэ гишүүний progression profile олдсонгүй."
+                : code === "invalid_adjustment"
+                  ? "XP эсвэл ONI coin-оос дор хаяж нэгийг өөрчилнө үү."
+                  : "XP / ONI coin засварлах үед алдаа гарлаа.",
       );
     } finally {
       setBusy(false);
@@ -189,7 +201,7 @@ export function OniEventRewardDock() {
                   mode === "manual" ? "bg-crimson/15 text-white" : "text-white/45"
                 }`}
               >
-                ГАР ОЛГОЛТ
+                XP / COIN ЗАСВАР
               </button>
               <button
                 type="button"
@@ -224,44 +236,50 @@ export function OniEventRewardDock() {
               {mode === "manual" ? (
                 <>
                   <p className="text-xs leading-5 text-white/45">
-                    Сонгосон member-д хүссэн хэмжээгээр XP болон ONI coin нэмнэ. Олголт бүр ledger-д
-                    админ үйлдэл гэж бүртгэгдэнэ.
+                    Энд XP болон ONI coin-ыг нэг дор нэмэх эсвэл хасна. Эерэг утга нэмнэ, сөрөг утга
+                    хасна. Бүх өөрчлөлт админы ID, шалтгаан болон шинэ үлдэгдэлтэйгээ ledger-д
+                    хадгалагдана.
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
-                      <span className="text-xs text-white/45">XP НЭМЭХ</span>
+                      <span className="text-xs text-white/45">XP ӨӨРЧЛӨЛТ</span>
                       <input
                         type="number"
-                        min="0"
+                        min="-1000000"
                         max="1000000"
                         step="1"
                         inputMode="numeric"
                         value={xp}
                         onChange={(e) => setXp(e.target.value)}
+                        placeholder="+500 / -300"
                         className="mt-2 min-h-11 w-full border border-white/10 bg-black/30 px-3 text-base sm:text-sm"
                       />
                     </label>
                     <label className="block">
-                      <span className="text-xs text-white/45">ONI COIN НЭМЭХ</span>
+                      <span className="text-xs text-white/45">ONI COIN ӨӨРЧЛӨЛТ</span>
                       <input
                         type="number"
-                        min="0"
+                        min="-1000000"
                         max="1000000"
                         step="1"
                         inputMode="numeric"
                         value={coin}
                         onChange={(e) => setCoin(e.target.value)}
+                        placeholder="+500 / -300"
                         className="mt-2 min-h-11 w-full border border-white/10 bg-black/30 px-3 text-base sm:text-sm"
                       />
                     </label>
                   </div>
+                  <p className="text-[0.65rem] leading-5 text-white/40">
+                    Жишээ: XP-аас 1200 хасах бол -1200 · ONI coin-оос 500 хасах бол -500.
+                  </p>
                   <label className="block">
-                    <span className="text-xs text-white/45">ТАЙЛБАР · ЗААВАЛ БИШ</span>
+                    <span className="text-xs text-white/45">ЗАСВАРЫН ШАЛТГААН *</span>
                     <input
                       value={reason}
                       maxLength={180}
                       onChange={(e) => setReason(e.target.value)}
-                      placeholder="Ж: Meet bonus / admin correction"
+                      placeholder="Ж: Admin correction / penalty / rollback"
                       className="mt-2 min-h-11 w-full border border-white/10 bg-black/30 px-3 text-base sm:text-sm"
                     />
                   </label>
@@ -308,7 +326,9 @@ export function OniEventRewardDock() {
                 disabled={
                   busy ||
                   !selected ||
-                  (mode === "event" ? !eventId.trim() : manualXp === 0 && manualCoin === 0)
+                  (mode === "event"
+                    ? !eventId.trim()
+                    : (manualXp === 0 && manualCoin === 0) || !reason.trim())
                 }
                 onClick={() => void (mode === "event" ? submitEvent() : submitManual())}
                 className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.12em] disabled:opacity-50"
@@ -318,7 +338,7 @@ export function OniEventRewardDock() {
                 ) : (
                   <Award className="h-4 w-4" />
                 )}
-                {mode === "event" ? "ЭВЕНТИЙН ШАГНАЛ ОЛГОХ" : "XP / ONI COIN ОЛГОХ"}
+                {mode === "event" ? "ЭВЕНТИЙН ШАГНАЛ ОЛГОХ" : "XP / ONI COIN ӨӨРЧЛӨХ"}
               </button>
             </div>
           </section>
