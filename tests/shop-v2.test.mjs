@@ -28,8 +28,8 @@ test("CPM service descriptions and Instagram handoff are explicit", () => {
   assert.match(catalog, /instagram\.com\/crewnike_/i);
   assert.match(stage, /АДМИНТАЙ INSTAGRAM-ААР ХОЛБОГДОХ/);
   assert.match(stage, /purchaseResult\.service\.price\.toLocaleString\(\)/);
-  assert.match(stage, /Coin таны wallet-аас/);
-  assert.match(stage, /автоматаар хасагдлаа/);
+  assert.match(stage, /Coin автоматаар хасагдаж/);
+  assert.match(stage, /Coin хасагдлаа/);
 });
 
 test("Shop V2 keeps public feed privacy-separated from private orders", () => {
