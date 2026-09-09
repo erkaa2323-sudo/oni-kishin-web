@@ -105,10 +105,11 @@ async function generateWithCloudflare(
 
   const { width, height } = outputSize(preset);
   const form = new FormData();
+  const imageBytes = Uint8Array.from(sourceImage.data);
   form.append("prompt", prompt);
   form.append(
     "input_image_0",
-    new Blob([sourceImage.data], { type: sourceImage.mediaType }),
+    new Blob([imageBytes], { type: sourceImage.mediaType }),
     "car.jpg",
   );
   form.append("width", String(width));
