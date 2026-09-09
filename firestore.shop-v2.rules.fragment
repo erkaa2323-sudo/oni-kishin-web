@@ -1,0 +1,171 @@
+    function validCpmServiceTermsShopV2(serviceId, price) {
+      return (serviceId == "money" && price == 1500)
+        || (serviceId == "coins" && price == 1800)
+        || (serviceId == "clone-cars" && price == 2800)
+        || (serviceId == "clone-accounts" && price == 4200)
+        || (serviceId == "copy-livery" && price == 2200)
+        || (serviceId == "unlock-all-cars" && price == 5500)
+        || (serviceId == "unlock-paid-cars" && price == 4800)
+        || (serviceId == "police-permanent" && price == 4500)
+        || (serviceId == "engine-permanent" && price == 4500)
+        || (serviceId == "all-houses-permanent" && price == 4000)
+        || (serviceId == "smoke-permanent" && price == 3500)
+        || (serviceId == "mileage" && price == 1500)
+        || (serviceId == "front-bumper" && price == 1200)
+        || (serviceId == "rear-bumper" && price == 1200)
+        || (serviceId == "chrome-pack" && price == 3200)
+        || (serviceId == "king-rank" && price == 6500)
+        || (serviceId == "unlock-pack" && price == 5800)
+        || (serviceId == "change-id" && price == 3500)
+        || (serviceId == "set-wins-losses" && price == 3000)
+        || (serviceId == "police" && price == 2500)
+        || (serviceId == "premium-30-day" && price == 10000)
+        || (serviceId == "name-color" && price == 2500);
+    }
+
+    function shopProfileActionV2(uid, orderId, serviceId, price) {
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(uid);
+      let profile = getAfter(profilePath).data;
+      let action = profile.get("lastAction", {});
+      return existsAfter(profilePath)
+        && action is map
+        && action.get("type", "") == "cpm_service_purchase"
+        && action.get("key", "") == orderId
+        && action.get("serviceId", "") == serviceId
+        && profile.updatedAt == request.time
+        && validCpmServiceTermsShopV2(serviceId, price);
+    }
+
+    function validCpmServiceProfilePurchaseShopV2(uid) {
+      let action = request.resource.data.get("lastAction", {});
+      let orderId = action.get("key", "");
+      let serviceId = action.get("serviceId", "");
+      let price = resource.data.get("coin", 0) - request.resource.data.get("coin", 0);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("service_" + orderId);
+      let orderPath = /databases/$(database)/documents/shopOrders/$(orderId);
+      let feedPath = /databases/$(database)/documents/shopPurchaseFeed/$(orderId);
+      return request.auth != null
+        && request.auth.uid == uid
+        && isApprovedMember()
+        && action is map
+        && action.get("type", "") == "cpm_service_purchase"
+        && requiredText(orderId, 80)
+        && requiredText(serviceId, 80)
+        && validCpmServiceTermsShopV2(serviceId, price)
+        && request.resource.data.get("coin", 0) >= 0
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "lastAction", "updatedAt"])
+        && request.resource.data.get("uid", "") == resource.data.get("uid", "")
+        && request.resource.data.get("nickname", "") == resource.data.get("nickname", "")
+        && request.resource.data.get("xp", 0) == resource.data.get("xp", 0)
+        && request.resource.data.get("lifetimeXp", 0) == resource.data.get("lifetimeXp", 0)
+        && request.resource.data.get("seasonXp", 0) == resource.data.get("seasonXp", 0)
+        && request.resource.data.get("prestige", 0) == resource.data.get("prestige", 0)
+        && request.resource.data.get("meetCount", 0) == resource.data.get("meetCount", 0)
+        && request.resource.data.get("creatorCount", 0) == resource.data.get("creatorCount", 0)
+        && request.resource.data.get("eventCount", 0) == resource.data.get("eventCount", 0)
+        && request.resource.data.get("unlocked", []) == resource.data.get("unlocked", [])
+        && request.resource.data.get("equipped", {}) == resource.data.get("equipped", {})
+        && existsAfter(ledgerPath)
+        && getAfter(ledgerPath).data.uid == uid
+        && getAfter(ledgerPath).data.sourceType == "cpm_service_purchase"
+        && getAfter(ledgerPath).data.sourceKey == orderId
+        && getAfter(ledgerPath).data.serviceId == serviceId
+        && getAfter(ledgerPath).data.xp == 0
+        && getAfter(ledgerPath).data.coin == 0 - price
+        && getAfter(ledgerPath).data.balanceAfter == request.resource.data.coin
+        && getAfter(ledgerPath).data.createdAt == request.time
+        && existsAfter(orderPath)
+        && getAfter(orderPath).data.uid == uid
+        && getAfter(orderPath).data.nickname == request.resource.data.get("nickname", "")
+        && getAfter(orderPath).data.serviceId == serviceId
+        && getAfter(orderPath).data.price == price
+        && getAfter(orderPath).data.status == "pending"
+        && getAfter(orderPath).data.createdAt == request.time
+        && getAfter(orderPath).data.updatedAt == request.time
+        && existsAfter(feedPath)
+        && getAfter(feedPath).data.nickname == request.resource.data.get("nickname", "")
+        && getAfter(feedPath).data.serviceId == serviceId
+        && getAfter(feedPath).data.price == price
+        && getAfter(feedPath).data.status == "purchased"
+        && getAfter(feedPath).data.createdAt == request.time;
+    }
+
+    function validCpmServiceLedgerCreateShopV2(ledgerId) {
+      let uid = request.resource.data.get("uid", "");
+      let orderId = request.resource.data.get("sourceKey", "");
+      let serviceId = request.resource.data.get("serviceId", "");
+      let price = 0 - request.resource.data.get("coin", 0);
+      return request.auth != null
+        && request.auth.uid == uid
+        && isApprovedMember()
+        && ledgerId == "service_" + orderId
+        && request.resource.data.keys().hasOnly(["uid", "sourceType", "sourceKey", "serviceId", "xp", "coin", "balanceAfter", "createdAt"])
+        && request.resource.data.sourceType == "cpm_service_purchase"
+        && request.resource.data.xp == 0
+        && request.resource.data.coin < 0
+        && request.resource.data.balanceAfter >= 0
+        && request.resource.data.createdAt == request.time
+        && validCpmServiceTermsShopV2(serviceId, price)
+        && shopProfileActionV2(uid, orderId, serviceId, price)
+        && getAfter(/databases/$(database)/documents/progressionProfiles/$(uid)).data.coin == request.resource.data.balanceAfter;
+    }
+
+    function validShopOrderCreateV2(orderId) {
+      let uid = request.resource.data.get("uid", "");
+      let serviceId = request.resource.data.get("serviceId", "");
+      let price = request.resource.data.get("price", 0);
+      return request.auth != null
+        && request.auth.uid == uid
+        && isApprovedMember()
+        && requiredText(orderId, 80)
+        && request.resource.data.keys().hasOnly(["uid", "nickname", "serviceId", "price", "status", "createdAt", "updatedAt"])
+        && requiredText(request.resource.data.nickname, 120)
+        && requiredText(serviceId, 80)
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validCpmServiceTermsShopV2(serviceId, price)
+        && shopProfileActionV2(uid, orderId, serviceId, price);
+    }
+
+    function validShopFeedCreateV2(orderId) {
+      let serviceId = request.resource.data.get("serviceId", "");
+      let price = request.resource.data.get("price", 0);
+      let orderPath = /databases/$(database)/documents/shopOrders/$(orderId);
+      return request.auth != null
+        && isApprovedMember()
+        && request.resource.data.keys().hasOnly(["nickname", "serviceId", "price", "status", "createdAt"])
+        && requiredText(request.resource.data.nickname, 120)
+        && requiredText(serviceId, 80)
+        && request.resource.data.status == "purchased"
+        && request.resource.data.createdAt == request.time
+        && validCpmServiceTermsShopV2(serviceId, price)
+        && existsAfter(orderPath)
+        && getAfter(orderPath).data.uid == request.auth.uid
+        && getAfter(orderPath).data.nickname == request.resource.data.nickname
+        && getAfter(orderPath).data.serviceId == serviceId
+        && getAfter(orderPath).data.price == price
+        && getAfter(orderPath).data.status == "pending"
+        && getAfter(orderPath).data.createdAt == request.time;
+    }
+
+    match /progressionProfiles/{uid} {
+      allow update: if validCpmServiceProfilePurchaseShopV2(uid);
+    }
+
+    match /progressionLedger/{ledgerId} {
+      allow create: if validCpmServiceLedgerCreateShopV2(ledgerId);
+    }
+
+    match /shopOrders/{orderId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.uid == request.auth.uid);
+      allow create: if validShopOrderCreateV2(orderId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /shopPurchaseFeed/{orderId} {
+      allow read: if true;
+      allow create: if validShopFeedCreateV2(orderId);
+      allow update, delete: if isAdmin();
+    }
