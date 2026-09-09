@@ -1,0 +1,13 @@
+Production Firestore shop blocker scan (2026-09-09)
+PROFILE_COUNT=1
+SCHEMA coin=number xp=number unlocked=array count=1
+ITEM frame-crimson client_eligible=1 rule_clean=1 blockers={}
+ITEM aura-red-moon client_eligible=0 rule_clean=0 blockers={}
+ITEM garage-neon client_eligible=0 rule_clean=0 blockers={}
+ITEM shizuki-kitsune client_eligible=0 rule_clean=0 blockers={}
+ITEM title-night-rider client_eligible=1 rule_clean=1 blockers={}
+ITEM entrance-kishin client_eligible=0 rule_clean=0 blockers={}
+ITEM creator-red-moon client_eligible=0 rule_clean=0 blockers={}
+ITEM trophy-vault client_eligible=1 rule_clean=1 blockers={}
+
+Checks included for each client-eligible profile: approved member status, Firestore numeric coin/xp types, unlocked field type, pre-existing spend ledger, and pre-existing cosmetic social event. No blocker was found for frame-crimson in these categories.
