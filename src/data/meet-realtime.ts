@@ -1,17 +1,6 @@
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  where,
-  type Unsubscribe,
-} from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where, type Unsubscribe } from "firebase/firestore";
 
-import {
-  MEET_REGISTRATION_GRACE_MS,
-  type MeetParticipant,
-  type MeetSession,
-} from "@/data/meet";
+import { MEET_REGISTRATION_GRACE_MS, type MeetParticipant, type MeetSession } from "@/data/meet";
 import { firebaseDb } from "@/integrations/firebase/client";
 
 function dateValue(value: unknown): string | null {
@@ -118,9 +107,7 @@ export function subscribeMeetParticipants(
               const row = entry.data();
               const joined = row["joinedAt"];
               return {
-                cpmNickname: String(
-                  row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER",
-                ),
+                cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
                 registeredAt:
                   joined && typeof joined.toDate === "function"
                     ? joined.toDate().toISOString()
