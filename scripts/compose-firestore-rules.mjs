@@ -12,6 +12,7 @@ export function composeRules() {
       "firestore.progression.shop-hotfix.rules.fragment",
       "function validCosmeticUnlockSocialHotfixV1(eventId)",
     ],
+    ["firestore.shop-v2.rules.fragment", "function validCpmServiceTermsShopV2(serviceId, price)"],
   ]) {
     if (!rules.includes(needle))
       rules = rules.replace(marker, `${readFileSync(file, "utf8").trimEnd()}\n\n${marker}`);
