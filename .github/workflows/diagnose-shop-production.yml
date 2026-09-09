@@ -1,7 +1,9 @@
 name: Diagnose Shop Production
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - diag/shop-root-cause
 
 permissions:
   contents: read
