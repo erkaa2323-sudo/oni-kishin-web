@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Award, Coins, Loader2, X } from "lucide-react";
 import { listMemberAccounts, type MemberAccount } from "@/data/member-auth";
 import {
@@ -11,6 +12,7 @@ type RewardMode = "manual" | "event";
 
 export function OniEventRewardDock() {
   const [open, setOpen] = useState(false);
+  const [navMount, setNavMount] = useState<HTMLElement | null>(null);
   const [mode, setMode] = useState<RewardMode>("manual");
   const [members, setMembers] = useState<MemberAccount[]>([]);
   const [uid, setUid] = useState("");
@@ -21,6 +23,31 @@ export function OniEventRewardDock() {
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const navList = document.querySelector<HTMLElement>('nav[aria-label="Удирдлагын хэсгүүд"] ul');
+    if (!navList) return;
+
+    const mount = document.createElement("li");
+    mount.className = "shrink-0 lg:bg-ink";
+    mount.dataset["oniRewardNav"] = "true";
+
+    const accountButton = Array.from(navList.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("CREW ACCOUNT"),
+    );
+    const accountItem = accountButton?.closest("li");
+    if (accountItem?.parentElement === navList) {
+      navList.insertBefore(mount, accountItem.nextSibling);
+    } else {
+      navList.appendChild(mount);
+    }
+
+    setNavMount(mount);
+    return () => {
+      setNavMount(null);
+      mount.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -100,24 +127,42 @@ export function OniEventRewardDock() {
     }
   };
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-[8.5rem] left-4 z-[67] inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
-      >
-        <Coins className="h-4 w-4 text-crimson" />
-        XP / COIN
-      </button>
-      {open ? (
+  const navButton = navMount
+    ? createPortal(
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={open}
+          className={`flex min-h-[44px] w-full items-center gap-3 border px-3.5 text-left transition-colors clip-notch lg:border-0 lg:py-3 ${
+            open
+              ? "border-crimson/60 bg-crimson/15 text-foreground"
+              : "border-border text-muted-foreground hover:text-foreground lg:hover:bg-midnight/60"
+          }`}
+        >
+          <Coins className="h-4 w-4 shrink-0 text-crimson/80" />
+          <span className="whitespace-nowrap text-[0.7rem] font-medium tracking-[0.18em]">
+            XP / COIN
+          </span>
+        </button>,
+        navMount,
+      )
+    : null;
+
+  const modal = open
+    ? createPortal(
         <div
-          className="fixed inset-0 z-[95] flex items-end bg-black/70 p-3 backdrop-blur-sm sm:items-center sm:justify-center"
+          className="fixed inset-0 z-[140] flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-label="XP болон ONI coin удирдах"
         >
-          <section className="max-h-[88svh] w-full max-w-lg overflow-y-auto border border-white/10 bg-ink p-5 shadow-2xl">
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="Хаах"
+            onClick={() => setOpen(false)}
+          />
+          <section className="relative max-h-[88svh] w-full max-w-lg overflow-y-auto border border-white/10 bg-ink p-5 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-[0.62rem] tracking-[0.18em] text-crimson">ONI АХИЦ БА ШАГНАЛ</p>
@@ -277,8 +322,15 @@ export function OniEventRewardDock() {
               </button>
             </div>
           </section>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      {navButton}
+      {modal}
     </>
   );
 }
