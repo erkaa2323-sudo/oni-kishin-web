@@ -83,14 +83,9 @@ test("admin mobile review controls stay tappable and ONI AI stays compact", () =
   assert.match(cleanup, /touch-action: manipulation/);
 });
 
-test("Vercel Git auto-deployment is disabled and production workflow is manually gated", () => {
+test("Vercel Git auto-deployment is disabled and production workflow is manual", () => {
   assert.equal(JSON.parse(readFileSync("vercel.json", "utf8")).git.deploymentEnabled, false);
   const workflow = readFileSync(".github/workflows/vercel-prebuilt-production.yml", "utf8");
   assert.match(workflow, /workflow_dispatch:/);
-  const pushBlock = workflow.match(/  push:\n(?:    .*\n)+/m)?.[0] ?? "";
-  if (pushBlock) {
-    assert.match(pushBlock, /branches: \[main\]/);
-    assert.match(pushBlock, /\.github\/production-deploy-trigger/);
-  }
-  assert.doesNotMatch(workflow, /^  (pull_request|workflow_run):/m);
+  assert.doesNotMatch(workflow, /^  (push|pull_request|workflow_run):/m);
 });
