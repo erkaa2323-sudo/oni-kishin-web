@@ -56,20 +56,13 @@ function copyFor(state: HostState, nickname?: string, notice?: string) {
   if (state === "registered")
     return `${rider}, бүртгэл баталгаажлаа. Room access бэлэн болмогц Kei мэдэгдэнэ.`;
   if (state === "denied")
-    return notice?.trim() ||
-      "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
-  if (state === "loading")
-    return "Crew мэдээлэл болон Meet slot-ийг шалгаж байна…";
-  if (state === "live")
-    return "ONI MEET эхэллээ. Бүртгүүлсэн Rider бол room access-аа шалгаарай.";
-  if (state === "starting")
-    return "ONI MEET удахгүй эхэлнэ. Бүртгэлээ одоо баталгаажуулаарай.";
-  if (state === "open")
-    return "Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.";
-  if (state === "scheduled")
-    return "Дараагийн ONI MEET товлогдсон. Countdown-аа шалгаарай.";
-  if (state === "full")
-    return "Meet дүүрсэн байна. Дараагийн мэдээллийг эндээс хүлээнэ үү.";
+    return notice?.trim() || "Бүртгэл баталгаажаагүй. Мэдээллээ шалгаад дахин оролдоорой.";
+  if (state === "loading") return "Crew мэдээлэл болон Meet slot-ийг шалгаж байна…";
+  if (state === "live") return "ONI MEET эхэллээ. Бүртгүүлсэн Rider бол room access-аа шалгаарай.";
+  if (state === "starting") return "ONI MEET удахгүй эхэлнэ. Бүртгэлээ одоо баталгаажуулаарай.";
+  if (state === "open") return "Бүртгэл нээлттэй. Crew аккаунтаа баталгаажуулаад нэгдээрэй.";
+  if (state === "scheduled") return "Дараагийн ONI MEET товлогдсон. Countdown-аа шалгаарай.";
+  if (state === "full") return "Meet дүүрсэн байна. Дараагийн мэдээллийг эндээс хүлээнэ үү.";
   if (state === "closed") return "Энэ Meet-ийн бүртгэл хаагдсан байна.";
   return "Kei дараагийн ONI MEET-ийг хүлээж байна.";
 }
@@ -105,13 +98,10 @@ function signalFor(state: HostState) {
 function countdownCopy(phase: CountdownPhase, seconds: number) {
   if (phase === "ten")
     return "ONI MEET эхлэхэд 10 минут хүрэхгүй үлдлээ. Rider-ууд бэлэн байгаарай.";
-  if (phase === "five")
-    return "5 минут. Crew check дуусгаж, Meet-д ороход бэлэн байгаарай.";
+  if (phase === "five") return "5 минут. Crew check дуусгаж, Meet-д ороход бэлэн байгаарай.";
   if (phase === "one") return "1 минут. ONI MEET launch sequence эхэллээ.";
-  if (phase === "final10")
-    return `${Math.max(1, seconds)}… ONI MEET эхлэх гэж байна.`;
-  if (phase === "go")
-    return "GO LIVE — ONI MEET эхэллээ. Room access-аа шалгаарай.";
+  if (phase === "final10") return `${Math.max(1, seconds)}… ONI MEET эхлэх гэж байна.`;
+  if (phase === "go") return "GO LIVE — ONI MEET эхэллээ. Room access-аа шалгаарай.";
   return "";
 }
 
@@ -132,16 +122,9 @@ export function KeiMeetHostCubism5({
   const retryCount = useRef(0);
   const state = resolveHostState(life, registrationState, accessReady);
   const countdownActive =
-    countdownPhase !== "none" &&
-    state !== "access" &&
-    state !== "loading" &&
-    state !== "denied";
+    countdownPhase !== "none" && state !== "access" && state !== "loading" && state !== "denied";
   const reactionState = countdownActive ? `countdown-${countdownPhase}` : state;
-  const hot =
-    countdownActive ||
-    state === "access" ||
-    state === "live" ||
-    state === "starting";
+  const hot = countdownActive || state === "access" || state === "live" || state === "starting";
   const positive = state === "access" || state === "registered";
   const copy = countdownActive
     ? countdownCopy(countdownPhase, countdownSeconds)
@@ -161,10 +144,7 @@ export function KeiMeetHostCubism5({
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<KeiMessage>) => {
-      if (
-        event.source !== frameRef.current?.contentWindow ||
-        event.data?.source !== "oni-kei-meet"
-      )
+      if (event.source !== frameRef.current?.contentWindow || event.data?.source !== "oni-kei-meet")
         return;
       if (event.data.type === "ready") {
         retryCount.current = 0;
@@ -221,11 +201,7 @@ export function KeiMeetHostCubism5({
                 : "text-white/40"
           }
         >
-          {runtime === "ready"
-            ? "ONLINE"
-            : runtime === "failed"
-              ? "OFFLINE"
-              : "SYNC"}
+          {runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC"}
         </span>
       </div>
 
@@ -264,12 +240,8 @@ export function KeiMeetHostCubism5({
         <div className="font-mono text-[0.9rem] font-semibold tracking-[0.06em] text-white/90 sm:text-[1rem]">
           {participants}/{capacity ?? "∞"}
         </div>
-        <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">
-          RIDERS
-        </div>
-        <div className="mt-1 text-[0.34rem] tracking-[0.12em] text-white/30">
-          {mode}
-        </div>
+        <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
+        <div className="mt-1 text-[0.34rem] tracking-[0.12em] text-white/30">{mode}</div>
       </div>
     </div>
   );
