@@ -143,6 +143,14 @@ export function KeiMeetHostCubism5({
             : "GO LIVE"
     : modeFor(state);
   const signal = countdownActive ? "FINAL COUNTDOWN" : signalFor(state);
+  const runtimeLabel =
+    runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC";
+  const runtimeClass =
+    runtime === "ready"
+      ? "text-emerald-300/80"
+      : runtime === "failed"
+        ? "text-crimson"
+        : "text-white/40";
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<KeiMessage>) => {
@@ -187,34 +195,28 @@ export function KeiMeetHostCubism5({
 
   return (
     <div
-      className={`relative h-full min-h-0 overflow-hidden border bg-black/55 shadow-[0_24px_80px_rgba(0,0,0,0.62)] clip-notch ${
-        positive ? "border-emerald-400/25" : hot ? "border-crimson/35" : "border-white/10"
+      className={`relative overflow-hidden rounded-[28px] border bg-black/20 shadow-2xl transition-colors duration-700 ${
+        positive
+          ? "border-emerald-300/35 shadow-emerald-400/10"
+          : hot
+            ? "border-crimson/40 shadow-crimson/15"
+            : "border-white/10 shadow-crimson/10"
       }`}
       onPointerDown={interact}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_68%,rgba(195,18,45,0.24),rgba(39,4,11,0.08)_36%,transparent_72%)]" />
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          positive
+            ? "bg-[radial-gradient(circle_at_50%_58%,rgba(110,255,190,0.19),transparent_54%)]"
+            : hot
+              ? "bg-[radial-gradient(circle_at_50%_58%,rgba(255,55,85,0.18),transparent_54%)]"
+              : "bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]"
+        }`}
+      />
 
-      <div className="pointer-events-none absolute left-3 top-3 z-20 sm:left-4 sm:top-4">
-        <div className="text-[0.42rem] font-semibold tracking-[0.24em] text-white/35">
-          ONI // MEET HOST
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <span className="text-[0.64rem] font-semibold tracking-[0.26em] text-white/85 sm:text-[0.72rem]">
-            KEI
-          </span>
-          <span className="rounded-full border border-white/10 bg-black/35 px-2 py-1 text-[0.4rem] tracking-[0.17em] text-white/45 backdrop-blur-sm">
-            {mode}
-          </span>
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/8 bg-black/30 px-2 py-1.5 backdrop-blur-sm">
-        <span
-          className={`h-1.5 w-1.5 rounded-full ${runtime === "ready" ? "bg-emerald-300 shadow-[0_0_12px_rgba(110,231,183,0.8)]" : runtime === "failed" ? "bg-crimson" : "bg-white/30"}`}
-        />
-        <span className="text-[0.42rem] font-semibold tracking-[0.16em] text-white/45">
-          {runtime === "ready" ? "VISIBLE" : runtime === "failed" ? "RENDER ERROR" : "SYNC"}
-        </span>
+      <div className="pointer-events-none absolute inset-x-5 top-4 z-20 flex items-center justify-between text-[0.58rem] font-semibold tracking-[0.2em] text-white/55">
+        <span>KEI / LIVE2D</span>
+        <span className={runtimeClass}>{runtimeLabel}</span>
       </div>
 
       <iframe
@@ -222,7 +224,7 @@ export function KeiMeetHostCubism5({
         ref={frameRef}
         title="Kei Cubism 5 Meet host"
         src="/kei-live2d-host.html"
-        className="absolute left-1/2 top-1/2 h-full w-full origin-center -translate-x-1/2 -translate-y-1/2 scale-[1.68] border-0 bg-transparent sm:scale-[1.5] lg:scale-100"
+        className="relative z-[1] block h-[360px] w-full border-0 bg-transparent sm:h-[430px] lg:h-[500px]"
         onLoad={() => setRuntime("loading")}
       />
 
@@ -237,22 +239,31 @@ export function KeiMeetHostCubism5({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-3 left-3 z-20 w-[49%] max-w-[17rem] rounded-xl border border-white/8 bg-black/52 px-3 py-2.5 backdrop-blur-md sm:bottom-4 sm:left-4 sm:w-[46%] sm:px-4 sm:py-3 lg:w-[44%]">
+      <div className="pointer-events-none absolute left-3 top-[54%] z-20 w-[23%] -translate-y-1/2 sm:left-5 sm:w-[22%]">
+        <span
+          className={`mb-2 block h-px w-8 ${positive ? "bg-emerald-300/45" : hot ? "bg-crimson/55" : "bg-white/15"}`}
+        />
         <div
-          className={`mb-1 text-[0.4rem] font-semibold tracking-[0.18em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
+          className={`text-[0.38rem] font-semibold tracking-[0.16em] sm:text-[0.44rem] ${
+            positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"
+          }`}
         >
           {signal}
         </div>
-        <p className="line-clamp-3 text-[0.54rem] leading-relaxed text-white/82 sm:text-[0.62rem]">
+        <div className="mt-1 text-[0.44rem] font-semibold tracking-[0.13em] text-white/72 sm:text-[0.5rem]">
+          {mode}
+        </div>
+        <p className="mt-2 line-clamp-4 text-[0.42rem] leading-relaxed text-white/48 sm:text-[0.48rem]">
           {copy}
         </p>
       </div>
 
-      <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-xl border border-white/8 bg-black/52 px-3 py-2.5 text-right backdrop-blur-md sm:bottom-4 sm:right-4 sm:px-4 sm:py-3">
-        <div className="font-mono text-[0.9rem] font-semibold tracking-[0.06em] text-white/90 sm:text-[1rem]">
+      <div className="pointer-events-none absolute right-3 top-[54%] z-20 w-[19%] -translate-y-1/2 text-right sm:right-5 sm:w-[18%]">
+        <span className="mb-2 ml-auto block h-px w-8 bg-white/15" />
+        <div className="font-mono text-[0.92rem] font-semibold tracking-[0.04em] text-white/90 sm:text-[1.02rem]">
           {participants}/{capacity ?? "∞"}
         </div>
-        <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
+        <div className="mt-1 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
       </div>
     </div>
   );
