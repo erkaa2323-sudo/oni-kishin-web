@@ -70,11 +70,13 @@ function parseEvent(id: string, row: Record<string, unknown>): SocialEvent {
     reactions: n(row["reactions"]),
   };
 }
+const activeSocialEvent = (event: SocialEvent) => event.type !== "cosmetic_unlock";
+
 export async function fetchSocialFeed() {
   const snap = await getDocs(
     query(collection(firebaseDb, "socialEvents"), orderBy("createdAt", "desc"), limit(40)),
   );
-  return snap.docs.map((x) => parseEvent(x.id, x.data()));
+  return snap.docs.map((x) => parseEvent(x.id, x.data())).filter(activeSocialEvent);
 }
 export async function fetchPublicMemberProfile(
   nickname: string,
@@ -104,6 +106,7 @@ export async function fetchPublicMemberProfile(
         : [],
     recent: recent.docs
       .map((x) => parseEvent(x.id, x.data()))
+      .filter(activeSocialEvent)
       .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
       .slice(0, 6),
   };
