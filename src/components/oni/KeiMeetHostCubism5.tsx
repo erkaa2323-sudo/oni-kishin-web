@@ -143,23 +143,14 @@ export function KeiMeetHostCubism5({
             : "GO LIVE"
     : modeFor(state);
   const signal = countdownActive ? "FINAL COUNTDOWN" : signalFor(state);
-  const runtimeLabel =
-    runtime === "ready"
-      ? "ONLINE"
-      : runtime === "failed"
-        ? "OFFLINE"
-        : "SYNC";
+  const runtimeLabel = runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC";
   const runtimeClass =
     runtime === "ready"
       ? "text-emerald-300/80"
       : runtime === "failed"
         ? "text-crimson"
         : "text-white/40";
-  const railColorClass = positive
-    ? "bg-emerald-300/45"
-    : hot
-      ? "bg-crimson/55"
-      : "bg-white/15";
+  const railColorClass = positive ? "bg-emerald-300/45" : hot ? "bg-crimson/55" : "bg-white/15";
   const signalTextClass = positive
     ? "text-emerald-300/75"
     : hot
