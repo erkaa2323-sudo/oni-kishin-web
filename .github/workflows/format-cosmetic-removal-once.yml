@@ -20,11 +20,11 @@ jobs:
         with:
           node-version: 24.19.0
           cache: npm
+      - run: npm install --global npm@11.9.0
       - run: npm ci --no-audit --no-fund
-      - name: Format changed files and remove this one-time workflow
+      - name: Format changed non-workflow files
         run: |
           npx --no-install prettier --write \
-            .github/workflows/economy-audit-only.yml \
             scripts/check-browsers.mjs \
             src/components/oni/OniProgressionStage.tsx \
             src/components/oni/OniShopV2Stage.tsx \
@@ -37,9 +37,24 @@ jobs:
             src/routes/progression.tsx \
             src/routes/shop.tsx \
             tests/shop-v2.test.mjs
-          rm .github/workflows/format-cosmetic-removal-once.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: format cosmetic removal"
-          git push origin HEAD:remove/cosmetic-effects
+          git add \
+            scripts/check-browsers.mjs \
+            src/components/oni/OniProgressionStage.tsx \
+            src/components/oni/OniShopV2Stage.tsx \
+            src/components/oni/OniSocialHub.tsx \
+            src/components/oni/OniWorldTransition.tsx \
+            src/data/social.ts \
+            src/lib/oni-nav.ts \
+            src/lib/progression-rewards.ts \
+            src/routes/__root.tsx \
+            src/routes/progression.tsx \
+            src/routes/shop.tsx \
+            tests/shop-v2.test.mjs
+          if git diff --cached --quiet; then
+            echo "Already formatted"
+          else
+            git commit -m "chore: format cosmetic removal"
+            git push origin HEAD:remove/cosmetic-effects
+          fi
