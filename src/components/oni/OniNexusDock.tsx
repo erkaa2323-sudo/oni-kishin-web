@@ -157,7 +157,7 @@ export function OniNexusDock() {
             type="button"
             onClick={activate}
             disabled={busy || (state !== "prompt" && state !== "install_required")}
-            className="mt-3 inline-flex min-h-10 items-center gap-2 border border-crimson/50 bg-crimson/12 px-3 text-[.58rem] font-semibold tracking-[.18em] text-foreground clip-notch disabled:opacity-60"
+            className="mt-3 inline-flex min-h-11 touch-manipulation items-center gap-2 border border-crimson/50 bg-crimson/12 px-3 text-[.58rem] font-semibold tracking-[.18em] text-foreground clip-notch disabled:opacity-60"
           >
             {state === "install_required" ? (
               <Share className="h-3.5 w-3.5" />
@@ -171,9 +171,9 @@ export function OniNexusDock() {
           type="button"
           onClick={dismiss}
           aria-label="Nexus мэдэгдэл хаах"
-          className="grid h-9 w-9 shrink-0 place-items-center border border-border text-muted-foreground clip-notch"
+          className="pointer-events-auto relative z-10 grid h-11 w-11 shrink-0 touch-manipulation place-items-center border border-border bg-ink/80 text-muted-foreground clip-notch"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
     </aside>
