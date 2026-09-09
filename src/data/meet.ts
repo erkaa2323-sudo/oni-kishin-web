@@ -22,7 +22,7 @@ import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
 export const CPM_NICKNAME_MAX = 32;
-export const MEET_REGISTRATION_GRACE_MS = 20 * 60 * 1000;
+export const MEET_REGISTRATION_GRACE_MS = 30 * 60 * 1000;
 
 /**
  * Configurable launch target for Car Parking Multiplayer. No unofficial or
@@ -81,6 +81,7 @@ export type RegistrationOutcome =
   | "registered"
   | "duplicate"
   | "meet_full"
+  | "registration_not_open"
   | "registration_closed"
   | "no_active_meet"
   | "invalid"
@@ -134,7 +135,7 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
   const closes = effectiveRegistrationCloseMs(s);
   if (closes !== null && closes <= now) return "closed";
   if (s.capacity !== null && s.registered >= s.capacity) return "full";
-  // A mistakenly/early marked LIVE record must never make a future meet look active.
+  // Registration stays locked until the exact Meet start time.
   if (starts !== null && starts > now) {
     if (starts - now <= MEET_REGISTRATION_GRACE_MS) return "starting_soon";
     return "scheduled";
@@ -144,7 +145,7 @@ export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLi
 }
 
 export function canRegister(life: MeetLifecycle): boolean {
-  return life === "open" || life === "scheduled" || life === "starting_soon" || life === "active";
+  return life === "active" || life === "open";
 }
 
 export const LIFECYCLE_LABEL: Record<MeetLifecycle, string> = {
@@ -162,6 +163,7 @@ export const REGISTRATION_MESSAGE: Record<RegistrationOutcome, string> = {
   registered: "Бүртгэл амжилттай. Таны нэр оролцогчдын жагсаалтад нэмэгдлээ.",
   duplicate: "Энэ CPM ID аль хэдийн бүртгэгдсэн байна.",
   meet_full: "Уулзалтын багтаамж дүүрсэн байна.",
+  registration_not_open: "Бүртгэл Meet эхлэх цагт нээгдэнэ.",
   registration_closed: "Бүртгэлийн хугацаа дууссан байна.",
   no_active_meet: "Одоогоор идэвхтэй уулзалт байхгүй байна.",
   invalid: "Оруулсан мэдээлэл буруу байна.",
@@ -328,6 +330,7 @@ export async function registerForMeet(
       const now = Date.now();
       const startAt = timestampMs(meet["startAt"]);
       if (startAt === null) return "invalid" as const;
+      if (now < startAt) return "registration_not_open" as const;
       const explicitClose = timestampMs(meet["registrationClosesAt"]);
       const closesAt = explicitClose ?? startAt + MEET_REGISTRATION_GRACE_MS;
       if (meet["status"] === "closed" || meet["status"] === "ended" || closesAt <= now)
