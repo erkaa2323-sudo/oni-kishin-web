@@ -9,6 +9,7 @@ import { Timestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 
 let env;
 const meetStart = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000);
+const meetStartAt = meetStart;
 const previousMeetStart = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
 
 before(async () => {
