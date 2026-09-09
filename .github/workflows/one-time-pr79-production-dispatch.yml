@@ -1,4 +1,4 @@
-name: One-time PR79 Production Dispatch
+name: PR85 Firestore Rules Dispatch
 
 on:
   push:
@@ -16,7 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Dispatch verified production workflow
+      - name: Deploy rules after verified PR85 release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run vercel-prebuilt-production.yml --repo erkaa2323-sudo/oni-kishin-web --ref main
+        run: |
+          gh run watch 34374028579 --repo erkaa2323-sudo/oni-kishin-web --exit-status
+          gh workflow run firebase-rules.yml --repo erkaa2323-sudo/oni-kishin-web --ref main
