@@ -51,6 +51,8 @@ export type ProgressionStats = {
   lifetimeXp: number;
 };
 
+// "collector" remains in the compatibility type so existing historical claims can still be read,
+// but it is no longer offered in the active achievement catalog.
 export type AchievementId =
   "first-blood" | "night-rider" | "content-creator" | "collector" | "kishin" | "legend";
 
@@ -72,12 +74,6 @@ export const ONI_ACHIEVEMENTS = [
     name: "CONTENT CREATOR",
     description: "5 Creator asset Gallery-д батлуул.",
     test: (s: ProgressionStats) => s.creator >= 5,
-  },
-  {
-    id: "collector",
-    name: "VAULT SEEKER",
-    description: "5 cosmetic unlock хий.",
-    test: (s: ProgressionStats) => s.unlocked >= 5,
   },
   {
     id: "kishin",
