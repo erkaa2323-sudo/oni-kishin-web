@@ -1,0 +1,90 @@
+name: Diagnose Shop Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_PROJECT: oni-kishin-f59b4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Inspect production Firestore shop invariants
+        run: |
+          python -m pip install --quiet google-auth requests
+          python - <<'PY'
+          import collections, json, os, requests
+          from google.auth.transport.requests import Request
+          from google.oauth2 import service_account
+          project=os.environ['FIREBASE_PROJECT']
+          creds=service_account.Credentials.from_service_account_file(os.environ['GOOGLE_APPLICATION_CREDENTIALS'], scopes=['https://www.googleapis.com/auth/cloud-platform'])
+          creds.refresh(Request())
+          headers={'Authorization':f'Bearer {creds.token}'}
+          root=f'https://firestore.googleapis.com/v1/projects/{project}/databases/(default)/documents'
+          def list_collection(name):
+              docs=[]; token=''
+              while True:
+                  params={'pageSize':'300'}
+                  if token: params['pageToken']=token
+                  r=requests.get(f'{root}/{name}',headers=headers,params=params,timeout=30); r.raise_for_status(); body=r.json(); docs.extend(body.get('documents',[])); token=body.get('nextPageToken','')
+                  if not token: return docs
+          def doc_id(d): return d['name'].rsplit('/',1)[-1]
+          def field(d,k): return d.get('fields',{}).get(k)
+          def scalar(v):
+              if not isinstance(v,dict): return None
+              if 'integerValue' in v: return int(v['integerValue'])
+              if 'doubleValue' in v: return float(v['doubleValue'])
+              if 'stringValue' in v: return v['stringValue']
+              if 'booleanValue' in v: return bool(v['booleanValue'])
+              return None
+          def ftype(v):
+              if not isinstance(v,dict): return 'missing'
+              for k,t in [('integerValue','number'),('doubleValue','number'),('stringValue','string'),('arrayValue','array'),('mapValue','map'),('timestampValue','timestamp'),('booleanValue','bool')]:
+                  if k in v: return t
+              return 'other'
+          def client_num(v):
+              x=scalar(v)
+              try: return max(0,float(x or 0))
+              except Exception: return 0.0
+          def arr_strings(v):
+              if not isinstance(v,dict) or 'arrayValue' not in v: return []
+              out=[]
+              for x in v.get('arrayValue',{}).get('values',[]):
+                  s=scalar(x)
+                  if s is not None: out.append(str(s))
+              return out
+          profiles=list_collection('progressionProfiles')
+          accounts={doc_id(d):d for d in list_collection('memberAccounts')}
+          ledgers={doc_id(d) for d in list_collection('progressionLedger')}
+          socials={doc_id(d) for d in list_collection('socialEvents')}
+          items=[('frame-crimson',700,500),('aura-red-moon',1800,3000),('garage-neon',2200,3000),('shizuki-kitsune',4500,8500),('title-night-rider',900,1500),('entrance-kishin',5000,12500),('creator-red-moon',2600,5500),('trophy-vault',1200,1500)]
+          print(f'PROFILE_COUNT={len(profiles)}')
+          schema=collections.Counter()
+          for d in profiles: schema[(ftype(field(d,'coin')),ftype(field(d,'xp')),ftype(field(d,'unlocked')))] += 1
+          for k,v in sorted(schema.items()): print(f'SCHEMA coin={k[0]} xp={k[1]} unlocked={k[2]} count={v}')
+          for item,price,minxp in items:
+              eligible=0; clean=0; blockers=collections.Counter()
+              for p in profiles:
+                  uid=doc_id(p); coin=client_num(field(p,'coin')); xp=client_num(field(p,'xp')); unlocked=arr_strings(field(p,'unlocked'))
+                  if item in unlocked or coin < price or xp < minxp: continue
+                  eligible += 1
+                  acct=accounts.get(uid); status=scalar(field(acct or {},'status')); b=[]
+                  if status != 'approved': b.append('member_not_approved')
+                  if ftype(field(p,'coin')) != 'number': b.append('coin_not_numeric_firestore_type')
+                  if ftype(field(p,'xp')) != 'number': b.append('xp_not_numeric_firestore_type')
+                  if ftype(field(p,'unlocked')) not in ('array','missing'): b.append('unlocked_wrong_type')
+                  if f'spend_{uid}_{item}' in ledgers: b.append('spend_ledger_already_exists')
+                  if f'{uid}_cosmetic_{item}' in socials: b.append('social_event_already_exists')
+                  if b:
+                      for x in b: blockers[x]+=1
+                  else: clean += 1
+              print(f'ITEM {item} client_eligible={eligible} rule_clean={clean} blockers={json.dumps(dict(blockers),sort_keys=True)}')
+          PY
