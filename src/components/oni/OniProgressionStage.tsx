@@ -17,7 +17,6 @@ import {
   claimAchievement,
   claimPrestige,
   claimWeeklyMission,
-  equipVaultItem,
   getCurrentSeasonConfig,
   getCurrentWeeklyConfig,
   getMyAchievementClaims,
@@ -26,10 +25,8 @@ import {
   getMyWeeklyClaims,
   getMyWeeklyProgress,
   getProgressionLeaderboard,
-  unlockVaultItem,
 } from "@/data/progression";
 import {
-  ONI_VAULT,
   levelForXp,
   nextRankForXp,
   rankForXp,
@@ -115,7 +112,7 @@ export function OniProgressionStage() {
   const rank = profile ? rankForXp(profile.xp) : null;
   const next = profile ? nextRankForXp(profile.xp) : null;
   const stats = useMemo(
-    () => (profile ? statsFromLedger(ledger, profile.unlocked.length, profile.lifetimeXp) : null),
+    () => (profile ? statsFromLedger(ledger, 0, profile.lifetimeXp) : null),
     [ledger, profile],
   );
   const eligibleAchievements = useMemo(
@@ -154,32 +151,6 @@ export function OniProgressionStage() {
     [ledger],
   );
 
-  const act = async (id: string, mode: "unlock" | "equip") => {
-    setBusy(id);
-    setNotice("");
-    try {
-      if (mode === "unlock") await unlockVaultItem(id);
-      else await equipVaultItem(id);
-      await load();
-      setNotice(
-        mode === "unlock"
-          ? "VAULT ITEM UNLOCKED ✨ Coin зарцуулалт Wallet Ledger-д бүртгэгдлээ."
-          : "COSMETIC EQUIPPED ✨ Effect сайт дээр realtime идэвхжинэ.",
-      );
-    } catch (error) {
-      const code = error instanceof Error ? error.message : "failed";
-      setNotice(
-        code === "coin_required"
-          ? "ONI Coin хүрэлцэхгүй байна."
-          : code === "rank_required"
-            ? "Энэ item-д XP/Rank хүрээгүй байна."
-            : "Үйлдлийг гүйцэтгэж чадсангүй.",
-      );
-    } finally {
-      setBusy("");
-    }
-  };
-
   const claimMission = async (missionId: string) => {
     setBusy(`mission:${missionId}`);
     setNotice("");
@@ -191,11 +162,13 @@ export function OniProgressionStage() {
           new CustomEvent("oni:progression-reward", { detail: { source: "weekly", missionId } }),
         );
         await load();
-      } else if (result === "already")
+      } else if (result === "already") {
         setNotice("Энэ weekly mission-ийн reward аль хэдийн авсан байна.");
-      else if (result === "not_ready")
+      } else if (result === "not_ready") {
         setNotice("Mission complete болоогүй эсвэл weekly claim window хаалттай байна.");
-      else setNotice("Weekly reward system Admin-аар идэвхжээгүй байна.");
+      } else {
+        setNotice("Weekly reward system Admin-аар идэвхжээгүй байна.");
+      }
     } catch {
       setNotice("Weekly reward claim баталгаажуулж чадсангүй.");
     } finally {
@@ -215,7 +188,9 @@ export function OniProgressionStage() {
             : "Энэ badge аль хэдийн таны collection-д байна.",
         );
         await load();
-      } else setNotice("Achievement-ийн шаардлага хараахан хангагдаагүй байна.");
+      } else {
+        setNotice("Achievement-ийн шаардлага хараахан хангагдаагүй байна.");
+      }
     } catch {
       setNotice("Achievement claim баталгаажуулж чадсангүй.");
     } finally {
@@ -230,11 +205,14 @@ export function OniProgressionStage() {
       const result = await claimPrestige();
       if (result === "claimed") {
         setNotice(
-          "PRESTIGE ASCENSION COMPLETE 👹 Current Rank XP reset; Coin, Lifetime/Season XP, Collection хэвээр үлдлээ.",
+          "PRESTIGE ASCENSION COMPLETE 👹 Current Rank XP reset; Coin, Lifetime/Season XP болон achievements хэвээр үлдлээ.",
         );
         await load();
-      } else if (result === "max") setNotice("PRESTIGE III · MAX хүрсэн байна.");
-      else setNotice("Prestige хийхийн тулд current Rank XP 26,000 хүрсэн байх ёстой.");
+      } else if (result === "max") {
+        setNotice("PRESTIGE III · MAX хүрсэн байна.");
+      } else {
+        setNotice("Prestige хийхийн тулд current Rank XP 26,000 хүрсэн байх ёстой.");
+      }
     } catch {
       setNotice("Prestige transaction баталгаажуулж чадсангүй.");
     } finally {
@@ -262,8 +240,8 @@ export function OniProgressionStage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
             Баталгаажсан Meet attendance, Event, Creator contribution-аас XP / ONI Coin авч Rank,
-            Prestige, permanent badges болон бодитоор ажилладаг cosmetic collection-оо өсгөнө. ONI
-            Coin нь бодит мөнгө биш.
+            Prestige, permanent badges болон Season Reputation-оо өсгөнө. ONI Coin нь бодит мөнгө
+            биш.
           </p>
         </header>
 
@@ -313,11 +291,17 @@ export function OniProgressionStage() {
                 </div>
                 <div className="bg-ink p-5">
                   <Trophy className="h-5 w-5 text-crimson" />
-                  <strong className="mt-3 block text-2xl">{profile.unlocked.length}</strong>
-                  <span className="text-xs text-white/45">COLLECTION</span>
+                  <strong className="mt-3 block text-2xl">{achievementClaims.size}</strong>
+                  <span className="text-xs text-white/45">BADGES</span>
                 </div>
               </div>
             </section>
+
+            {notice ? (
+              <p className="mb-6 border border-crimson/25 bg-crimson/[0.06] p-3 text-xs">
+                {notice}
+              </p>
+            ) : null}
 
             <section className="grid gap-3 md:grid-cols-3">
               {[
@@ -360,8 +344,8 @@ export function OniProgressionStage() {
                   <div>
                     <strong className="text-2xl">PRESTIGE {profile.prestige} / 3</strong>
                     <p className="mt-2 text-xs leading-5 text-white/40">
-                      26,000 current XP дээр ascension хийнэ. Coin, Lifetime XP, Season XP,
-                      Collection хадгалагдана.
+                      26,000 current XP дээр ascension хийнэ. Coin, Lifetime XP, Season XP болон
+                      achievement claims хадгалагдана.
                     </p>
                   </div>
                   <button
@@ -397,9 +381,7 @@ export function OniProgressionStage() {
                 </div>
                 <div className="bg-ink p-4">
                   <span className="text-[0.62rem] text-white/40">SPENT LOG</span>
-                  <strong className="mt-2 block text-rose-300">
-                    -{spentCoin.toLocaleString()}
-                  </strong>
+                  <strong className="mt-2 block text-rose-300">-{spentCoin.toLocaleString()}</strong>
                 </div>
               </div>
             </section>
@@ -501,61 +483,6 @@ export function OniProgressionStage() {
                       >
                         {owned ? "PERMANENTLY OWNED" : eligible ? "CLAIM BADGE" : "LOCKED"}
                       </button>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="mt-10">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs tracking-[0.25em] text-crimson">ONI VAULT</p>
-                  <h2 className="mt-2 text-2xl font-semibold">REAL COSMETIC UNLOCKS</h2>
-                </div>
-                <span className="text-xs text-white/40">
-                  {profile.unlocked.length} / {ONI_VAULT.length}
-                </span>
-              </div>
-              {notice ? (
-                <p className="mt-4 border border-crimson/25 bg-crimson/[0.06] p-3 text-xs">
-                  {notice}
-                </p>
-              ) : null}
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {ONI_VAULT.map((item) => {
-                  const owned = profile.unlocked.includes(item.id);
-                  const equipped = profile.equipped[item.category] === item.id;
-                  return (
-                    <article
-                      key={item.id}
-                      className="flex min-h-64 flex-col border border-white/10 bg-white/[0.025] p-4"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[0.62rem] tracking-[0.2em] text-crimson">
-                          {item.rarity}
-                        </span>
-                        {owned ? (
-                          <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                        ) : (
-                          <Sparkles className="h-4 w-4 text-white/35" />
-                        )}
-                      </div>
-                      <h3 className="mt-5 text-lg font-semibold">{item.name}</h3>
-                      <p className="mt-2 text-xs leading-5 text-white/45">{item.description}</p>
-                      <div className="mt-auto pt-5">
-                        <div className="flex justify-between text-xs">
-                          <span>🪙 {item.price}</span>
-                          <span>{item.minXp} XP</span>
-                        </div>
-                        <button
-                          disabled={busy === item.id || equipped}
-                          onClick={() => void act(item.id, owned ? "equip" : "unlock")}
-                          className="mt-3 min-h-11 w-full border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.16em] disabled:opacity-45"
-                        >
-                          {equipped ? "EQUIPPED · LIVE" : owned ? "EQUIP" : "UNLOCK"}
-                        </button>
-                      </div>
                     </article>
                   );
                 })}
