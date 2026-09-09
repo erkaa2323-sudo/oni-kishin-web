@@ -25,11 +25,6 @@ jobs:
           distribution: temurin
           java-version: "21"
       - run: npm ci --no-audit --no-fund
-      - name: Diagnose Meet host formatting
-        run: |
-          npx --no-install prettier --write src/components/oni/KeiMeetHostCubism5.tsx
-          git diff -- src/components/oni/KeiMeetHostCubism5.tsx
-          exit 1
       - run: npx --no-install playwright install --with-deps chromium webkit
       - name: Format check
         run: npm run format:check
