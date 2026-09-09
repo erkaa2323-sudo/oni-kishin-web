@@ -2,6 +2,10 @@ name: Vercel Verified Production
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/vercel-prebuilt-production.yml"
 
 permissions:
   contents: read
