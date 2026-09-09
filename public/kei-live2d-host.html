@@ -53,7 +53,9 @@
           raf = 0,
           idleTimer = 0,
           currentState = "idle",
-          disposed = false;
+          disposed = false,
+          baseModelWidth = 0,
+          baseModelHeight = 0;
         const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
         function send(type, detail) {
           try {
@@ -153,6 +155,12 @@
           }
           focus(0, -0.02);
         }
+        function captureBaseModelSize() {
+          if (!model) return;
+          model.scale.set(1);
+          baseModelWidth = Math.max(model.width || 0, 1);
+          baseModelHeight = Math.max(model.height || 0, 1);
+        }
         function frameKei() {
           raf = 0;
           if (!app || !model || disposed) return;
@@ -160,9 +168,13 @@
             h = Math.max(1, stage.clientHeight);
           app.renderer.resize(w, h);
           model.anchor.set(0.5, 0.5);
+          if (!baseModelWidth || !baseModelHeight) captureBaseModelSize();
           const compact = w < 700;
-          model.scale.set(compact ? 0.43 : 0.6);
-          model.position.set(w * 0.5, compact ? h * 0.56 : h * 0.5);
+          const widthFit = (w * (compact ? 0.9 : 0.88)) / Math.max(baseModelWidth, 1);
+          const heightFit = (h * (compact ? 0.9 : 0.92)) / Math.max(baseModelHeight, 1);
+          const scale = Math.max(0.01, Math.min(widthFit, heightFit));
+          model.scale.set(scale);
+          model.position.set(w * 0.5, compact ? h * 0.51 : h * 0.5);
           model.visible = true;
           model.renderable = true;
           model.alpha = 1;
@@ -363,6 +375,7 @@
             flipY: !!model?.internalModel?.textureFlipY,
           };
           app.stage.addChild(model);
+          captureBaseModelSize();
           frameKei();
           apply(currentState, true);
           await new Promise((r) =>
