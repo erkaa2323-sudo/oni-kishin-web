@@ -25,9 +25,7 @@ export function OniEventRewardDock() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const navList = document.querySelector<HTMLElement>(
-      'nav[aria-label="Удирдлагын хэсгүүд"] ul',
-    );
+    const navList = document.querySelector<HTMLElement>('nav[aria-label="Удирдлагын хэсгүүд"] ul');
     if (!navList) return;
 
     const mount = document.createElement("li");
