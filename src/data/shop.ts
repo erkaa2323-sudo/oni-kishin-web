@@ -64,7 +64,6 @@ export async function purchaseCpmService(serviceId: string): Promise<{
       sourceType: "cpm_service_purchase",
       sourceKey: orderId,
       serviceId: service.id,
-      serviceName: service.name,
       xp: 0,
       coin: 0 - service.price,
       balanceAfter: nextBalance,
@@ -75,7 +74,6 @@ export async function purchaseCpmService(serviceId: string): Promise<{
       uid: user.uid,
       nickname: profile.nickname,
       serviceId: service.id,
-      serviceName: service.name,
       price: service.price,
       status: "pending",
       createdAt: serverTimestamp(),
@@ -85,7 +83,6 @@ export async function purchaseCpmService(serviceId: string): Promise<{
     tx.set(feedRef, {
       nickname: profile.nickname,
       serviceId: service.id,
-      serviceName: service.name,
       price: service.price,
       status: "purchased",
       createdAt: serverTimestamp(),
@@ -103,11 +100,13 @@ export async function getPublicShopPurchaseFeed(maxRows = 30): Promise<PublicSho
   );
   return snapshot.docs.map((entry) => {
     const row = entry.data();
+    const serviceId = String(row["serviceId"] ?? "");
+    const service = CPM_SERVICE_BY_ID.get(serviceId);
     return {
       id: entry.id,
       nickname: String(row["nickname"] ?? "ONI MEMBER"),
-      serviceId: String(row["serviceId"] ?? ""),
-      serviceName: String(row["serviceName"] ?? "CPM SERVICE"),
+      serviceId,
+      serviceName: service?.name ?? "CPM SERVICE",
       price: Math.max(0, Number(row["price"] ?? 0)),
       createdAt: toIso(row["createdAt"]),
     };
