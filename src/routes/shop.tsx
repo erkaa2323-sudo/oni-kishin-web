@@ -1,25 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { OniProgressionStage } from "@/components/oni/OniProgressionStage";
-import { OniVaultPreviewDock } from "@/components/oni/OniVaultPreviewDock";
-
-function ShopRoute() {
-  return (
-    <>
-      <OniProgressionStage />
-      <OniVaultPreviewDock />
-    </>
-  );
-}
+import { OniShopV2Stage } from "@/components/oni/OniShopV2Stage";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "ONI Shop — ONI HUB" },
+      { title: "ONI Shop V2 — ONI HUB" },
       {
         name: "description",
-        content: "ONI Coin-оор cosmetic effect unlock хийж, equip хийх ONI Shop.",
+        content:
+          "ONI Coin-оор CPM үйлчилгээ худалдан авч, premium ONI cosmetic unlock/equip хийх Shop V2.",
       },
     ],
   }),
-  component: ShopRoute,
+  component: OniShopV2Stage,
 });
