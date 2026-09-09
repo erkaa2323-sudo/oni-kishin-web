@@ -2,6 +2,7 @@ import {
   createUserWithEmailAndPassword,
   deleteUser,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -177,6 +178,12 @@ export async function registerMemberAccount(
 
 export async function signInMember(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(firebaseAuth, email.trim(), password);
+}
+
+export async function resetMemberPassword(email: string): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || !normalized.includes("@")) throw new Error("invalid_email");
+  await sendPasswordResetEmail(firebaseAuth, normalized);
 }
 
 export async function signOutMember(): Promise<void> {
