@@ -1,0 +1,22 @@
+name: One-time PR79 Production Dispatch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/one-time-pr79-production-dispatch.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch verified production workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run vercel-prebuilt-production.yml --ref main
