@@ -263,9 +263,7 @@ export function OniEventRewardDock() {
                 disabled={
                   busy ||
                   !selected ||
-                  (mode === "event"
-                    ? !eventId.trim()
-                    : manualXp === 0 && manualCoin === 0)
+                  (mode === "event" ? !eventId.trim() : manualXp === 0 && manualCoin === 0)
                 }
                 onClick={() => void (mode === "event" ? submitEvent() : submitManual())}
                 className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 border border-crimson/40 bg-crimson/10 text-xs font-semibold tracking-[0.12em] disabled:opacity-50"
