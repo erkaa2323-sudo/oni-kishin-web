@@ -1,0 +1,91 @@
+name: Repair Meet Kei Overlay Once
+on:
+  push:
+    branches: [fix/meet-kei-overlay]
+    paths:
+      - '.github/workflows/repair-meet-kei-overlay-once.yml'
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git checkout origin/main -- src/components/oni/KeiMeetHostCubism5.tsx
+      - name: Apply mobile face-clear overlay
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/components/oni/KeiMeetHostCubism5.tsx')
+          s = p.read_text()
+          old = '''      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div
+              className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
+            >
+              {signal}
+            </div>
+            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
+              {copy}
+            </p>
+          </div>
+          <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
+            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">
+              {participants}/{capacity ?? "∞"}
+            </div>
+            <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
+          </div>
+        </div>
+      </div>'''
+          new = '''      <div className="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[42%] rounded-lg border border-white/8 bg-black/58 px-2.5 py-2 backdrop-blur-md sm:hidden">
+        <div
+          className={`text-[0.36rem] font-semibold tracking-[0.16em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"}`}
+        >
+          {signal}
+        </div>
+        <p className="mt-1 line-clamp-2 text-[0.48rem] leading-relaxed text-white/72">{copy}</p>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-lg border border-white/8 bg-black/58 px-2.5 py-2 text-right backdrop-blur-md sm:hidden">
+        <div className="font-mono text-[0.68rem] font-semibold tracking-[0.06em] text-white/85">
+          {participants}/{capacity ?? "∞"}
+        </div>
+        <div className="mt-0.5 text-[0.32rem] tracking-[0.16em] text-white/30">RIDERS</div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 hidden rounded-xl border border-white/8 bg-black/58 px-4 py-3 backdrop-blur-md sm:block">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div
+              className={`mb-1 text-[0.4rem] font-semibold tracking-[0.2em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/30"}`}
+            >
+              {signal}
+            </div>
+            <p className="line-clamp-2 text-[0.67rem] leading-relaxed text-white/82">{copy}</p>
+          </div>
+          <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
+            <div className="font-mono text-[0.8rem] font-semibold tracking-[0.06em] text-white/85">
+              {participants}/{capacity ?? "∞"}
+            </div>
+            <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
+          </div>
+        </div>
+      </div>'''
+          if old not in s:
+              raise SystemExit('expected overlay block not found in main')
+          p.write_text(s.replace(old, new))
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --write src/components/oni/KeiMeetHostCubism5.tsx
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/oni/KeiMeetHostCubism5.tsx
+          git commit -m "Fix Meet Kei mobile overlay layout"
+          git push
