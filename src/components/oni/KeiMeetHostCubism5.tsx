@@ -105,6 +105,7 @@ function countdownCopy(phase: CountdownPhase, seconds: number) {
   return "";
 }
 
+// prettier-ignore
 export function KeiMeetHostCubism5({
   life,
   registrationState,
