@@ -253,8 +253,8 @@ export function OniMeetAccess() {
           <div className="absolute inset-0 scanline-veil opacity-30" />
         </div>
 
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-16 pt-[calc(32svh+7.5rem)] sm:px-8 sm:pt-[calc(34svh+7.5rem)] lg:grid-cols-[0.78fr_1.22fr] lg:gap-12 lg:pt-36">
-          <aside className="fixed inset-x-4 top-[4.75rem] z-30 h-[32svh] min-h-[250px] sm:inset-x-8 sm:h-[34svh] lg:sticky lg:inset-x-auto lg:top-24 lg:z-10 lg:h-[calc(100svh-7rem)] lg:min-h-[560px] lg:self-start">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-16 pt-[calc(46svh+7.75rem)] sm:px-8 sm:pt-[calc(44svh+7.75rem)] lg:grid-cols-[0.78fr_1.22fr] lg:gap-12 lg:pt-36">
+          <aside className="fixed inset-x-4 top-[4.75rem] z-30 h-[46svh] min-h-[320px] max-h-[480px] sm:inset-x-8 sm:h-[44svh] sm:min-h-[350px] sm:max-h-[520px] lg:sticky lg:inset-x-auto lg:top-24 lg:z-10 lg:h-[calc(100svh-7rem)] lg:min-h-[560px] lg:max-h-none lg:self-start">
             <RenMeetHost
               life={life}
               registrationState={state}
