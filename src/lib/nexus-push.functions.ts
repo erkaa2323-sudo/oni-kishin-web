@@ -1,4 +1,4 @@
-import { isAdminEmail } from "@/lib/admin-authorization";
+import { isAdminIdentity, type AdminTokenClaims } from "@/lib/admin-authorization";
 import { createServerFn } from "@tanstack/react-start";
 import {
   createCipheriv,
@@ -58,6 +58,16 @@ function hkdfExpand(prk: Buffer, info: Buffer, length: number) {
   return Buffer.concat(blocks).subarray(0, length);
 }
 
+function parseCustomClaims(value: string | undefined): AdminTokenClaims {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function verifyAdmin(idToken: string) {
   const response = await fetch(
     `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
@@ -68,8 +78,11 @@ async function verifyAdmin(idToken: string) {
     },
   );
   if (!response.ok) return false;
-  const data = (await response.json()) as { users?: Array<{ email?: string }> };
-  return isAdminEmail(data.users?.[0]?.email);
+  const data = (await response.json()) as {
+    users?: Array<{ email?: string; customAttributes?: string }>;
+  };
+  const user = data.users?.[0];
+  return isAdminIdentity(user?.email, parseCustomClaims(user?.customAttributes));
 }
 
 function stringField(doc: FirestoreDocument, key: string) {

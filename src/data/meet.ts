@@ -99,6 +99,26 @@ export function validateVerification(v: VerificationInput): MeetFieldErrors {
   return e;
 }
 
+function timestampMs(value: unknown): number | null {
+  if (typeof value === "string" || typeof value === "number") {
+    const time = new Date(value).getTime();
+    return Number.isNaN(time) ? null : time;
+  }
+  if (value && typeof value === "object") {
+    if ("toMillis" in value && typeof (value as { toMillis?: unknown }).toMillis === "function")
+      return (value as { toMillis: () => number }).toMillis();
+    if ("toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function")
+      return (value as { toDate: () => Date }).toDate().getTime();
+  }
+  return null;
+}
+
+function sameMeetStart(left: unknown, right: unknown): boolean {
+  const a = timestampMs(left);
+  const b = timestampMs(right);
+  return a !== null && b !== null && a === b;
+}
+
 function effectiveRegistrationCloseMs(s: MeetSession): number | null {
   if (s.registrationClosesAt) return new Date(s.registrationClosesAt).getTime();
   if (!s.scheduledAt) return null;
@@ -179,7 +199,10 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
       (scheduledAt
         ? new Date(new Date(scheduledAt).getTime() + MEET_REGISTRATION_GRACE_MS).toISOString()
         : null);
-    const registered = participants.docs.filter((entry) => entry.id !== "__counter__").length;
+    const registered = participants.docs.filter(
+      (entry) =>
+        entry.id !== "__counter__" && sameMeetStart(entry.data()["meetStartAt"], row["startAt"]),
+    ).length;
     return {
       status: "ok",
       session: {
@@ -189,7 +212,8 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         endsAt: value(row["endsAt"]),
         registrationClosesAt,
         capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
-        // Roster is canonical. Admin-maintained registeredCount can become stale.
+        // Only the current start timestamp belongs to this Meet. Stale rows from
+        // a previous `current` session are deliberately ignored.
         registered,
         status: row["status"] === "live" ? "live" : "scheduled",
       },
@@ -202,11 +226,17 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
 /** Safe public participant list — nicknames only, no CPM ID, no credentials. */
 export async function fetchParticipants(meetId: string): Promise<MeetParticipant[]> {
   try {
-    const snapshot = await getDocs(
-      query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId)),
-    );
+    const [meetSnapshot, snapshot] = await Promise.all([
+      getDoc(doc(firebaseDb, "meets", "current")),
+      getDocs(query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId))),
+    ]);
+    if (!meetSnapshot.exists()) return [];
+    const meetStartAt = meetSnapshot.data()["startAt"];
     return snapshot.docs
-      .filter((entry) => entry.id !== "__counter__")
+      .filter(
+        (entry) =>
+          entry.id !== "__counter__" && sameMeetStart(entry.data()["meetStartAt"], meetStartAt),
+      )
       .map((entry) => {
         const row = entry.data();
         const joined = row["joinedAt"];
@@ -228,8 +258,16 @@ export async function fetchCurrentMeetRegistration(meetId: string): Promise<bool
   const user = firebaseAuth.currentUser;
   if (!user || meetId !== "current") return false;
   try {
-    const snapshot = await getDoc(doc(firebaseDb, "meetParticipants", user.uid));
-    return snapshot.exists() && snapshot.data()["meetId"] === meetId;
+    const [meetSnapshot, participantSnapshot] = await Promise.all([
+      getDoc(doc(firebaseDb, "meets", "current")),
+      getDoc(doc(firebaseDb, "meetParticipants", user.uid)),
+    ]);
+    return (
+      meetSnapshot.exists() &&
+      participantSnapshot.exists() &&
+      participantSnapshot.data()["meetId"] === meetId &&
+      sameMeetStart(participantSnapshot.data()["meetStartAt"], meetSnapshot.data()["startAt"])
+    );
   } catch {
     return false;
   }
@@ -279,28 +317,28 @@ export async function registerForMeet(
       ]);
       if (!meetSnapshot.exists() || meetSnapshot.data()["enabled"] !== true)
         return "no_active_meet" as const;
-      if (participantSnapshot.exists()) return "duplicate" as const;
 
       const meet = meetSnapshot.data();
-      const valueMs = (value: unknown): number | null => {
-        if (typeof value === "string" || typeof value === "number") {
-          const time = new Date(value).getTime();
-          return Number.isNaN(time) ? null : time;
-        }
-        if (value && typeof value === "object" && "toDate" in value)
-          return (value as { toDate: () => Date }).toDate().getTime();
-        return null;
-      };
+      if (
+        participantSnapshot.exists() &&
+        sameMeetStart(participantSnapshot.data()["meetStartAt"], meet["startAt"])
+      )
+        return "duplicate" as const;
+
       const now = Date.now();
-      const startAt = valueMs(meet["startAt"]);
+      const startAt = timestampMs(meet["startAt"]);
       if (startAt === null) return "invalid" as const;
-      const explicitClose = valueMs(meet["registrationClosesAt"]);
+      const explicitClose = timestampMs(meet["registrationClosesAt"]);
       const closesAt = explicitClose ?? startAt + MEET_REGISTRATION_GRACE_MS;
       if (meet["status"] === "closed" || meet["status"] === "ended" || closesAt <= now)
         return "registration_closed" as const;
 
       const capacity = Math.min(20, Math.max(1, Number(meet["maxPlayers"] ?? 20)));
-      const slotIndex = slotSnapshots.slice(0, capacity).findIndex((slot) => !slot.exists());
+      const slotIndex = slotSnapshots
+        .slice(0, capacity)
+        .findIndex(
+          (slot) => !slot.exists() || !sameMeetStart(slot.data()["meetStartAt"], meet["startAt"]),
+        );
       if (slotIndex < 0) return "meet_full" as const;
       const slotRef = slotRefs[slotIndex]!;
 
@@ -317,12 +355,14 @@ export async function registerForMeet(
       });
       tx.set(slotRef, {
         meetId: "current",
+        meetStartAt: meet["startAt"],
         participantId,
         memberId: member.id,
         createdAt: serverTimestamp(),
       });
       tx.set(rosterRef, {
         meetId: "current",
+        meetStartAt: meet["startAt"],
         nickname: canonicalNick,
         joinedAt: serverTimestamp(),
       });

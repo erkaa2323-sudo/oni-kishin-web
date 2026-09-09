@@ -19,6 +19,20 @@ function dateValue(value: unknown): string | null {
   return null;
 }
 
+function timeValue(value: unknown): number | null {
+  if (value && typeof value === "object" && "toMillis" in value) {
+    try {
+      return (value as { toMillis: () => number }).toMillis();
+    } catch {
+      return null;
+    }
+  }
+  const iso = dateValue(value);
+  if (!iso) return null;
+  const valueMs = new Date(iso).getTime();
+  return Number.isNaN(valueMs) ? null : valueMs;
+}
+
 export function subscribeActiveMeet(
   onChange: (session: MeetSession | null) => void,
   onError?: (reason: string) => void,
@@ -63,27 +77,54 @@ export function subscribeMeetParticipants(
     return () => undefined;
   }
 
-  return onSnapshot(
-    query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId)),
-    (snapshot) => {
-      const participants = snapshot.docs
-        .filter((entry) => entry.id !== "__counter__")
-        .map((entry) => {
-          const row = entry.data();
-          const joined = row["joinedAt"];
-          return {
-            cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
-            registeredAt:
-              joined && typeof joined.toDate === "function"
-                ? joined.toDate().toISOString()
-                : new Date().toISOString(),
-          };
-        })
-        .sort((a, b) => a.registeredAt.localeCompare(b.registeredAt));
-      onChange(participants);
+  let rosterUnsubscribe: Unsubscribe | null = null;
+  const meetUnsubscribe = onSnapshot(
+    doc(firebaseDb, "meets", "current"),
+    (meetSnapshot) => {
+      rosterUnsubscribe?.();
+      rosterUnsubscribe = null;
+      if (!meetSnapshot.exists() || meetSnapshot.data()["enabled"] !== true) {
+        onChange([]);
+        return;
+      }
+
+      const currentStart = timeValue(meetSnapshot.data()["startAt"]);
+      if (currentStart === null) {
+        onChange([]);
+        return;
+      }
+
+      rosterUnsubscribe = onSnapshot(
+        query(collection(firebaseDb, "meetRoster"), where("meetId", "==", meetId)),
+        (snapshot) => {
+          const participants = snapshot.docs
+            .filter(
+              (entry) =>
+                entry.id !== "__counter__" &&
+                timeValue(entry.data()["meetStartAt"]) === currentStart,
+            )
+            .map((entry) => {
+              const row = entry.data();
+              const joined = row["joinedAt"];
+              return {
+                cpmNickname: String(row["nickname"] || row["nick"] || row["name"] || "ONI MEMBER"),
+                registeredAt:
+                  joined && typeof joined.toDate === "function"
+                    ? joined.toDate().toISOString()
+                    : new Date().toISOString(),
+              };
+            })
+            .sort((a, b) => a.registeredAt.localeCompare(b.registeredAt));
+          onChange(participants);
+        },
+        () => onError?.(),
+      );
     },
-    () => {
-      onError?.();
-    },
+    () => onError?.(),
   );
+
+  return () => {
+    rosterUnsubscribe?.();
+    meetUnsubscribe();
+  };
 }

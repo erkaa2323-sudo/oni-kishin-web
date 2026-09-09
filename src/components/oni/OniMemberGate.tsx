@@ -6,6 +6,7 @@ import {
   fetchMemberAccount,
   registerMemberAccount,
   requestMemberAccount,
+  resetMemberPassword,
   signInMember,
   signOutMember,
   watchMemberAuth,
@@ -26,6 +27,9 @@ function authMessage(error: unknown): string {
   if (/crew_not_found/i.test(text)) return "CPM нэр эсвэл CPM ID Crew жагсаалттай таарсангүй.";
   if (/email-already-in-use/i.test(text)) return "Энэ и-мэйлээр аккаунт бүртгэгдсэн байна.";
   if (/weak-password/i.test(text)) return "Нууц үг хамгийн багадаа 6 тэмдэгт байна.";
+  if (/invalid-email|invalid_email/i.test(text)) return "Зөв и-мэйл хаяг оруулна уу.";
+  if (/too-many-requests|rate limit|too many/i.test(text))
+    return "Хэт олон оролдлого хийсэн байна. Түр завсарлаад дахин оролдоно уу.";
   if (/invalid-credential|wrong-password|user-not-found/i.test(text))
     return "И-мэйл эсвэл нууц үг буруу байна.";
   return "Үйлдэл амжилтгүй боллоо. Мэдээллээ шалгаад дахин оролдоно уу.";
@@ -70,6 +74,19 @@ export function OniMemberGate({ onAccount, allowAccountActions = false }: Props)
       } else {
         await signInMember(email, password);
       }
+    } catch (error) {
+      setNotice(authMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    setBusy(true);
+    setNotice("");
+    try {
+      await resetMemberPassword(email);
+      setNotice("Нууц үг шинэчлэх холбоос и-мэйл рүү илгээгдлээ.");
     } catch (error) {
       setNotice(authMessage(error));
     } finally {
@@ -302,6 +319,16 @@ export function OniMemberGate({ onAccount, allowAccountActions = false }: Props)
             onChange={(event) => setPassword(event.target.value)}
           />
         </label>
+        {mode === "login" ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void resetPassword()}
+            className="min-h-10 justify-self-start text-xs text-muted-foreground underline underline-offset-4 disabled:opacity-50"
+          >
+            НУУЦ ҮГ МАРТСАН
+          </button>
+        ) : null}
         {mode === "register" ? (
           <>
             <label className="text-xs text-muted-foreground">
