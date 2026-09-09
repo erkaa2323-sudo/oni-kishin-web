@@ -169,7 +169,9 @@
             fitW = w * 0.92,
             fitH = h * 0.94,
             scale = Math.min(fitW / baseW, fitH / baseH),
-            centerY = h * 0.515;
+            centerY = h * 0.515,
+            topSafe = Math.max(0, centerY - fitH * 0.5),
+            bottomSafe = Math.max(0, h - (centerY + fitH * 0.5));
 
           model.scale.set(scale);
           model.position.set(w * 0.5, centerY);
@@ -184,6 +186,10 @@
             baseH,
             fitW,
             fitH,
+            usableW: fitW,
+            usableH: fitH,
+            topSafe,
+            bottomSafe,
             scale,
             centerY,
             resolution: app.renderer.resolution || 1,
