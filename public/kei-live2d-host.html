@@ -166,12 +166,12 @@
             currentScaleY = Math.max(Math.abs(model.scale.y || 1), 0.0001),
             baseW = Math.max(model.width / currentScaleX, 1),
             baseH = Math.max(model.height / currentScaleY, 1),
-            topSafe = compact ? Math.min(58, h * 0.17) : 28,
-            bottomSafe = compact ? Math.min(112, h * 0.28) : 96,
-            usableH = Math.max(96, h - topSafe - bottomSafe),
-            usableW = w * (compact ? 0.82 : 0.9),
-            scale = Math.min(usableW / baseW, (usableH * 0.94) / baseH),
-            centerY = topSafe + usableH * 0.5;
+            fitW = w * 0.92,
+            fitH = h * 0.94,
+            scale = Math.min(fitW / baseW, fitH / baseH),
+            centerY = h * 0.515,
+            topSafe = Math.max(0, centerY - fitH * 0.5),
+            bottomSafe = Math.max(0, h - (centerY + fitH * 0.5));
 
           model.scale.set(scale);
           model.position.set(w * 0.5, centerY);
@@ -184,12 +184,15 @@
             height: h,
             baseW,
             baseH,
+            fitW,
+            fitH,
+            usableW: fitW,
+            usableH: fitH,
             topSafe,
             bottomSafe,
-            usableH,
-            usableW,
             scale,
             centerY,
+            resolution: app.renderer.resolution || 1,
           };
         }
         function queueFrame() {
@@ -243,6 +246,9 @@
                 configurable: true,
               });
             }
+            try {
+              if (source) source.scaleMode = "linear";
+            } catch {}
           }
         }
         function installCubismCoreCompat(m) {
@@ -350,18 +356,19 @@
           if (typeof PIXI.live2d.Live2DModel.registerTicker === "function")
             PIXI.live2d.Live2DModel.registerTicker(PIXI.Ticker);
           app = new PIXI.Application();
+          const dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2);
           await app.init({
             width: Math.max(1, stage.clientWidth),
             height: Math.max(1, stage.clientHeight),
             backgroundAlpha: 0,
-            antialias: false,
+            antialias: true,
             autoDensity: true,
-            resolution: 1,
+            resolution: dpr,
             preference: "webgl",
-            powerPreference: "low-power",
+            powerPreference: "high-performance",
             preserveDrawingBuffer: true,
           });
-          if (app.ticker) app.ticker.maxFPS = 30;
+          if (app.ticker) app.ticker.maxFPS = reduced ? 30 : 60;
           stage.appendChild(app.canvas);
           app.canvas.addEventListener("webglcontextlost", (event) => {
             event.preventDefault();
@@ -386,6 +393,7 @@
             pixelWidth: t0.source?.pixelWidth || 0,
             pixelHeight: t0.source?.pixelHeight || 0,
             flipY: !!model?.internalModel?.textureFlipY,
+            resolution: dpr,
           };
           app.stage.addChild(model);
           frameKei();
