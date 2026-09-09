@@ -58,7 +58,11 @@ async function approvedMember(idToken: string) {
 }
 
 function aspect(preset: z.infer<typeof Payload>["preset"]) {
-  return preset === "profile" ? "1:1" : preset === "garage" || preset === "crew" ? "16:9" : "4:5";
+  return preset === "profile"
+    ? "1:1"
+    : preset === "garage" || preset === "crew"
+      ? "16:9"
+      : "4:5";
 }
 
 function outputSize(preset: z.infer<typeof Payload>["preset"]) {
@@ -106,7 +110,11 @@ async function generateWithCloudflare(
   const { width, height } = outputSize(preset);
   const form = new FormData();
   form.append("prompt", prompt);
-  form.append("input_image_0", new Blob([sourceImage.data], { type: sourceImage.mediaType }), "car.jpg");
+  form.append(
+    "input_image_0",
+    new Blob([sourceImage.data], { type: sourceImage.mediaType }),
+    "car.jpg",
+  );
   form.append("width", String(width));
   form.append("height", String(height));
   form.append("guidance", "3.5");
@@ -141,7 +149,9 @@ async function generateWithCloudflare(
 
   const bytes = Buffer.from(await response.arrayBuffer());
   if (bytes.byteLength === 0) throw new Error("Cloudflare Workers AI returned an empty image");
-  const imageType = contentType.startsWith("image/") ? contentType.split(";")[0] : "image/png";
+  const imageType = contentType.startsWith("image/")
+    ? contentType.split(";")[0]
+    : "image/png";
   return `data:${imageType};base64,${bytes.toString("base64")}`;
 }
 
