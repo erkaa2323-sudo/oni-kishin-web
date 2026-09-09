@@ -144,13 +144,27 @@ export function KeiMeetHostCubism5({
     : modeFor(state);
   const signal = countdownActive ? "FINAL COUNTDOWN" : signalFor(state);
   const runtimeLabel =
-    runtime === "ready" ? "ONLINE" : runtime === "failed" ? "OFFLINE" : "SYNC";
+    runtime === "ready"
+      ? "ONLINE"
+      : runtime === "failed"
+        ? "OFFLINE"
+        : "SYNC";
   const runtimeClass =
     runtime === "ready"
       ? "text-emerald-300/80"
       : runtime === "failed"
         ? "text-crimson"
         : "text-white/40";
+  const railColorClass = positive
+    ? "bg-emerald-300/45"
+    : hot
+      ? "bg-crimson/55"
+      : "bg-white/15";
+  const signalTextClass = positive
+    ? "text-emerald-300/75"
+    : hot
+      ? "text-crimson/80"
+      : "text-white/35";
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<KeiMessage>) => {
@@ -240,13 +254,9 @@ export function KeiMeetHostCubism5({
       ) : null}
 
       <div className="pointer-events-none absolute left-3 top-[54%] z-20 w-[23%] -translate-y-1/2 sm:left-5 sm:w-[22%]">
-        <span
-          className={`mb-2 block h-px w-8 ${positive ? "bg-emerald-300/45" : hot ? "bg-crimson/55" : "bg-white/15"}`}
-        />
+        <span className={`mb-2 block h-px w-8 ${railColorClass}`} />
         <div
-          className={`text-[0.38rem] font-semibold tracking-[0.16em] sm:text-[0.44rem] ${
-            positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"
-          }`}
+          className={`text-[0.38rem] font-semibold tracking-[0.16em] sm:text-[0.44rem] ${signalTextClass}`}
         >
           {signal}
         </div>
