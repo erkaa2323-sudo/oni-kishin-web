@@ -8,6 +8,10 @@ export function composeRules() {
     ["firestore.creator.rules.fragment", "match /creatorPublishRequests/"],
     ["firestore.nexus.rules.fragment", "match /pushSubscriptions/"],
     ["firestore.progression.v3.rules.fragment", "function currentWeekPathV3()"],
+    [
+      "firestore.progression.shop-hotfix.rules.fragment",
+      "function validCosmeticUnlockSocialHotfixV1(eventId)",
+    ],
   ]) {
     if (!rules.includes(needle))
       rules = rules.replace(marker, `${readFileSync(file, "utf8").trimEnd()}\n\n${marker}`);
