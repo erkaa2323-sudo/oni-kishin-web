@@ -122,10 +122,7 @@ export function KeiMeetHostCubism5({
   const retryCount = useRef(0);
   const state = resolveHostState(life, registrationState, accessReady);
   const countdownActive =
-    countdownPhase !== "none" &&
-    state !== "access" &&
-    state !== "loading" &&
-    state !== "denied";
+    countdownPhase !== "none" && state !== "access" && state !== "loading" && state !== "denied";
   const reactionState = countdownActive ? `countdown-${countdownPhase}` : state;
   const hot = countdownActive || state === "access" || state === "live" || state === "starting";
   const positive = state === "access" || state === "registered";

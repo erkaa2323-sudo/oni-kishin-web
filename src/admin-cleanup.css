@@ -4,15 +4,33 @@ nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(10) {
 }
 
 /* Stable admin order: ЕРӨНХИЙ → ХҮСЭЛТ → ГИШҮҮД → НЭВТРЭХ ХҮСЭЛТ → ... */
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(1) { order: 1; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) { order: 2; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(2) { order: 3; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) { order: 4; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(4) { order: 5; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(6) { order: 6; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) { order: 7; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(8) { order: 8; }
-nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(9) { order: 9; }
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(1) {
+  order: 1;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) {
+  order: 2;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(2) {
+  order: 3;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) {
+  order: 4;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(4) {
+  order: 5;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(6) {
+  order: 6;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(7) {
+  order: 7;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(8) {
+  order: 8;
+}
+nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(9) {
+  order: 9;
+}
 
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(3) button span:last-child,
 nav[aria-label="Удирдлагын хэсгүүд"] li:nth-child(5) button span:last-child,

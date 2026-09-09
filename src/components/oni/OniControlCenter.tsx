@@ -970,7 +970,9 @@ function MeetModule({
           />
         </label>
         <label className="block">
-          <span className="hud-label block text-muted-foreground">SCHEDULE / ЭХЛЭХ + БҮРТГЭЛ НЭЭХ ЦАГ</span>
+          <span className="hud-label block text-muted-foreground">
+            SCHEDULE / ЭХЛЭХ + БҮРТГЭЛ НЭЭХ ЦАГ
+          </span>
           <input
             type="datetime-local"
             className={`${fieldClass} mt-2`}
