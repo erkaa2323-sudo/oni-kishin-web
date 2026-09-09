@@ -66,7 +66,10 @@ for (const [name, browserType] of engines) {
       });
       page.on("pageerror", (err) => pageErrors.push(String(err?.stack || err)));
       await page.goto(textureUrl, { waitUntil: "networkidle", timeout: 30000 });
-      await page.waitForTimeout(900);
+      // Network idle does not mean asynchronous texture decoding/rendering has finished.
+      await page.waitForFunction(() => window.__PIXITEST__ !== undefined, null, {
+        timeout: 30000,
+      });
       const result = await inspectCanvas(page);
       const ok = result.pixiTest?.ok === true && result.canvasExists && result.alpha > 0;
       console.log(`\n[${name}][raw-pixi-texture]`, JSON.stringify(result));
