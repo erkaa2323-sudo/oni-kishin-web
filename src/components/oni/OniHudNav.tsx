@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
 
 import { ONI_DESTINATIONS, CLAN_NAME } from "@/lib/oni-nav";
@@ -8,6 +9,11 @@ import { OniMark } from "./OniMark";
 export function OniHudNav() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -24,6 +30,66 @@ export function OniHudNav() {
   }, [open]);
 
   const primary = ONI_DESTINATIONS.filter((d) => d.to !== "/" && d.to !== "/admin");
+
+  const sectorIndex = (
+    <div
+      className={`fixed inset-0 z-[100] transition-opacity duration-400 ${
+        open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+      }`}
+      aria-hidden={!open}
+    >
+      <div
+        className="absolute inset-0 bg-ink/94 backdrop-blur-2xl"
+        onClick={() => setOpen(false)}
+      />
+      <div className="pointer-events-none absolute inset-0 scanline-veil opacity-40" />
+      <div
+        className="relative z-10 flex h-full flex-col overflow-y-auto px-5 pb-12 sm:px-10"
+        style={{
+          paddingTop: "max(1.25rem, env(safe-area-inset-top))",
+          paddingBottom: "max(3rem, env(safe-area-inset-bottom))",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <span className="hud-label">ONI CITY / SECTOR INDEX</span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Цэс хаах"
+            className="pointer-events-auto relative z-20 grid h-11 w-11 shrink-0 touch-manipulation place-items-center border border-border bg-ink/70 text-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-crimson"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav aria-label="Бүх хэсэг" className="mt-8 sm:mt-12">
+          <ul className="mx-auto grid max-w-5xl gap-px bg-border sm:grid-cols-2">
+            {ONI_DESTINATIONS.map((d) => (
+              <li key={d.to} className="bg-ink">
+                <Link
+                  to={d.to}
+                  onClick={() => setOpen(false)}
+                  className="group flex min-h-[64px] touch-manipulation items-center gap-4 px-4 py-5 transition-colors duration-300 hover:bg-crimson/10 sm:px-6"
+                >
+                  <span className="hud-label shrink-0 text-crimson/80">{d.index}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-cinema text-2xl text-foreground transition-transform duration-500 group-hover:translate-x-1 sm:text-3xl">
+                      {d.label}
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
+                      {d.desc}
+                    </span>
+                  </span>
+                  <span className="hud-label shrink-0">{d.code}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -85,7 +151,7 @@ export function OniHudNav() {
               type="button"
               onClick={() => setOpen(true)}
               aria-label="Цэс нээх"
-              className="grid h-10 w-10 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-crimson lg:hidden"
+              className="grid h-10 w-10 touch-manipulation place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-crimson lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -93,7 +159,7 @@ export function OniHudNav() {
               type="button"
               onClick={() => setOpen(true)}
               aria-label="Бүх хэсэг"
-              className="hidden h-10 items-center gap-2 border border-border px-4 text-[0.6rem] tracking-[0.24em] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground lg:inline-flex"
+              className="hidden h-10 touch-manipulation items-center gap-2 border border-border px-4 text-[0.6rem] tracking-[0.24em] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground lg:inline-flex"
             >
               БҮГД
             </button>
@@ -102,57 +168,7 @@ export function OniHudNav() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-crimson/35 to-transparent" />
       </header>
 
-      {/* Full-screen sector index */}
-      <div
-        className={`fixed inset-0 z-[60] transition-opacity duration-400 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
-        aria-hidden={!open}
-      >
-        <div
-          className="absolute inset-0 bg-ink/94 backdrop-blur-2xl"
-          onClick={() => setOpen(false)}
-        />
-        <div className="absolute inset-0 scanline-veil opacity-40" />
-        <div className="relative flex h-full flex-col overflow-y-auto px-5 pb-12 pt-5 sm:px-10">
-          <div className="flex items-center justify-between">
-            <span className="hud-label">ONI CITY / SECTOR INDEX</span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Цэс хаах"
-              className="grid h-10 w-10 place-items-center border border-border text-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-crimson"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <nav aria-label="Бүх хэсэг" className="mt-8 sm:mt-12">
-            <ul className="mx-auto grid max-w-5xl gap-px bg-border sm:grid-cols-2">
-              {ONI_DESTINATIONS.map((d) => (
-                <li key={d.to} className="bg-ink">
-                  <Link
-                    to={d.to}
-                    onClick={() => setOpen(false)}
-                    className="group flex items-center gap-4 px-4 py-5 transition-colors duration-300 hover:bg-crimson/10 sm:px-6"
-                  >
-                    <span className="hud-label shrink-0 text-crimson/80">{d.index}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-cinema text-2xl text-foreground transition-transform duration-500 group-hover:translate-x-1 sm:text-3xl">
-                        {d.label}
-                      </span>
-                      <span className="mt-1 block truncate text-xs text-muted-foreground">
-                        {d.desc}
-                      </span>
-                    </span>
-                    <span className="hud-label shrink-0">{d.code}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </div>
+      {portalReady ? createPortal(sectorIndex, document.body) : null}
     </>
   );
 }
