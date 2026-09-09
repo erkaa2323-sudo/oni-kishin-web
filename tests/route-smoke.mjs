@@ -16,6 +16,8 @@ for (const [name, engine] of [
       "/garage",
       "/gallery",
       "/meet",
+      "/profile",
+      "/shop",
       "/oni-ai",
       "/admin",
     ]) {

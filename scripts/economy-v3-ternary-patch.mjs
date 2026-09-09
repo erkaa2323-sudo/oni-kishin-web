@@ -180,7 +180,7 @@ for (const [before, after] of replacements) {
 }
 
 const rootMarker = `    function currentWeekPathV3() {`;
-const safeAdminHelper = `    function isEconomyAdminV3() {\n      return request.auth != null\n        && request.auth.token.get("email", "") == "erkaa130@gmail.com";\n    }\n\n`;
+const safeAdminHelper = `    function isEconomyAdminV3() {\n      return request.auth != null\n        && (request.auth.token.get("admin", false) == true\n          || request.auth.token.get("email", "") == "erkaa130@gmail.com");\n    }\n\n`;
 if (!rules.includes(rootMarker)) throw new Error("Economy root marker missing");
 rules = rules.replace(rootMarker, safeAdminHelper + rootMarker);
 rules = rules.replaceAll("isAdmin()", "isEconomyAdminV3()");

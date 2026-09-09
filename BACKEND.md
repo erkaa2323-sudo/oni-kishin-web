@@ -1,84 +1,38 @@
-# ONI HUB — backend (Lovable Cloud / Postgres + Auth)
+# ONI HUB — production backend
 
-No credentials live in this repository. The frontend uses only the generated
-public client at `src/integrations/supabase/client.ts` (publishable key).
-Service-role keys are never used in frontend code.
+ONI HUB production identity and application data use **Firebase Authentication + Cloud Firestore**.
 
-## Layers
+No private credentials belong in frontend code. Client-side authorization checks are UX only; Firestore Security Rules are the application-data security boundary. The ruleset keeps a final deny-all fallback so unrecognized collections fail closed.
 
-- `src/lib/backend/errors.ts` — normalized `ServiceResult` / error codes.
-- `src/services/domains.ts` — typed adapters: members, garage, applications,
-  meet (+ isolated credentials, registrations), music, AI config.
-- `src/services/admin-profiles.ts` — authorization from `user_roles`
-  (owner > admin > moderator), fails closed.
-- `src/services/audit.ts` — single centralized audit write pathway.
-- `src/hooks/useOniAuth.tsx` — session + authorization phases.
-- `src/components/oni/OniAdminGate.tsx` — `/admin` guard.
+## Core data domains
 
-UI components never query the database directly.
+- `members` — public clan roster; admin writes.
+- `memberAccounts/{uid}` — authenticated member-to-crew link; users can create only their own validated `pending` link, while approval/rejection is admin-only.
+- `garage`, `gallery`, `products`, `site`, `music`, `meets` — public-facing data with admin-controlled writes.
+- `meetParticipants`, `meetSlots`, `meetRoster`, `meetCredentials` — authenticated Meet access with approved-member checks and credential reveal rules.
+- `progressionProfiles`, `progressionLedger`, mission/achievement/prestige claims — XP, rank, ONI Coin and cosmetic economy, protected by Firestore transaction invariants.
+- creator and NEXUS collections are composed into the deployed ruleset from the dedicated rule fragments.
 
-## Tables and access
+## Authentication and authorization
 
-| Table                | Public read                  | Notes                                                |
-| -------------------- | ---------------------------- | ---------------------------------------------------- |
-| `profiles`           | no                           | own row (staff may read all)                         |
-| `user_roles`         | no                           | own rows; only an **owner** may insert/update/delete |
-| `members`            | `status = 'active'`          | admins write                                         |
-| `garage_vehicles`    | `status = 'published'`       | admins write                                         |
-| `music_tracks`       | `status = 'published'`       | admins write                                         |
-| `applications`       | **insert only**, no readback | staff read/review                                    |
-| `meets`              | `scheduled` / `live` only    | no credentials on this table                         |
-| `meet_credentials`   | never                        | admins only; separate table                          |
-| `meet_registrations` | no                           | staff read, admins write                             |
-| `ai_config`          | no                           | staff read, admins write                             |
-| `audit_logs`         | no                           | staff read + append; no update/delete policy         |
+Firebase Authentication identifies the user. A member account is not automatically a Crew membership: `memberAccounts/{uid}` must match an existing Crew member nickname + CPM ID and remains `pending` until an admin approves it.
 
-RLS is enabled on every table above. Role checks use the security-definer
-functions `has_role`, `is_staff`, `is_admin`, so a user cannot self-promote:
-role rows are writable only by an owner.
-
-## First owner bootstrap (manual, safe)
-
-1. Create the account: open `/admin` and sign in once with the intended owner
-   e-mail/password (or create the user in Cloud → Auth → Users). A `profiles`
-   row is created automatically. The user is still **not** authorized.
-2. Find the user id in Cloud → Auth → Users.
-3. In Cloud → Database (SQL), run once:
-
-   ```sql
-   INSERT INTO public.user_roles (user_id, role)
-   VALUES ('<paste-user-id>', 'owner');
-   ```
-
-4. Reload `/admin` — the session is now authorized as `owner`. That owner can
-   grant `admin` / `moderator` rows to other users.
-
-Never hardcode an owner e-mail or id in application code.
+Admin access accepts a Firebase custom `admin` claim when provisioned. The current owner e-mail remains a compatibility fallback during the migration so production administration is not accidentally locked out. Frontend checks never replace Firestore/server authorization.
 
 ## ONI MEET
 
-Public meet access uses three security-definer functions; no public path can
-touch `meet_credentials`:
+Meet registration requires an approved member account. Registration data must match the linked member identity and the current Meet. Slot creation and participant creation are cross-validated in Firestore rules, capacity is bounded, and room credentials stay protected until the Meet lifecycle allows reveal to an eligible registered member.
 
-- `meet_public_active()` — current scheduled/live meet + participant count.
-- `meet_participants(meet_id)` — public nicknames only (never CPM ID).
-- `meet_register(meet_id, nickname, cpm_id)` — enforces registration
-  deadline, capacity and duplicate CPM ID **in the database**. Direct
-  anonymous INSERT into `meet_registrations` stays blocked by RLS.
+## Progression / Economy
 
-Admin Meet Control manages schedule, registration close time, capacity,
-lifecycle (live / closed / ended), masked credentials and registration
-removal. Credential values are never written to `audit_logs`.
+XP, ONI Coin, cosmetic unlock/equip, weekly missions, achievements, prestige and Meet rewards use Firestore transactions plus rules that validate the corresponding profile/ledger/claim mutations. The client is not trusted to mint arbitrary XP or Coin.
 
-**Remaining identity requirement:** ROOM ID / PASSWORD are still not released
-to participants. A CPM nickname + ID pair does not prove identity, so reveal
-stays closed until members have real authenticated accounts linked to
-`members`. The CPM launch CTA uses a configurable official store URL
-(`CPM_LAUNCH_URL`); no unofficial deep-link scheme is used and no credential
-is ever placed in a URL.
+## Deployment and verification
 
-## Not yet implemented (next phase)
+`npm run check` is the release gate. It covers formatting, lint, typecheck, production build, foundation tests, Firestore-rule tests, Economy audit, and Chromium/WebKit browser checks. Production Vercel deployment is manual and must run the same full verification job before the deploy job can start.
 
-- Real content migration / seeding.
-- Verified-participant credential reveal (needs member auth identity).
-- ONI Brain AI engine (offline; it refuses credential requests outright).
+Firebase rule deployment composes the base rules plus creator, NEXUS and progression rule fragments and publishes the resulting ruleset only from `main`.
+
+## Legacy backend note
+
+Older Lovable/Supabase client and middleware sources were removed from the active application architecture. Firebase/Firestore is the single canonical production backend unless a future migration is explicitly designed and verified.

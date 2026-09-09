@@ -46,7 +46,7 @@ export function ok<T>(data: T): ServiceResult<T> {
   return { ok: true, data };
 }
 
-/** Map a Supabase/PostgREST/unknown throw into a normalized ServiceError. */
+/** Map backend/transport/legacy adapter failures into a normalized ServiceError. */
 export function normalizeError(err: unknown): ServiceError {
   const e = (err ?? {}) as { code?: string; message?: string; status?: number };
   const code = typeof e.code === "string" ? e.code : "";

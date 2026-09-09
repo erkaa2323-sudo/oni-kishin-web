@@ -256,7 +256,7 @@
     }
 
     match /progressionProfiles/{uid} {
-      allow read: if true;
+      allow read: if isAdmin() || isApprovedMember();
       allow create: if isAdmin() || (isApprovedMember()
         && request.auth.uid == uid
         && request.resource.data.uid == uid

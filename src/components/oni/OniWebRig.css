@@ -1,1 +1,308 @@
-.oni-web-rig{pointer-events:none;position:absolute;inset:0;overflow:hidden;perspective:850px;contain:layout paint;--oni-look-x:0;--oni-look-y:0;--oni-glow:.5;--oni-live-head-x:1;--oni-live-head-y:.5;--oni-live-head-z:.5;--oni-live-body-x:.5;--oni-live-breath:1;--oni-live-hair:.5;--oni-live-arm:.2;--oni-blink-rate:5s;--oni-talk-energy:0}.oni-web-rig__body{position:absolute;inset:0;transform-origin:50% 76%;animation:oniLiveBody 4.4s ease-in-out infinite;will-change:transform}.oni-web-rig__fallback,.oni-web-rig__layer{position:absolute;inset-inline:0;bottom:0;margin:auto;height:100%;width:auto;max-width:100%;object-fit:contain;object-position:center bottom;user-select:none;-webkit-user-drag:none;will-change:transform}.oni-web-rig__fallback{transform-origin:50% 62%;filter:drop-shadow(0 0 calc(12px + var(--oni-glow)*28px) oklch(.62 .22 18/.42));transform:translate3d(calc(var(--oni-look-x)*10px),calc(var(--oni-look-y)*6px),0) rotateY(calc(var(--oni-look-x)*var(--oni-live-head-x)*1deg)) rotateX(calc(var(--oni-look-y)*var(--oni-live-head-y)*-1deg)) rotateZ(calc(var(--oni-head-tilt)*.3));transition:filter .3s ease}.oni-web-rig__layer{filter:drop-shadow(0 0 calc(4px + var(--oni-glow)*9px) oklch(.62 .22 18/.13))}.oni-web-rig__physics--head{transform:translate3d(calc(var(--oni-look-x)*7px),calc(var(--oni-look-y)*4px),10px) rotateY(calc(var(--oni-look-x)*var(--oni-live-head-x)*1deg)) rotateX(calc(var(--oni-look-y)*var(--oni-live-head-y)*-1deg)) rotateZ(var(--oni-head-tilt))}.oni-web-rig__physics--face{transform:translate3d(calc(var(--oni-look-x)*9px),calc(var(--oni-look-y)*5px),18px)}.oni-web-rig__physics--body{animation:oniLiveLayerBody 4.4s ease-in-out infinite}.oni-web-rig__physics--hair{animation:oniLiveHair 3.2s ease-in-out infinite}.oni-web-rig__physics--arm{animation:oniLiveArm 3.7s ease-in-out infinite}.oni-web-rig__layer--eyeLeft,.oni-web-rig__layer--eyeRight{transform:scaleY(var(--oni-eye-open));animation:oniLiveBlink var(--oni-blink-rate) infinite}.oni-web-rig__layer--pupilLeft,.oni-web-rig__layer--pupilRight{transform:translate(calc(var(--oni-look-x)*7px),calc(var(--oni-look-y)*4px)) scale(var(--oni-pupil-scale))}.oni-web-rig__layer--mouth{transform-origin:50% 45%;transform:scaleY(calc(.45 + var(--oni-mouth-open)*1.3))}.oni-web-rig.is-speaking .oni-web-rig__layer--mouth{animation:oniLiveTalk .16s ease-in-out infinite alternate}.oni-web-rig__shadow{position:absolute;left:50%;bottom:1%;width:48%;height:7%;translate:-50% 0;border-radius:50%;background:radial-gradient(ellipse,oklch(.08 .03 290/.72),transparent 70%);filter:blur(10px);animation:oniLiveShadow 4.4s ease-in-out infinite}.oni-web-rig__aura{position:absolute;left:50%;bottom:-8%;width:84%;height:86%;translate:-50%;border-radius:50%;background:radial-gradient(circle at 50% 55%,oklch(.68 .24 18/calc(.12 + var(--oni-glow)*.22)),transparent 72%);filter:blur(25px);animation:oniLiveAura 3.4s ease-in-out infinite}.oni-web-rig__face-life{position:absolute;left:50%;top:27%;width:18%;height:11%;translate:-50% -50%;transform:translate3d(calc(var(--oni-look-x)*8px),calc(var(--oni-look-y)*5px),18px);opacity:calc(.28 + var(--oni-blush)*.3);mix-blend-mode:screen}.oni-web-rig__eye{position:absolute;top:22%;width:28%;height:15%;border-radius:50%;background:oklch(.78 .22 12/.18);transform-origin:center;animation:oniLiveBlink var(--oni-blink-rate) infinite}.oni-web-rig__eye--left{left:13%}.oni-web-rig__eye--right{right:13%;animation-delay:.025s}.oni-web-rig__eye i{position:absolute;left:50%;top:50%;width:26%;aspect-ratio:1;translate:-50% -50%;border-radius:50%;background:oklch(.8 .24 12/.58);box-shadow:0 0 8px oklch(.7 .25 15/.6);transform:translate(calc(var(--oni-look-x)*7px),calc(var(--oni-look-y)*4px)) scale(var(--oni-pupil-scale))}.oni-web-rig__mouth{position:absolute;left:50%;top:73%;width:18%;height:calc(3% + var(--oni-mouth-open)*5%);translate:-50%;border-radius:0 0 50% 50%;background:oklch(.68 .2 15/.3);transform-origin:center top}.oni-web-rig.is-speaking .oni-web-rig__mouth{animation:oniLiveTalk .16s ease-in-out infinite alternate}.oni-web-rig__hair-flow{position:absolute;inset:8% 16% 3%;border-radius:45%;background:radial-gradient(ellipse at 50% 45%,transparent 45%,oklch(.6 .2 330/.09) 72%,transparent 78%);filter:blur(9px);transform-origin:50% 18%;animation:oniLiveHair 3.2s ease-in-out infinite}.oni-web-rig__particles{position:absolute;inset:8% 9% 0;background-image:radial-gradient(circle,oklch(.75 .22 15/.5) 0 1px,transparent 1.6px),radial-gradient(circle,oklch(.72 .18 310/.3) 0 1px,transparent 1.5px);background-size:83px 97px,117px 131px;opacity:calc(.08 + var(--oni-glow)*.24);animation:oniLiveParticles 10s linear infinite}@keyframes oniLiveBody{0%,100%{transform:translateX(calc(var(--oni-live-body-x)*-.25%)) translateY(0) rotateZ(calc(var(--oni-head-tilt)*.18))}50%{transform:translateX(calc(var(--oni-live-body-x)*.25%)) translateY(calc(var(--oni-live-breath)*-.7%)) rotateZ(calc(var(--oni-head-tilt)*-.12)) scale(1.008)}}@keyframes oniLiveLayerBody{50%{transform:translateY(calc(var(--oni-live-breath)*-3px))}}@keyframes oniLiveHair{0%,100%{transform:translateX(calc(var(--oni-look-x)*var(--oni-live-hair)*-3px)) rotate(calc(var(--oni-live-hair)*-.6deg))}50%{transform:translateX(calc(var(--oni-look-x)*var(--oni-live-hair)*3px)) rotate(calc(var(--oni-live-hair)*.8deg))}}@keyframes oniLiveArm{0%,100%{transform:rotate(calc(var(--oni-live-arm)*-.5deg))}50%{transform:rotate(calc(var(--oni-live-arm)*.65deg))}}@keyframes oniLiveBlink{0%,42%,46%,76%,80%,100%{transform:scaleY(var(--oni-eye-open))}43%,45%,77%,79%{transform:scaleY(.035)}}@keyframes oniLiveTalk{from{transform:scale(1,.58)}to{transform:scale(1.1,calc(.9 + var(--oni-mouth-open)*1.8 + var(--oni-talk-energy)*.35))}}@keyframes oniLiveShadow{50%{transform:scaleX(.94);opacity:.45}}@keyframes oniLiveAura{0%,100%{transform:scale(.96);opacity:.64}50%{transform:scale(1.05);opacity:1}}@keyframes oniLiveParticles{to{background-position:24px -97px,-20px -131px}}@media(max-width:767px){.oni-web-rig{perspective:650px}.oni-web-rig__fallback{height:104%;max-width:112%}.oni-web-rig__face-life{top:28%;width:20%}.oni-web-rig__particles{opacity:calc(.05 + var(--oni-glow)*.16)}}@media(prefers-reduced-motion:reduce){.oni-web-rig *{animation-duration:.001ms!important;animation-iteration-count:1!important}.oni-web-rig__fallback,.oni-web-rig__layer{transform:none!important}}
+.oni-web-rig {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 850px;
+  contain: layout paint;
+  --oni-look-x: 0;
+  --oni-look-y: 0;
+  --oni-glow: 0.5;
+  --oni-live-head-x: 1;
+  --oni-live-head-y: 0.5;
+  --oni-live-head-z: 0.5;
+  --oni-live-body-x: 0.5;
+  --oni-live-breath: 1;
+  --oni-live-hair: 0.5;
+  --oni-live-arm: 0.2;
+  --oni-blink-rate: 5s;
+  --oni-talk-energy: 0;
+}
+.oni-web-rig__body {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 76%;
+  animation: oniLiveBody 4.4s ease-in-out infinite;
+  will-change: transform;
+}
+.oni-web-rig__fallback,
+.oni-web-rig__layer {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  margin: auto;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: transform;
+}
+.oni-web-rig__fallback {
+  transform-origin: 50% 62%;
+  filter: drop-shadow(0 0 calc(12px + var(--oni-glow) * 28px) oklch(0.62 0.22 18/0.42));
+  transform: translate3d(calc(var(--oni-look-x) * 10px), calc(var(--oni-look-y) * 6px), 0)
+    rotateY(calc(var(--oni-look-x) * var(--oni-live-head-x) * 1deg))
+    rotateX(calc(var(--oni-look-y) * var(--oni-live-head-y) * -1deg))
+    rotateZ(calc(var(--oni-head-tilt) * 0.3));
+  transition: filter 0.3s ease;
+}
+.oni-web-rig__layer {
+  filter: drop-shadow(0 0 calc(4px + var(--oni-glow) * 9px) oklch(0.62 0.22 18/0.13));
+}
+.oni-web-rig__physics--head {
+  transform: translate3d(calc(var(--oni-look-x) * 7px), calc(var(--oni-look-y) * 4px), 10px)
+    rotateY(calc(var(--oni-look-x) * var(--oni-live-head-x) * 1deg))
+    rotateX(calc(var(--oni-look-y) * var(--oni-live-head-y) * -1deg)) rotateZ(var(--oni-head-tilt));
+}
+.oni-web-rig__physics--face {
+  transform: translate3d(calc(var(--oni-look-x) * 9px), calc(var(--oni-look-y) * 5px), 18px);
+}
+.oni-web-rig__physics--body {
+  animation: oniLiveLayerBody 4.4s ease-in-out infinite;
+}
+.oni-web-rig__physics--hair {
+  animation: oniLiveHair 3.2s ease-in-out infinite;
+}
+.oni-web-rig__physics--arm {
+  animation: oniLiveArm 3.7s ease-in-out infinite;
+}
+.oni-web-rig__layer--eyeLeft,
+.oni-web-rig__layer--eyeRight {
+  transform: scaleY(var(--oni-eye-open));
+  animation: oniLiveBlink var(--oni-blink-rate) infinite;
+}
+.oni-web-rig__layer--pupilLeft,
+.oni-web-rig__layer--pupilRight {
+  transform: translate(calc(var(--oni-look-x) * 7px), calc(var(--oni-look-y) * 4px))
+    scale(var(--oni-pupil-scale));
+}
+.oni-web-rig__layer--mouth {
+  transform-origin: 50% 45%;
+  transform: scaleY(calc(0.45 + var(--oni-mouth-open) * 1.3));
+}
+.oni-web-rig.is-speaking .oni-web-rig__layer--mouth {
+  animation: oniLiveTalk 0.16s ease-in-out infinite alternate;
+}
+.oni-web-rig__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 1%;
+  width: 48%;
+  height: 7%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, oklch(0.08 0.03 290/0.72), transparent 70%);
+  filter: blur(10px);
+  animation: oniLiveShadow 4.4s ease-in-out infinite;
+}
+.oni-web-rig__aura {
+  position: absolute;
+  left: 50%;
+  bottom: -8%;
+  width: 84%;
+  height: 86%;
+  translate: -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 55%,
+    oklch(0.68 0.24 18 / calc(0.12 + var(--oni-glow) * 0.22)),
+    transparent 72%
+  );
+  filter: blur(25px);
+  animation: oniLiveAura 3.4s ease-in-out infinite;
+}
+.oni-web-rig__face-life {
+  position: absolute;
+  left: 50%;
+  top: 27%;
+  width: 18%;
+  height: 11%;
+  translate: -50% -50%;
+  transform: translate3d(calc(var(--oni-look-x) * 8px), calc(var(--oni-look-y) * 5px), 18px);
+  opacity: calc(0.28 + var(--oni-blush) * 0.3);
+  mix-blend-mode: screen;
+}
+.oni-web-rig__eye {
+  position: absolute;
+  top: 22%;
+  width: 28%;
+  height: 15%;
+  border-radius: 50%;
+  background: oklch(0.78 0.22 12/0.18);
+  transform-origin: center;
+  animation: oniLiveBlink var(--oni-blink-rate) infinite;
+}
+.oni-web-rig__eye--left {
+  left: 13%;
+}
+.oni-web-rig__eye--right {
+  right: 13%;
+  animation-delay: 0.025s;
+}
+.oni-web-rig__eye i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: oklch(0.8 0.24 12/0.58);
+  box-shadow: 0 0 8px oklch(0.7 0.25 15/0.6);
+  transform: translate(calc(var(--oni-look-x) * 7px), calc(var(--oni-look-y) * 4px))
+    scale(var(--oni-pupil-scale));
+}
+.oni-web-rig__mouth {
+  position: absolute;
+  left: 50%;
+  top: 73%;
+  width: 18%;
+  height: calc(3% + var(--oni-mouth-open) * 5%);
+  translate: -50%;
+  border-radius: 0 0 50% 50%;
+  background: oklch(0.68 0.2 15/0.3);
+  transform-origin: center top;
+}
+.oni-web-rig.is-speaking .oni-web-rig__mouth {
+  animation: oniLiveTalk 0.16s ease-in-out infinite alternate;
+}
+.oni-web-rig__hair-flow {
+  position: absolute;
+  inset: 8% 16% 3%;
+  border-radius: 45%;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    transparent 45%,
+    oklch(0.6 0.2 330/0.09) 72%,
+    transparent 78%
+  );
+  filter: blur(9px);
+  transform-origin: 50% 18%;
+  animation: oniLiveHair 3.2s ease-in-out infinite;
+}
+.oni-web-rig__particles {
+  position: absolute;
+  inset: 8% 9% 0;
+  background-image:
+    radial-gradient(circle, oklch(0.75 0.22 15/0.5) 0 1px, transparent 1.6px),
+    radial-gradient(circle, oklch(0.72 0.18 310/0.3) 0 1px, transparent 1.5px);
+  background-size:
+    83px 97px,
+    117px 131px;
+  opacity: calc(0.08 + var(--oni-glow) * 0.24);
+  animation: oniLiveParticles 10s linear infinite;
+}
+@keyframes oniLiveBody {
+  0%,
+  100% {
+    transform: translateX(calc(var(--oni-live-body-x) * -0.25%)) translateY(0)
+      rotateZ(calc(var(--oni-head-tilt) * 0.18));
+  }
+  50% {
+    transform: translateX(calc(var(--oni-live-body-x) * 0.25%))
+      translateY(calc(var(--oni-live-breath) * -0.7%)) rotateZ(calc(var(--oni-head-tilt) * -0.12))
+      scale(1.008);
+  }
+}
+@keyframes oniLiveLayerBody {
+  50% {
+    transform: translateY(calc(var(--oni-live-breath) * -3px));
+  }
+}
+@keyframes oniLiveHair {
+  0%,
+  100% {
+    transform: translateX(calc(var(--oni-look-x) * var(--oni-live-hair) * -3px))
+      rotate(calc(var(--oni-live-hair) * -0.6deg));
+  }
+  50% {
+    transform: translateX(calc(var(--oni-look-x) * var(--oni-live-hair) * 3px))
+      rotate(calc(var(--oni-live-hair) * 0.8deg));
+  }
+}
+@keyframes oniLiveArm {
+  0%,
+  100% {
+    transform: rotate(calc(var(--oni-live-arm) * -0.5deg));
+  }
+  50% {
+    transform: rotate(calc(var(--oni-live-arm) * 0.65deg));
+  }
+}
+@keyframes oniLiveBlink {
+  0%,
+  42%,
+  46%,
+  76%,
+  80%,
+  100% {
+    transform: scaleY(var(--oni-eye-open));
+  }
+  43%,
+  45%,
+  77%,
+  79% {
+    transform: scaleY(0.035);
+  }
+}
+@keyframes oniLiveTalk {
+  from {
+    transform: scale(1, 0.58);
+  }
+  to {
+    transform: scale(1.1, calc(0.9 + var(--oni-mouth-open) * 1.8 + var(--oni-talk-energy) * 0.35));
+  }
+}
+@keyframes oniLiveShadow {
+  50% {
+    transform: scaleX(0.94);
+    opacity: 0.45;
+  }
+}
+@keyframes oniLiveAura {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.64;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+@keyframes oniLiveParticles {
+  to {
+    background-position:
+      24px -97px,
+      -20px -131px;
+  }
+}
+@media (max-width: 767px) {
+  .oni-web-rig {
+    perspective: 650px;
+  }
+  .oni-web-rig__fallback {
+    height: 104%;
+    max-width: 112%;
+  }
+  .oni-web-rig__face-life {
+    top: 28%;
+    width: 20%;
+  }
+  .oni-web-rig__particles {
+    opacity: calc(0.05 + var(--oni-glow) * 0.16);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oni-web-rig * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .oni-web-rig__fallback,
+  .oni-web-rig__layer {
+    transform: none !important;
+  }
+}
