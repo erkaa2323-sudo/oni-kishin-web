@@ -19,6 +19,7 @@ for (const [name, engine] of [
       "/profile",
       "/progression",
       "/shop",
+      "/music",
       "/oni-ai",
       "/admin",
     ]) {
