@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BadgeCheck, Coins, Loader2, Settings2, ShieldCheck, X } from "lucide-react";
-import { listMemberAccounts, type MemberAccount } from "@/data/member-auth";
 import {
-  adjustMemberCoin,
   configureEconomyWeek,
   confirmCurrentMeetAttendance,
   getEconomySeasonConfig,
@@ -25,7 +23,6 @@ export function OniEconomyAdminDock() {
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState("");
   const [attendance, setAttendance] = useState<AttendanceCandidate[]>([]);
-  const [members, setMembers] = useState<MemberAccount[]>([]);
   const [weekId, setWeekId] = useState("");
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
@@ -33,21 +30,14 @@ export function OniEconomyAdminDock() {
   const [seasonId, setSeasonId] = useState("");
   const [seasonStart, setSeasonStart] = useState("");
   const [seasonEnd, setSeasonEnd] = useState("");
-  const [adjustUid, setAdjustUid] = useState("");
-  const [adjustAmount, setAdjustAmount] = useState("");
-  const [adjustReason, setAdjustReason] = useState("");
 
   const load = async () => {
-    const [attendanceRows, accounts, week, season] = await Promise.all([
+    const [attendanceRows, week, season] = await Promise.all([
       listCurrentMeetAttendanceCandidates().catch(() => []),
-      listMemberAccounts().catch(() => []),
       getEconomyWeekConfig().catch(() => null),
       getEconomySeasonConfig().catch(() => null),
     ]);
     setAttendance(attendanceRows);
-    const approved = accounts.filter((row) => row.status === "approved");
-    setMembers(approved);
-    setAdjustUid((current) => current || approved[0]?.uid || "");
     if (week) {
       setWeekId(week.weekId);
       setWeekStart(localInput(week.startsAt));
@@ -64,11 +54,6 @@ export function OniEconomyAdminDock() {
   useEffect(() => {
     if (open) void load();
   }, [open]);
-
-  const selected = useMemo(
-    () => members.find((row) => row.uid === adjustUid) ?? null,
-    [members, adjustUid],
-  );
 
   const attendanceAction = async (uid: string, confirmed: boolean) => {
     setBusy(`attendance:${uid}`);
@@ -132,26 +117,6 @@ export function OniEconomyAdminDock() {
     }
   };
 
-  const adjust = async () => {
-    const amount = Number(adjustAmount);
-    if (!selected || !Number.isInteger(amount) || !amount || !adjustReason.trim())
-      return setNotice("Гишүүн, бүхэл тоон ONI хэмжээ, засварын шалтгаан шаардлагатай.");
-    setBusy("adjust");
-    setNotice("");
-    try {
-      const result = await adjustMemberCoin({ uid: selected.uid, amount, reason: adjustReason });
-      setNotice(
-        `${selected.nickname} · шинэ үлдэгдэл ${result.balanceAfter.toLocaleString()} ONI. Засварын шалтгаан үйлдлийн бүртгэлд хадгалагдлаа.`,
-      );
-      setAdjustAmount("");
-      setAdjustReason("");
-    } catch {
-      setNotice("ONI үлдэгдлийг засварлаж чадсангүй.");
-    } finally {
-      setBusy("");
-    }
-  };
-
   return (
     <>
       <button
@@ -160,7 +125,7 @@ export function OniEconomyAdminDock() {
         className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-[65] inline-flex min-h-11 items-center gap-2 border border-emerald-400/35 bg-ink/95 px-3 text-[.62rem] font-semibold tracking-[0.1em] text-white shadow-2xl"
       >
         <Coins className="h-4 w-4 text-emerald-300" />
-        ONI ЭДИЙН ЗАСАГ
+        ЭДИЙН ЗАСАГ / УЛИРАЛ
       </button>
       {open ? (
         <div
@@ -175,7 +140,7 @@ export function OniEconomyAdminDock() {
                 <p className="text-[0.62rem] tracking-[0.18em] text-emerald-300">
                   ONI УДИРДЛАГЫН ТӨВ
                 </p>
-                <h2 className="mt-1 text-xl font-semibold">ЭДИЙН ЗАСАГ БА ШАГНАЛ</h2>
+                <h2 className="mt-1 text-xl font-semibold">ЭДИЙН ЗАСГИЙН ТОХИРГОО</h2>
               </div>
               <button
                 type="button"
@@ -187,8 +152,8 @@ export function OniEconomyAdminDock() {
               </button>
             </div>
             <p className="mt-2 text-xs leading-5 text-white/45">
-              Уулзалтын оролцоо, долоо хоногийн шагнал, улирал болон гишүүний ONI үлдэгдлийг энд
-              удирдана.
+              Уулзалтын оролцоо, долоо хоногийн шагналын хугацаа болон улирлын тохиргоог энд
+              удирдана. Гишүүний XP / ONI өөрчлөлт зөвхөн XP / COIN хэсэгт төвлөрсөн.
             </p>
             {notice ? (
               <p className="mt-4 border border-white/10 bg-white/[0.03] p-3 text-xs text-white/75">
@@ -286,7 +251,7 @@ export function OniEconomyAdminDock() {
                 </div>
               </section>
 
-              <section className="border border-white/10 p-4">
+              <section className="border border-white/10 p-4 lg:col-span-2">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-crimson" />
                   <h3 className="font-semibold">УЛИРЛЫН УДИРДЛАГА</h3>
@@ -295,7 +260,7 @@ export function OniEconomyAdminDock() {
                   Шинэ улирал эхлүүлэхэд өмнөх улирлын чансаа архивлагдаж, улирлын XP 0 болно. Нийт
                   хуримтлуулсан XP хэвээр үлдэнэ.
                 </p>
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <input
                     value={seasonId}
                     onChange={(e) => setSeasonId(e.target.value)}
@@ -314,60 +279,19 @@ export function OniEconomyAdminDock() {
                     onChange={(e) => setSeasonEnd(e.target.value)}
                     className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
                   />
-                  <button
-                    type="button"
-                    disabled={busy === "season"}
-                    onClick={() => void startSeason()}
-                    className="min-h-10 w-full border border-crimson/45 bg-crimson/10 text-xs font-semibold"
-                  >
-                    ШИНЭ УЛИРАЛ ЭХЛҮҮЛЭХ
-                  </button>
                 </div>
-              </section>
-
-              <section className="border border-white/10 p-4">
-                <div className="flex items-center gap-2">
-                  <Coins className="h-4 w-4 text-amber-300" />
-                  <h3 className="font-semibold">ONI ҮЛДЭГДЭЛ ЗАСВАРЛАХ</h3>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-white/45">
-                  Гараар хийсэн өөрчлөлт бүр шалтгаан, админы ID болон өөрчлөлтийн дараах
-                  үлдэгдэлтэйгээ үйлдлийн бүртгэлд хадгалагдана.
-                </p>
-                <div className="mt-4 space-y-3">
-                  <select
-                    value={adjustUid}
-                    onChange={(e) => setAdjustUid(e.target.value)}
-                    className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
-                  >
-                    {members.map((member) => (
-                      <option key={member.uid} value={member.uid}>
-                        {member.nickname} · {member.cpmId}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    inputMode="numeric"
-                    value={adjustAmount}
-                    onChange={(e) => setAdjustAmount(e.target.value)}
-                    placeholder="Ж: +500 эсвэл -300"
-                    className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
-                  />
-                  <input
-                    value={adjustReason}
-                    onChange={(e) => setAdjustReason(e.target.value)}
-                    placeholder="Засвар хийж буй шалтгаан"
-                    className="min-h-10 w-full border border-white/10 bg-black/25 px-3 text-base sm:text-sm"
-                  />
-                  <button
-                    type="button"
-                    disabled={busy === "adjust"}
-                    onClick={() => void adjust()}
-                    className="min-h-10 w-full border border-amber-300/30 bg-amber-300/[0.06] text-xs font-semibold"
-                  >
-                    ҮЛДЭГДЛИЙГ ЗАСВАРЛАЖ БҮРТГЭХ
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  disabled={busy === "season"}
+                  onClick={() => void startSeason()}
+                  className="mt-3 min-h-10 w-full border border-crimson/45 bg-crimson/10 text-xs font-semibold"
+                >
+                  {busy === "season" ? (
+                    <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                  ) : (
+                    "ШИНЭ УЛИРАЛ ЭХЛҮҮЛЭХ"
+                  )}
+                </button>
               </section>
             </div>
           </section>
