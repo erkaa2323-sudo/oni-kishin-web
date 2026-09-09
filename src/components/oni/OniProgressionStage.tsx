@@ -381,7 +381,9 @@ export function OniProgressionStage() {
                 </div>
                 <div className="bg-ink p-4">
                   <span className="text-[0.62rem] text-white/40">SPENT LOG</span>
-                  <strong className="mt-2 block text-rose-300">-{spentCoin.toLocaleString()}</strong>
+                  <strong className="mt-2 block text-rose-300">
+                    -{spentCoin.toLocaleString()}
+                  </strong>
                 </div>
               </div>
             </section>
