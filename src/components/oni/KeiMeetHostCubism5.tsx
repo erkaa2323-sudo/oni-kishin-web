@@ -237,7 +237,23 @@ export function KeiMeetHostCubism5({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 rounded-xl border border-white/8 bg-black/58 px-3 py-2.5 backdrop-blur-md sm:inset-x-3 sm:bottom-3 sm:px-4 sm:py-3">
+      <div className="pointer-events-none absolute bottom-2 left-2 z-20 max-w-[42%] rounded-lg border border-white/8 bg-black/58 px-2.5 py-2 backdrop-blur-md sm:hidden">
+        <div
+          className={`text-[0.36rem] font-semibold tracking-[0.16em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"}`}
+        >
+          {signal}
+        </div>
+        <p className="mt-1 line-clamp-2 text-[0.48rem] leading-relaxed text-white/72">{copy}</p>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-lg border border-white/8 bg-black/58 px-2.5 py-2 text-right backdrop-blur-md sm:hidden">
+        <div className="font-mono text-[0.68rem] font-semibold tracking-[0.06em] text-white/85">
+          {participants}/{capacity ?? "∞"}
+        </div>
+        <div className="mt-0.5 text-[0.32rem] tracking-[0.16em] text-white/30">RIDERS</div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20 hidden rounded-xl border border-white/8 bg-black/58 px-4 py-3 backdrop-blur-md sm:block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div
@@ -245,12 +261,10 @@ export function KeiMeetHostCubism5({
             >
               {signal}
             </div>
-            <p className="line-clamp-2 text-[0.58rem] leading-relaxed text-white/82 sm:text-[0.67rem]">
-              {copy}
-            </p>
+            <p className="line-clamp-2 text-[0.67rem] leading-relaxed text-white/82">{copy}</p>
           </div>
           <div className="shrink-0 rounded-lg border border-white/8 bg-white/[0.025] px-2.5 py-2 text-right">
-            <div className="font-mono text-[0.72rem] font-semibold tracking-[0.06em] text-white/85 sm:text-[0.8rem]">
+            <div className="font-mono text-[0.8rem] font-semibold tracking-[0.06em] text-white/85">
               {participants}/{capacity ?? "∞"}
             </div>
             <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/28">RIDERS</div>
