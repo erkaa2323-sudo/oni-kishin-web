@@ -13,7 +13,7 @@ concurrency:
   group: meet-live2d-release-once
   cancel-in-progress: false
 
-# Release trigger: PR #80 Meet Kei high-resolution full-body pass
+# Release trigger: PR #83 Meet Live2D join-layout parity production release
 jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
