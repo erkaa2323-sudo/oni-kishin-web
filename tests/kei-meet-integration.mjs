@@ -80,11 +80,11 @@ async function inspectKeiFrame(page) {
     const rightSafe = frameFit ? width - leftSafe : width;
     const frameContained = Boolean(
       frameFit &&
-        alphaBounds &&
-        alphaBounds.minX >= leftSafe - tolerance &&
-        alphaBounds.maxX <= rightSafe + tolerance &&
-        alphaBounds.minY >= frameFit.topSafe - tolerance &&
-        alphaBounds.maxY <= height - frameFit.bottomSafe + tolerance,
+      alphaBounds &&
+      alphaBounds.minX >= leftSafe - tolerance &&
+      alphaBounds.maxX <= rightSafe + tolerance &&
+      alphaBounds.minY >= frameFit.topSafe - tolerance &&
+      alphaBounds.maxY <= height - frameFit.bottomSafe + tolerance,
     );
     return {
       frameFound: true,
