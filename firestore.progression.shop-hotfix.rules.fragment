@@ -1,3 +1,35 @@
+    function validVaultProfileHotfixV2(uid) {
+      let action = request.resource.data.get("lastAction", {});
+      let itemId = action.get("key", "");
+      let beforeUnlocked = resource.data.get("unlocked", []);
+      let afterUnlocked = request.resource.data.get("unlocked", []);
+      let price = resource.data.get("coin", 0) - request.resource.data.get("coin", 0);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("spend_" + uid + "_" + itemId);
+      return isApprovedMember()
+        && request.auth.uid == uid
+        && action is map
+        && action.get("type", "") == "vault_unlock"
+        && requiredText(itemId, 80)
+        && beforeUnlocked is list
+        && afterUnlocked is list
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["coin", "unlocked", "lastAction", "updatedAt"])
+        && request.resource.data.updatedAt == request.time
+        && validVaultTermsV3(itemId, price, resource.data.get("xp", 0))
+        && request.resource.data.get("coin", -1) >= 0
+        && afterUnlocked.size() == beforeUnlocked.size() + 1
+        && afterUnlocked.toSet().difference(beforeUnlocked.toSet()).hasOnly([itemId])
+        && afterUnlocked.toSet().difference(beforeUnlocked.toSet()).hasAny([itemId])
+        && existsAfter(ledgerPath)
+        && getAfter(ledgerPath).data.uid == uid
+        && getAfter(ledgerPath).data.sourceType == "vault_spend"
+        && getAfter(ledgerPath).data.sourceKey == itemId
+        && getAfter(ledgerPath).data.itemId == itemId
+        && getAfter(ledgerPath).data.xp == 0
+        && getAfter(ledgerPath).data.coin == 0 - price
+        && getAfter(ledgerPath).data.balanceAfter == request.resource.data.get("coin", -1)
+        && getAfter(ledgerPath).data.createdAt == request.time;
+    }
+
     function validCosmeticUnlockSocialHotfixV1(eventId) {
       let uid = request.auth.uid;
       let itemId = request.resource.data.get("itemId", "");
@@ -32,6 +64,10 @@
         && getAfter(ledgerPath).data.itemId == itemId
         && getAfter(ledgerPath).data.balanceAfter == profile.coin
         && getAfter(ledgerPath).data.createdAt == request.time;
+    }
+
+    match /progressionProfiles/{uid} {
+      allow update: if validVaultProfileHotfixV2(uid);
     }
 
     match /socialEvents/{eventId} {
