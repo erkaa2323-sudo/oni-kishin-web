@@ -13,18 +13,14 @@ import {
   X,
 } from "lucide-react";
 import { firebaseAuth } from "@/integrations/firebase/client";
+import { equipVaultItem, getMyProgression, unlockVaultItem } from "@/data/progression";
 import {
-  equipVaultItem,
-  getMyProgression,
-  unlockVaultItem,
-} from "@/data/progression";
-import { getPublicShopPurchaseFeed, purchaseCpmService, type PublicShopPurchase } from "@/data/shop";
+  getPublicShopPurchaseFeed,
+  purchaseCpmService,
+  type PublicShopPurchase,
+} from "@/data/shop";
 import { ONI_VAULT, type OniProgressionProfile } from "@/lib/oni-progression";
-import {
-  CPM_SERVICE_CATALOG,
-  SHOP_ADMIN_INSTAGRAM_URL,
-  type CpmService,
-} from "@/lib/oni-shop";
+import { CPM_SERVICE_CATALOG, SHOP_ADMIN_INSTAGRAM_URL, type CpmService } from "@/lib/oni-shop";
 import { OniFooter } from "./OniFooter";
 import { OniHudNav } from "./OniHudNav";
 
@@ -82,7 +78,9 @@ export function OniShopV2Stage() {
     try {
       const result = await purchaseCpmService(service.id);
       setPurchaseResult(result);
-      setNotice(`${service.name} худалдан авалт амжилттай. ${service.price.toLocaleString()} Coin хасагдлаа.`);
+      setNotice(
+        `${service.name} худалдан авалт амжилттай. ${service.price.toLocaleString()} Coin хасагдлаа.`,
+      );
       await load();
     } catch (error) {
       const code = error instanceof Error ? error.message : "failed";
@@ -133,24 +131,33 @@ export function OniShopV2Stage() {
           <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-crimson/20 bg-crimson/10 blur-3xl" />
           <div className="relative">
             <p className="text-xs tracking-[0.32em] text-crimson">ONI SHOP V2 // COIN ECONOMY</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-6xl">COIN-ОО УТГАТАЙ ЗАРЦУУЛ.</h1>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-6xl">
+              COIN-ОО УТГАТАЙ ЗАРЦУУЛ.
+            </h1>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-white/58">
-              CPM дотор хийгдэх үйлчилгээ болон ONI HUB-ийн premium cosmetic-ийг нэг Coin wallet-аас авна.
-              CPM үйлчилгээ худалдан авмагц Coin автоматаар хасагдаж, админтай Instagram-аар холбогдох цонх гарна.
+              CPM дотор хийгдэх үйлчилгээ болон ONI HUB-ийн premium cosmetic-ийг нэг Coin wallet-аас
+              авна. CPM үйлчилгээ худалдан авмагц Coin автоматаар хасагдаж, админтай Instagram-аар
+              холбогдох цонх гарна.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <div className="border border-white/10 bg-black/25 px-4 py-3">
-                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">ТАНЫ ҮЛДЭГДЭЛ</span>
+                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">
+                  ТАНЫ ҮЛДЭГДЭЛ
+                </span>
                 <strong className="mt-1 block text-2xl text-amber-200">
                   🪙 {profile ? profile.coin.toLocaleString() : loading ? "…" : "—"}
                 </strong>
               </div>
               <div className="border border-white/10 bg-black/25 px-4 py-3">
-                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">CPM ҮЙЛЧИЛГЭЭ</span>
+                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">
+                  CPM ҮЙЛЧИЛГЭЭ
+                </span>
                 <strong className="mt-1 block text-2xl">{CPM_SERVICE_CATALOG.length}</strong>
               </div>
               <div className="border border-white/10 bg-black/25 px-4 py-3">
-                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">ONI COSMETIC</span>
+                <span className="block text-[0.62rem] tracking-[0.2em] text-white/40">
+                  ONI COSMETIC
+                </span>
                 <strong className="mt-1 block text-2xl">{ONI_VAULT.length}</strong>
               </div>
             </div>
@@ -160,21 +167,29 @@ export function OniShopV2Stage() {
         {!profile && !loading ? (
           <div className="mt-5 flex items-start gap-3 border border-amber-300/25 bg-amber-300/[0.05] p-4 text-sm text-amber-100/80">
             <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>Shop-ийг хүн бүр харж болно. Харин Coin зарцуулахын тулд approved Crew account-аар нэвтэрсэн байх шаардлагатай.</p>
+            <p>
+              Shop-ийг хүн бүр харж болно. Харин Coin зарцуулахын тулд approved Crew account-аар
+              нэвтэрсэн байх шаардлагатай.
+            </p>
           </div>
         ) : null}
 
         {notice ? (
-          <div className="mt-5 border border-crimson/30 bg-crimson/[0.07] p-4 text-sm text-white/80">{notice}</div>
+          <div className="mt-5 border border-crimson/30 bg-crimson/[0.07] p-4 text-sm text-white/80">
+            {notice}
+          </div>
         ) : null}
 
         <section className="mt-12" aria-labelledby="cpm-services-title">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs tracking-[0.28em] text-crimson">CPM SERVICES</p>
-              <h2 id="cpm-services-title" className="mt-2 text-3xl font-semibold">CPM ДОТОР ХИЙГДЭХ ҮЙЛЧИЛГЭЭ</h2>
+              <h2 id="cpm-services-title" className="mt-2 text-3xl font-semibold">
+                CPM ДОТОР ХИЙГДЭХ ҮЙЛЧИЛГЭЭ
+              </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/48">
-                Доорх бүх үйлчилгээ зөвхөн Car Parking Multiplayer дотор хийгдэнэ. Худалдан авалт амжилттай бол Coin буцаан баталгаажуулах алхамгүйгээр шууд хасагдана.
+                Доорх бүх үйлчилгээ зөвхөн Car Parking Multiplayer дотор хийгдэнэ. Худалдан авалт
+                амжилттай бол Coin буцаан баталгаажуулах алхамгүйгээр шууд хасагдана.
               </p>
             </div>
             <span className="border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[0.62rem] tracking-[0.18em] text-amber-200">
@@ -191,18 +206,28 @@ export function OniShopV2Stage() {
                   key={service.id}
                   className={`relative flex min-h-72 flex-col overflow-hidden border p-5 ${isPremium ? "border-amber-300/45 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,.13),transparent_38%),rgba(255,255,255,.025)] shadow-[0_0_45px_rgba(251,191,36,.08)]" : "border-white/10 bg-white/[0.025]"}`}
                 >
-                  {isPremium ? <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent" /> : null}
+                  {isPremium ? (
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent" />
+                  ) : null}
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`border px-2.5 py-1 text-[0.58rem] font-semibold tracking-[0.18em] ${tierClass(service.tier)}`}>
+                    <span
+                      className={`border px-2.5 py-1 text-[0.58rem] font-semibold tracking-[0.18em] ${tierClass(service.tier)}`}
+                    >
                       {service.tier}
                     </span>
-                    <span className="text-[0.62rem] text-white/30">#{String(index + 1).padStart(2, "0")}</span>
+                    <span className="text-[0.62rem] text-white/30">
+                      #{String(index + 1).padStart(2, "0")}
+                    </span>
                   </div>
                   <div className="mt-5 flex items-start gap-3">
-                    <ShoppingBag className={`mt-1 h-5 w-5 shrink-0 ${isPremium ? "text-amber-200" : "text-crimson"}`} />
+                    <ShoppingBag
+                      className={`mt-1 h-5 w-5 shrink-0 ${isPremium ? "text-amber-200" : "text-crimson"}`}
+                    />
                     <div>
                       <h3 className="text-xl font-semibold leading-tight">{service.name}</h3>
-                      <p className="mt-2 text-[0.62rem] font-semibold tracking-[0.16em] text-white/35">CPM ДОТОРХ ҮЙЛЧИЛГЭЭ</p>
+                      <p className="mt-2 text-[0.62rem] font-semibold tracking-[0.16em] text-white/35">
+                        CPM ДОТОРХ ҮЙЛЧИЛГЭЭ
+                      </p>
                     </div>
                   </div>
                   <p className="mt-4 text-sm leading-6 text-white/52">{service.description}</p>
@@ -238,23 +263,40 @@ export function OniShopV2Stage() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs tracking-[0.28em] text-crimson">ONI COSMETICS</p>
-              <h2 id="cosmetic-title" className="mt-2 text-3xl font-semibold">ХҮЧТЭЙ PREMIUM EFFECT</h2>
+              <h2 id="cosmetic-title" className="mt-2 text-3xl font-semibold">
+                ХҮЧТЭЙ PREMIUM EFFECT
+              </h2>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/48">
-                Эдгээр нь CPM үйлчилгээ биш. ONI HUB дээр EQUIP хиймэгц Profile, Crew, Garage, Meet, Gallery болон ONI AI хэсгийн харагдацыг илт өөрчилнө.
+                Эдгээр нь CPM үйлчилгээ биш. ONI HUB дээр EQUIP хиймэгц Profile, Crew, Garage, Meet,
+                Gallery болон ONI AI хэсгийн харагдацыг илт өөрчилнө.
               </p>
             </div>
-            <span className="text-xs text-white/35">{profile?.unlocked.length ?? 0} / {ONI_VAULT.length} UNLOCKED</span>
+            <span className="text-xs text-white/35">
+              {profile?.unlocked.length ?? 0} / {ONI_VAULT.length} UNLOCKED
+            </span>
           </div>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ONI_VAULT.map((item) => {
               const owned = !!profile?.unlocked.includes(item.id);
               const equipped = profile?.equipped[item.category] === item.id;
-              const affordable = !!profile && profile.coin >= item.price && profile.xp >= item.minXp;
+              const affordable =
+                !!profile && profile.coin >= item.price && profile.xp >= item.minXp;
               return (
-                <article key={item.id} className={`flex min-h-72 flex-col border p-4 ${equipped ? "border-crimson/60 bg-[radial-gradient(circle_at_top,rgba(225,29,72,.14),transparent_45%),rgba(255,255,255,.025)] shadow-[0_0_35px_rgba(225,29,72,.09)]" : "border-white/10 bg-white/[0.025]"}`}>
+                <article
+                  key={item.id}
+                  className={`flex min-h-72 flex-col border p-4 ${equipped ? "border-crimson/60 bg-[radial-gradient(circle_at_top,rgba(225,29,72,.14),transparent_45%),rgba(255,255,255,.025)] shadow-[0_0_35px_rgba(225,29,72,.09)]" : "border-white/10 bg-white/[0.025]"}`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-[0.6rem] font-semibold tracking-[0.2em] text-crimson">{item.rarity}</span>
-                    {equipped ? <Check className="h-4 w-4 text-emerald-300" /> : owned ? <ShieldCheck className="h-4 w-4 text-emerald-300" /> : <Sparkles className="h-4 w-4 text-white/35" />}
+                    <span className="text-[0.6rem] font-semibold tracking-[0.2em] text-crimson">
+                      {item.rarity}
+                    </span>
+                    {equipped ? (
+                      <Check className="h-4 w-4 text-emerald-300" />
+                    ) : owned ? (
+                      <ShieldCheck className="h-4 w-4 text-emerald-300" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-white/35" />
+                    )}
                   </div>
                   <div className="mt-5 flex h-20 items-center justify-center border border-crimson/15 bg-[radial-gradient(circle,rgba(225,29,72,.19),transparent_66%)] text-crimson">
                     <Sparkles className="h-8 w-8 drop-shadow-[0_0_18px_rgba(244,63,94,.7)]" />
@@ -272,7 +314,15 @@ export function OniShopV2Stage() {
                       onClick={() => void actCosmetic(item.id, owned)}
                       className="mt-3 min-h-11 w-full border border-crimson/45 bg-crimson/10 text-xs font-semibold tracking-[0.14em] disabled:opacity-35"
                     >
-                      {!profile ? "НЭВТРЭХ ШААРДЛАГАТАЙ" : equipped ? "EQUIPPED · LIVE" : owned ? "EQUIP" : !affordable ? "COIN / XP ХҮРЭЛЦЭХГҮЙ" : "UNLOCK"}
+                      {!profile
+                        ? "НЭВТРЭХ ШААРДЛАГАТАЙ"
+                        : equipped
+                          ? "EQUIPPED · LIVE"
+                          : owned
+                            ? "EQUIP"
+                            : !affordable
+                              ? "COIN / XP ХҮРЭЛЦЭХГҮЙ"
+                              : "UNLOCK"}
                     </button>
                   </div>
                 </article>
@@ -281,24 +331,35 @@ export function OniShopV2Stage() {
           </div>
         </section>
 
-        <section className="mt-14 border border-white/10 bg-white/[0.02] p-5 sm:p-6" aria-labelledby="purchase-feed-title">
+        <section
+          className="mt-14 border border-white/10 bg-white/[0.02] p-5 sm:p-6"
+          aria-labelledby="purchase-feed-title"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Users className="h-5 w-5 text-crimson" />
               <div>
                 <p className="text-xs tracking-[0.25em] text-crimson">PUBLIC PURCHASE FEED</p>
-                <h2 id="purchase-feed-title" className="mt-1 text-2xl font-semibold">СҮҮЛИЙН ХУДАЛДАН АВАЛТУУД</h2>
+                <h2 id="purchase-feed-title" className="mt-1 text-2xl font-semibold">
+                  СҮҮЛИЙН ХУДАЛДАН АВАЛТУУД
+                </h2>
               </div>
             </div>
-            <span className="text-[0.62rem] tracking-[0.15em] text-emerald-300">БҮХ ХҮНД НЭЭЛТТЭЙ</span>
+            <span className="text-[0.62rem] tracking-[0.15em] text-emerald-300">
+              БҮХ ХҮНД НЭЭЛТТЭЙ
+            </span>
           </div>
           <p className="mt-3 text-xs leading-5 text-white/40">
-            Зөвхөн member nickname, худалдаж авсан үйлчилгээ, үнэ болон хугацаа харагдана. Account-ийн нууц мэдээлэл нийтэд харагдахгүй.
+            Зөвхөн member nickname, худалдаж авсан үйлчилгээ, үнэ болон хугацаа харагдана.
+            Account-ийн нууц мэдээлэл нийтэд харагдахгүй.
           </p>
           <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
             {feed.length ? (
               feed.map((entry) => (
-                <div key={entry.id} className="flex flex-col gap-2 py-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={entry.id}
+                  className="flex flex-col gap-2 py-3 text-xs sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="min-w-0">
                     <strong className="block truncate text-white/80">{entry.nickname}</strong>
                     <span className="mt-1 block truncate text-white/42">{entry.serviceName}</span>
@@ -310,7 +371,9 @@ export function OniShopV2Stage() {
                 </div>
               ))
             ) : (
-              <p className="py-6 text-sm text-white/35">Одоогоор нийтэд харагдах худалдан авалт алга.</p>
+              <p className="py-6 text-sm text-white/35">
+                Одоогоор нийтэд харагдах худалдан авалт алга.
+              </p>
             )}
           </div>
         </section>
@@ -318,18 +381,32 @@ export function OniShopV2Stage() {
       <OniFooter />
 
       {purchaseResult ? (
-        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/80 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-label="Худалдан авалт амжилттай">
+        <div
+          className="fixed inset-0 z-[120] grid place-items-center bg-black/80 p-4 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Худалдан авалт амжилттай"
+        >
           <div className="relative w-full max-w-lg overflow-hidden border border-emerald-300/35 bg-[#07090c] p-6 shadow-[0_0_90px_rgba(16,185,129,.12)] sm:p-7">
-            <button type="button" onClick={() => setPurchaseResult(null)} className="absolute right-3 top-3 grid h-9 w-9 place-items-center border border-white/10 text-white/55" aria-label="Хаах">
+            <button
+              type="button"
+              onClick={() => setPurchaseResult(null)}
+              className="absolute right-3 top-3 grid h-9 w-9 place-items-center border border-white/10 text-white/55"
+              aria-label="Хаах"
+            >
               <X className="h-4 w-4" />
             </button>
             <div className="grid h-12 w-12 place-items-center border border-emerald-300/35 bg-emerald-300/10 text-emerald-300">
               <Check className="h-6 w-6" />
             </div>
-            <p className="mt-5 text-xs tracking-[0.22em] text-emerald-300">ХУДАЛДАН АВАЛТ АМЖИЛТТАЙ</p>
+            <p className="mt-5 text-xs tracking-[0.22em] text-emerald-300">
+              ХУДАЛДАН АВАЛТ АМЖИЛТТАЙ
+            </p>
             <h2 className="mt-2 pr-8 text-2xl font-semibold">{purchaseResult.service.name}</h2>
             <p className="mt-3 text-sm leading-6 text-white/55">
-              {purchaseResult.service.price.toLocaleString()} Coin таны wallet-аас автоматаар хасагдлаа. Одоо CPM үйлчилгээний гүйцэтгэлийг тохирохын тулд админтай Instagram-аар холбогдоно уу.
+              {purchaseResult.service.price.toLocaleString()} Coin таны wallet-аас автоматаар
+              хасагдлаа. Одоо CPM үйлчилгээний гүйцэтгэлийг тохирохын тулд админтай Instagram-аар
+              холбогдоно уу.
             </p>
             <div className="mt-5 grid gap-px bg-white/10 sm:grid-cols-2">
               <div className="bg-[#07090c] p-4">
@@ -338,7 +415,9 @@ export function OniShopV2Stage() {
               </div>
               <div className="bg-[#07090c] p-4">
                 <span className="text-[0.6rem] tracking-[0.16em] text-white/35">ҮЛДСЭН COIN</span>
-                <strong className="mt-2 block text-lg text-amber-200">🪙 {purchaseResult.balanceAfter.toLocaleString()}</strong>
+                <strong className="mt-2 block text-lg text-amber-200">
+                  🪙 {purchaseResult.balanceAfter.toLocaleString()}
+                </strong>
               </div>
             </div>
             <a
@@ -351,7 +430,9 @@ export function OniShopV2Stage() {
               АДМИНТАЙ INSTAGRAM-ААР ХОЛБОГДОХ
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
-            <p className="mt-3 text-center text-[0.62rem] leading-5 text-white/30">Instagram дээр Order ID болон худалдаж авсан үйлчилгээний нэрээ админд явуулаарай.</p>
+            <p className="mt-3 text-center text-[0.62rem] leading-5 text-white/30">
+              Instagram дээр Order ID болон худалдаж авсан үйлчилгээний нэрээ админд явуулаарай.
+            </p>
           </div>
         </div>
       ) : null}

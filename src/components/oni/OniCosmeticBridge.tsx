@@ -47,7 +47,8 @@ export function OniCosmeticBridge() {
     (pathname.startsWith("/profile") || pathname.startsWith("/crew") || progressionSurface);
   const entrance = active.has("entrance-kishin") && pathname.startsWith("/meet");
   const creator = active.has("creator-red-moon") && pathname.startsWith("/gallery");
-  const trophy = active.has("trophy-vault") && (pathname.startsWith("/profile") || progressionSurface);
+  const trophy =
+    active.has("trophy-vault") && (pathname.startsWith("/profile") || progressionSurface);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -129,7 +130,10 @@ export function OniCosmeticBridge() {
       ) : null}
       {title ? <div className="oni-cosmetic-badge oni-night-rider-title">NIGHT RIDER</div> : null}
       {trophy ? (
-        <div className="oni-cosmetic-badge" style={{ top: "calc(env(safe-area-inset-top) + 122px)" }}>
+        <div
+          className="oni-cosmetic-badge"
+          style={{ top: "calc(env(safe-area-inset-top) + 122px)" }}
+        >
           TROPHY VAULT +1
         </div>
       ) : null}

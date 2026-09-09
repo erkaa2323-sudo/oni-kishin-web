@@ -68,32 +68,28 @@ export const CPM_SERVICE_CATALOG: CpmService[] = [
     name: "POLICE UNLOCKED · PERMANENT",
     price: 4500,
     tier: "PREMIUM",
-    description:
-      "CPM дотор Police эрхийг байнгын unlock хэлбэрээр тохируулах үйлчилгээ.",
+    description: "CPM дотор Police эрхийг байнгын unlock хэлбэрээр тохируулах үйлчилгээ.",
   },
   {
     id: "engine-permanent",
     name: "ENGINE UNLOCKED · PERMANENT",
     price: 4500,
     tier: "PREMIUM",
-    description:
-      "CPM дотор Engine unlock-ийг байнгын байдлаар тохируулах үйлчилгээ.",
+    description: "CPM дотор Engine unlock-ийг байнгын байдлаар тохируулах үйлчилгээ.",
   },
   {
     id: "all-houses-permanent",
     name: "ALL HOUSES · PERMANENT",
     price: 4000,
     tier: "PREMIUM",
-    description:
-      "CPM дотор бүх house-ийг байнгын unlock хэлбэрээр нээх үйлчилгээ.",
+    description: "CPM дотор бүх house-ийг байнгын unlock хэлбэрээр нээх үйлчилгээ.",
   },
   {
     id: "smoke-permanent",
     name: "SMOKE UNLOCKED · PERMANENT",
     price: 3500,
     tier: "PRO",
-    description:
-      "CPM дотор Smoke unlock-ийг байнгын байдлаар тохируулах үйлчилгээ.",
+    description: "CPM дотор Smoke unlock-ийг байнгын байдлаар тохируулах үйлчилгээ.",
   },
   {
     id: "mileage",
@@ -108,16 +104,14 @@ export const CPM_SERVICE_CATALOG: CpmService[] = [
     name: "FRONT BUMPER",
     price: 1200,
     tier: "STANDARD",
-    description:
-      "CPM дотор front bumper-тэй холбоотой тохиргоо хийх үйлчилгээ.",
+    description: "CPM дотор front bumper-тэй холбоотой тохиргоо хийх үйлчилгээ.",
   },
   {
     id: "rear-bumper",
     name: "REAR BUMPER",
     price: 1200,
     tier: "STANDARD",
-    description:
-      "CPM дотор rear bumper-тэй холбоотой тохиргоо хийх үйлчилгээ.",
+    description: "CPM дотор rear bumper-тэй холбоотой тохиргоо хийх үйлчилгээ.",
   },
   {
     id: "chrome-pack",
@@ -148,8 +142,7 @@ export const CPM_SERVICE_CATALOG: CpmService[] = [
     name: "CHANGE ID",
     price: 3500,
     tier: "PRO",
-    description:
-      "CPM дотор тоглогчийн ID-г өөрчлөх үйлчилгээ. Шинэ ID-ийн мэдээллээ админд өгнө.",
+    description: "CPM дотор тоглогчийн ID-г өөрчлөх үйлчилгээ. Шинэ ID-ийн мэдээллээ админд өгнө.",
   },
   {
     id: "set-wins-losses",
@@ -188,4 +181,6 @@ export const CPM_SERVICE_CATALOG: CpmService[] = [
 export const SHOP_ADMIN_INSTAGRAM_URL =
   "https://www.instagram.com/crewnike_?stkn=MTFzOGk1bXk0bmhvNg%3D%3D&utm_source=qr";
 
-export const CPM_SERVICE_BY_ID = new Map(CPM_SERVICE_CATALOG.map((service) => [service.id, service]));
+export const CPM_SERVICE_BY_ID = new Map(
+  CPM_SERVICE_CATALOG.map((service) => [service.id, service]),
+);
