@@ -13,10 +13,80 @@ const rewardFor = (placement: EventRewardPlacement) => {
 };
 
 const n = (value: unknown) => Math.max(0, Number(value ?? 0));
+const integerReward = (value: unknown) => Math.max(0, Math.floor(Number(value ?? 0)));
 const millis = (value: unknown) =>
   value && typeof value === "object" && "toMillis" in value
     ? Number((value as { toMillis: () => number }).toMillis())
     : 0;
+
+export async function grantManualReward(input: {
+  uid: string;
+  nickname: string;
+  xp: number;
+  coin: number;
+  reason?: string;
+}) {
+  const admin = firebaseAuth.currentUser;
+  if (!admin || !isAdminEmail(admin.email)) throw new Error("admin_required");
+
+  const xp = integerReward(input.xp);
+  const coin = integerReward(input.coin);
+  if (!input.uid || (xp === 0 && coin === 0)) throw new Error("invalid_reward");
+  if (xp > 1_000_000 || coin > 1_000_000) throw new Error("reward_too_large");
+
+  const rewardId = `admin_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const profileRef = doc(firebaseDb, "progressionProfiles", input.uid);
+  const ledgerRef = doc(firebaseDb, "progressionLedger", rewardId);
+  const reason = input.reason?.trim().slice(0, 180) || "Админы гараар олгосон шагнал";
+
+  return runTransaction(firebaseDb, async (tx) => {
+    const profileSnap = await tx.get(profileRef);
+    const currentCoin = profileSnap.exists() ? n(profileSnap.data()["coin"]) : 0;
+    const balanceAfter = currentCoin + coin;
+
+    tx.set(ledgerRef, {
+      uid: input.uid,
+      sourceType: "admin_manual",
+      sourceKey: rewardId,
+      xp,
+      coin,
+      balanceAfter,
+      reason,
+      createdAt: Timestamp.now(),
+      awardedBy: admin.uid,
+    });
+
+    if (profileSnap.exists()) {
+      const p = profileSnap.data();
+      tx.update(profileRef, {
+        xp: n(p["xp"]) + xp,
+        coin: balanceAfter,
+        lifetimeXp: n(p["lifetimeXp"] ?? p["xp"]) + xp,
+        seasonXp: n(p["seasonXp"] ?? p["xp"]) + xp,
+        updatedAt: Timestamp.now(),
+      });
+    } else {
+      tx.set(profileRef, {
+        uid: input.uid,
+        nickname: input.nickname || "ONI MEMBER",
+        xp,
+        coin: balanceAfter,
+        lifetimeXp: xp,
+        seasonXp: xp,
+        prestige: 0,
+        meetCount: 0,
+        creatorCount: 0,
+        eventCount: 0,
+        unlocked: [],
+        equipped: {},
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    return { xp, coin, balanceAfter };
+  });
+}
 
 export async function grantEventReward(input: {
   uid: string;
