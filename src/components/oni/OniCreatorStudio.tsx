@@ -41,6 +41,10 @@ async function compressImage(file: File): Promise<string> {
   return resizeDataUrl(raw, 1600, 0.86);
 }
 
+async function creatorReference(source: string): Promise<string> {
+  return resizeDataUrl(source, 480, 0.9);
+}
+
 async function galleryAsset(source: string): Promise<string> {
   let quality = 0.82;
   for (const max of [1280, 1120, 960]) {
@@ -106,10 +110,11 @@ export function OniCreatorStudio({
     setNotice("");
     try {
       const idToken = await user.getIdToken();
+      const aiSource = await creatorReference(source);
       const r = await oniCreatorGenerate({
         data: {
           idToken,
-          sourceDataUrl: source,
+          sourceDataUrl: aiSource,
           preset,
           nickname: nickname.trim(),
           cpmId: cpmId.trim(),
@@ -262,92 +267,109 @@ export function OniCreatorStudio({
                   </button>
                   <button
                     type="button"
-                    onClick={() => void publish()}
                     disabled={publishing}
-                    className="inline-flex min-h-11 items-center gap-2 border border-emerald-500/50 bg-emerald-500/10 px-4 text-xs text-emerald-200 clip-notch disabled:opacity-50"
+                    onClick={() => void publish()}
+                    className="inline-flex min-h-11 items-center gap-2 border border-border px-4 text-xs text-foreground disabled:opacity-50 clip-notch"
                   >
                     <SendToBack className="h-4 w-4" />
-                    {publishing ? "ИЛГЭЭЖ БАЙНА…" : "GALLERY-Д ИЛГЭЭХ"}
+                    {publishing ? "ИЛГЭЭЖ БАЙНА..." : "GALLERY APPROVAL"}
                   </button>
                 </>
               )}
-              <span className="min-w-0 truncate self-center text-xs text-muted-foreground">
-                {fileName}
-              </span>
             </div>
+            {fileName && <span className="mt-2 truncate text-[10px] text-muted-foreground">{fileName}</span>}
           </div>
-          <div className="flex min-h-0 flex-col p-4 lg:overflow-y-auto">
-            <span className="hud-label">02 / ASSET TYPE</span>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setPreset(item.id)}
-                  aria-pressed={preset === item.id}
-                  className={`min-h-[72px] border p-3 text-left clip-notch ${preset === item.id ? "border-crimson/65 bg-crimson/14" : "border-border bg-midnight/30"}`}
-                >
-                  <span className="block text-[.68rem] font-semibold tracking-[.13em] text-foreground">
-                    {item.label}
-                  </span>
-                  <span className="hud-label mt-1 block text-[.48rem]">
-                    {item.size} · {item.copy}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <span className="hud-label mt-5">03 / MEMBER DATA</span>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <input
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value.slice(0, 40))}
-                placeholder="Nickname"
-                className="min-h-11 border border-border bg-midnight/45 px-3 text-base text-foreground outline-none clip-notch"
-              />
-              <input
-                value={cpmId}
-                onChange={(e) => setCpmId(e.target.value.slice(0, 40))}
-                placeholder="CPM ID"
-                className="min-h-11 border border-border bg-midnight/45 px-3 text-base text-foreground outline-none clip-notch"
-              />
-            </div>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value.slice(0, 500))}
-              placeholder="Mood, text, meet date…"
-              rows={3}
-              className="mt-2 min-h-[88px] resize-none border border-border bg-midnight/45 px-3 py-3 text-base text-foreground outline-none clip-notch"
-            />
-            {error && (
-              <p className="mt-3 border border-crimson/40 bg-crimson/10 p-3 text-xs text-foreground clip-notch">
-                {error}
+
+          <div className="flex flex-col gap-4 p-4">
+            <div>
+              <span className="hud-label">02 / OUTPUT PRESET</span>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {PRESETS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setPreset(p.id);
+                      setResult(null);
+                      setError("");
+                      setNotice("");
+                    }}
+                    className={`min-h-16 border px-3 py-2 text-left clip-notch ${
+                      preset === p.id
+                        ? "border-crimson bg-crimson/12 text-foreground"
+                        : "border-border bg-midnight/25 text-muted-foreground"
+                    }`}
+                  >
+                    <strong className="block text-cinema text-xs">{p.label}</strong>
+                    <span className="mt-1 block text-[10px]">{p.size}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {PRESETS.find((p) => p.id === preset)?.copy}
               </p>
+            </div>
+
+            <div>
+              <span className="hud-label">03 / MEMBER DATA</span>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="Nickname"
+                  maxLength={40}
+                  className="min-h-12 border border-border bg-midnight/25 px-3 text-sm outline-none focus:border-crimson clip-notch"
+                />
+                <input
+                  value={cpmId}
+                  onChange={(e) => setCpmId(e.target.value)}
+                  placeholder="CPM ID"
+                  maxLength={40}
+                  className="min-h-12 border border-border bg-midnight/25 px-3 text-sm outline-none focus:border-crimson clip-notch"
+                />
+              </div>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Mood, text, meet date..."
+                maxLength={500}
+                rows={4}
+                className="mt-2 w-full resize-none border border-border bg-midnight/25 px-3 py-3 text-sm outline-none focus:border-crimson clip-notch"
+              />
+            </div>
+
+            {error && (
+              <div className="border border-crimson/60 bg-crimson/10 px-3 py-3 text-xs text-foreground clip-notch">
+                {error}
+              </div>
             )}
             {notice && (
-              <p className="mt-3 border border-emerald-500/30 bg-emerald-500/8 p-3 text-xs text-emerald-200 clip-notch">
+              <div className="border border-border bg-midnight/35 px-3 py-3 text-xs text-muted-foreground clip-notch">
                 {notice}
-              </p>
+              </div>
             )}
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+
+            <div className="mt-auto grid gap-2">
               <button
                 type="button"
-                onClick={() => void generate()}
                 disabled={!source || busy}
-                className="inline-flex min-h-12 items-center justify-center gap-2 bg-crimson px-4 text-xs font-semibold tracking-[.14em] text-white clip-notch disabled:opacity-40"
+                onClick={() => void generate()}
+                className="inline-flex min-h-14 items-center justify-center gap-2 bg-crimson px-5 font-display text-sm font-semibold uppercase tracking-[.18em] text-white disabled:opacity-40 clip-notch"
               >
                 <Sparkles className="h-4 w-4" />
-                {busy ? "CREATING…" : result ? "REGENERATE" : "GENERATE"}
+                {busy ? "GENERATING..." : result ? "REGENERATE" : "GENERATE"}
               </button>
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex min-h-12 items-center justify-center gap-2 border border-border px-4 text-xs tracking-[.14em] text-foreground clip-notch"
+                className="inline-flex min-h-12 items-center justify-center gap-2 border border-border text-xs tracking-[.18em] text-foreground clip-notch"
               >
                 <RefreshCw className="h-4 w-4" />
                 RESET
               </button>
             </div>
-            <p className="mt-3 text-[.65rem] leading-relaxed text-muted-foreground">
+
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
               Generate → Preview → Regenerate → Download → Gallery approval гэсэн бүтэн урсгалтай.
               Gallery-д зөвхөн admin баталсан asset нийтлэгдэнэ.
             </p>
