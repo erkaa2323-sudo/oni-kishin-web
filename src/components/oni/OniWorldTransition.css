@@ -142,7 +142,7 @@ html[data-oni-world="/oni-ai"] .oni-world-ambient__glow {
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: none;
     filter: none;
   }
 }
