@@ -329,10 +329,10 @@ export async function unlockVaultItem(itemId: string) {
   const ref = doc(firebaseDb, "progressionProfiles", user.uid);
   const spendRef = doc(firebaseDb, "progressionLedger", `spend_${user.uid}_${item.id}`);
   await runTransaction(firebaseDb, async (tx) => {
-    const [snap, spendSnap] = await Promise.all([tx.get(ref), tx.get(spendRef)]);
+    const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("profile_required");
     const p = parseProgressionProfile(user.uid, snap.data());
-    if (p.unlocked.includes(item.id) || spendSnap.exists()) throw new Error("already_unlocked");
+    if (p.unlocked.includes(item.id)) throw new Error("already_unlocked");
     if (p.xp < item.minXp) throw new Error("rank_required");
     if (p.coin < item.price) throw new Error("coin_required");
     const balanceAfter = p.coin - item.price;
