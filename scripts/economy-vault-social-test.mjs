@@ -69,6 +69,10 @@ async function runProductionUnlock(db, memberUid, nickname) {
   const spendRef = doc(db, "progressionLedger", `spend_${memberUid}_frame-crimson`);
   const socialRef = doc(db, "socialEvents", `${memberUid}_cosmetic_frame-crimson`);
 
+  // A first-time purchase has no spend ledger yet. Production rules intentionally
+  // deny reading that missing document, so the client must not pre-read it.
+  await assertFails(getDoc(spendRef));
+
   await assertSucceeds(
     runTransaction(db, async (tx) => {
       const snap = await tx.get(profileRef);
