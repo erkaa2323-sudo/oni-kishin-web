@@ -1,0 +1,39 @@
+    function validCosmeticUnlockSocialHotfixV1(eventId) {
+      let uid = request.auth.uid;
+      let itemId = request.resource.data.get("itemId", "");
+      let profilePath = /databases/$(database)/documents/progressionProfiles/$(uid);
+      let ledgerPath = /databases/$(database)/documents/progressionLedger/$("spend_" + uid + "_" + itemId);
+      let profile = getAfter(profilePath).data;
+      let action = profile.get("lastAction", {});
+      return isApprovedMember()
+        && request.resource.data.keys().hasOnly(["uid", "nickname", "type", "itemId", "title", "detail", "targetUrl", "reactions", "createdAt"])
+        && request.resource.data.uid == uid
+        && requiredText(request.resource.data.nickname, 60)
+        && request.resource.data.type == "cosmetic_unlock"
+        && requiredText(itemId, 80)
+        && eventId == uid + "_cosmetic_" + itemId
+        && requiredText(request.resource.data.title, 120)
+        && request.resource.data.detail is string
+        && request.resource.data.detail.size() <= 240
+        && requiredText(request.resource.data.targetUrl, 160)
+        && request.resource.data.targetUrl.matches("^/.*")
+        && request.resource.data.reactions == 0
+        && request.resource.data.createdAt == request.time
+        && existsAfter(profilePath)
+        && profile.updatedAt == request.time
+        && action is map
+        && action.get("type", "") == "vault_unlock"
+        && action.get("key", "") == itemId
+        && profile.unlocked.toSet().hasAny([itemId])
+        && existsAfter(ledgerPath)
+        && getAfter(ledgerPath).data.uid == uid
+        && getAfter(ledgerPath).data.sourceType == "vault_spend"
+        && getAfter(ledgerPath).data.sourceKey == itemId
+        && getAfter(ledgerPath).data.itemId == itemId
+        && getAfter(ledgerPath).data.balanceAfter == profile.coin
+        && getAfter(ledgerPath).data.createdAt == request.time;
+    }
+
+    match /socialEvents/{eventId} {
+      allow create: if validCosmeticUnlockSocialHotfixV1(eventId);
+    }
