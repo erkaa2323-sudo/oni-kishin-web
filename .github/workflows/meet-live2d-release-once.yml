@@ -13,6 +13,7 @@ concurrency:
   group: meet-live2d-release-once
   cancel-in-progress: false
 
+# Release trigger: PR #78 Meet Kei scale + side HUD layout
 jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
