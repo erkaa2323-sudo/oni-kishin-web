@@ -37,9 +37,23 @@ for (const [name, engine] of [
       await page.getByText("Заавал бөглөх мэдээллүүдээ шалгана уу.").waitFor({ state: "visible" });
       assert.deepEqual(errors, []);
       console.log(`[${name}][interaction join] PASS`);
+
+      await page.goto(`${origin}/profile`, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.waitForTimeout(1000);
+      const registerTab = page.getByRole("button", { name: "БҮРТГҮҮЛЭХ", exact: true });
+      const loginTab = page.getByRole("button", { name: "НЭВТРЭХ", exact: true });
+      await registerTab.click();
+      await expectVisible(page.getByText("CPM NICKNAME", { exact: true }));
+      await loginTab.click();
+      const forgotPassword = page.getByRole("button", { name: "НУУЦ ҮГ МАРТСАН" });
+      await expectVisible(forgotPassword);
+      await forgotPassword.click();
+      await expectVisible(page.getByText("Зөв и-мэйл хаяг оруулна уу."));
+      assert.deepEqual(errors, []);
+      console.log(`[${name}][interaction profile] PASS`);
     } catch (error) {
       failed = true;
-      console.error(`[${name}][interaction join] FAIL`, error);
+      console.error(`[${name}][interaction] FAIL`, error);
     } finally {
       await page.close();
     }
