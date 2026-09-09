@@ -50,8 +50,8 @@ export const ONI_DESTINATIONS: OniDestination[] = [
   {
     to: "/shop",
     label: "ОНИ ШОП",
-    code: "SHOP / VAULT",
-    desc: "ONI Coin-оор effect, cosmetic unlock хийж equip хийх",
+    code: "SHOP / CPM",
+    desc: "ONI Coin-оор CPM үйлчилгээ худалдан авах",
     index: "04",
   },
   { to: "/join", label: "НЭГДЭХ", code: "JOIN", desc: "Элсэлтийн хүсэлт", index: "05" },
