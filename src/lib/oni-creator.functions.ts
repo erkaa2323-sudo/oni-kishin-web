@@ -14,7 +14,11 @@ export type CreatorGenerateResult =
   | { ok: true; imageUrl: string; text: string }
   | {
       ok: false;
-      code: "UNAUTHENTICATED" | "NOT_APPROVED" | "CONFIG_REQUIRED" | "GENERATION_FAILED";
+      code:
+        | "UNAUTHENTICATED"
+        | "NOT_APPROVED"
+        | "CONFIG_REQUIRED"
+        | "GENERATION_FAILED";
       message: string;
     };
 
@@ -39,8 +43,11 @@ async function approvedMember(idToken: string) {
       body: JSON.stringify({ idToken }),
     },
   );
-  if (!authRes.ok) return { ok: false as const, code: "UNAUTHENTICATED" as const };
-  const authJson = (await authRes.json()) as { users?: Array<{ localId?: string }> };
+  if (!authRes.ok)
+    return { ok: false as const, code: "UNAUTHENTICATED" as const };
+  const authJson = (await authRes.json()) as {
+    users?: Array<{ localId?: string }>;
+  };
   const uid = authJson.users?.[0]?.localId;
   if (!uid) return { ok: false as const, code: "UNAUTHENTICATED" as const };
   const memberRes = await fetch(
@@ -49,7 +56,8 @@ async function approvedMember(idToken: string) {
       headers: { Authorization: `Bearer ${idToken}` },
     },
   );
-  if (!memberRes.ok) return { ok: false as const, code: "NOT_APPROVED" as const };
+  if (!memberRes.ok)
+    return { ok: false as const, code: "NOT_APPROVED" as const };
   const member = await memberRes.json();
   const status = stringField(member, "status");
   return status === "approved"
@@ -58,17 +66,24 @@ async function approvedMember(idToken: string) {
 }
 
 function aspect(preset: z.infer<typeof Payload>["preset"]) {
-  return preset === "profile" ? "1:1" : preset === "garage" || preset === "crew" ? "16:9" : "4:5";
+  return preset === "profile"
+    ? "1:1"
+    : preset === "garage" || preset === "crew"
+      ? "16:9"
+      : "4:5";
 }
 
 function outputSize(preset: z.infer<typeof Payload>["preset"]) {
   if (preset === "profile") return { width: 768, height: 768 };
-  if (preset === "garage" || preset === "crew") return { width: 1024, height: 576 };
+  if (preset === "garage" || preset === "crew")
+    return { width: 1024, height: 576 };
   return { width: 768, height: 960 };
 }
 
 function decodeImageDataUrl(sourceDataUrl: string) {
-  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i.exec(sourceDataUrl);
+  const match = /^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i.exec(
+    sourceDataUrl,
+  );
   if (!match?.[1] || !match[2]) return null;
 
   try {
@@ -101,7 +116,8 @@ async function generateWithCloudflare(
   prompt: string,
 ) {
   const config = cloudflareConfig();
-  if (!config) throw new Error("Cloudflare Workers AI credentials are not configured");
+  if (!config)
+    throw new Error("Cloudflare Workers AI credentials are not configured");
 
   const { width, height } = outputSize(preset);
   const form = new FormData();
@@ -140,13 +156,19 @@ async function generateWithCloudflare(
       typeof json.result === "string"
         ? json.result
         : json.result?.image || json.result?.base64 || json.image || "";
-    if (!encoded) throw new Error("Cloudflare Workers AI returned no image payload");
-    return encoded.startsWith("data:") ? encoded : `data:image/png;base64,${encoded}`;
+    if (!encoded)
+      throw new Error("Cloudflare Workers AI returned no image payload");
+    return encoded.startsWith("data:")
+      ? encoded
+      : `data:image/png;base64,${encoded}`;
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.byteLength === 0) throw new Error("Cloudflare Workers AI returned an empty image");
-  const imageType = contentType.startsWith("image/") ? contentType.split(";")[0] : "image/png";
+  if (bytes.byteLength === 0)
+    throw new Error("Cloudflare Workers AI returned an empty image");
+  const imageType = contentType.startsWith("image/")
+    ? contentType.split(";")[0]
+    : "image/png";
   return `data:${imageType};base64,${bytes.toString("base64")}`;
 }
 
@@ -172,7 +194,8 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "GENERATION_FAILED",
-        message: "Оруулсан зураг уншигдсангүй. PNG эсвэл JPG зургаар дахин оролдоно уу.",
+        message:
+          "Оруулсан зураг уншигдсангүй. PNG эсвэл JPG зургаар дахин оролдоно уу.",
       };
 
     if (!cloudflareConfig())
@@ -185,7 +208,11 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
     const prompt = `Use image 0 as the strict vehicle reference. Create a high-quality image edit of the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. The car in image 0 must remain unmistakably the same exact vehicle: preserve its silhouette, body proportions, body kit, paint colors, decals, wheel design, stance and camera perspective. Do not redesign the vehicle, replace wheels, change paint, remove decals, add fake sponsor logos, duplicate the car or turn it into an illustration. Improve the environment, lighting, atmosphere, reflections, sharpness and premium presentation around the original vehicle. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, realistic glossy reflections, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, photorealistic finish. ${data.note || "Keep image 0 as the hero reference and make the final result look official, cinematic and premium."}`;
 
     try {
-      const imageUrl = await generateWithCloudflare(sourceImage, data.preset, prompt);
+      const imageUrl = await generateWithCloudflare(
+        sourceImage,
+        data.preset,
+        prompt,
+      );
       return {
         ok: true,
         imageUrl,
