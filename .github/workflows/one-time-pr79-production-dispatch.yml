@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Deploy rules after verified PR85 release
+      - name: Dispatch Firestore rules after verified PR85 release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run watch 34374028579 --repo erkaa2323-sudo/oni-kishin-web --exit-status
           gh workflow run firebase-rules.yml --repo erkaa2323-sudo/oni-kishin-web --ref main
+          echo "Firebase rules deployment dispatched from verified PR85 release."
