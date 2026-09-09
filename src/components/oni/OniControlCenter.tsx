@@ -55,7 +55,7 @@ const fieldClass =
   "w-full min-h-[44px] border border-border bg-ink/70 px-3 py-2.5 text-sm tracking-wide text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-crimson/70 focus:outline-none";
 
 const btnClass =
-  "inline-flex min-h-[44px] items-center gap-2 border border-border bg-ink/60 px-3.5 text-[0.65rem] font-semibold tracking-[0.18em] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground";
+  "relative z-[1] inline-flex min-h-[44px] touch-manipulation items-center gap-2 border border-border bg-ink/60 px-3.5 text-[0.65rem] font-semibold tracking-[0.18em] text-muted-foreground transition-colors clip-notch hover:border-crimson/60 hover:text-foreground";
 
 function StateDot({ state }: { state: "connected" | "not_connected" | "unknown" }) {
   const cls =
@@ -307,7 +307,10 @@ function CrudWorkspace({
       alive = false;
     };
   }, [code, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  const refresh = () => setReloadKey((k) => k + 1);
+  const refresh = () => {
+    setResult(null);
+    setReloadKey((k) => k + 1);
+  };
   const rows =
     result && result.status === "ok"
       ? result.rows.filter((r) => {
@@ -549,6 +552,7 @@ function MemberAccountsModule({ actor }: { actor: AdminActor | null }) {
   const [busyId, setBusyId] = useState("");
   const canWrite = hasPermission(actor ? { ...actor } : null, "members.write");
   const load = async () => {
+    setRows(null);
     setNotice("");
     try {
       setRows(await listMemberAccounts());
@@ -664,7 +668,10 @@ function ApplicationsModule({
       alive = false;
     };
   }, [reloadKey]);
-  const refresh = () => setReloadKey((k) => k + 1);
+  const refresh = () => {
+    setResult(null);
+    setReloadKey((k) => k + 1);
+  };
   const review = async (row: AdminApplicationRecord, accept: boolean) => {
     setBusyId(row.id);
     setNotice("");
@@ -818,7 +825,11 @@ function MeetModule({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
-  const refresh = () => setReloadKey((k) => k + 1);
+  const refresh = () => {
+    setResult(null);
+    setRegs(null);
+    setReloadKey((k) => k + 1);
+  };
   const canWrite = hasPermission(
     actor ? { uid: actor.uid, role: actor.role } : null,
     "meet.control",
@@ -867,13 +878,13 @@ function MeetModule({
     const endsAt = draft.ends_at ? new Date(draft.ends_at).getTime() : 0;
     const closesAt = draft.registration_closes_at
       ? new Date(draft.registration_closes_at).getTime()
-      : startsAt;
+      : startsAt + 30 * 60 * 1000;
     if (!startsAt || !endsAt || endsAt <= startsAt) {
       setNotice("Эхлэх болон дуусах цагийг зөв дарааллаар оруулна уу.");
       return;
     }
-    if (closesAt > startsAt) {
-      setNotice("Бүртгэл хаах цаг эхлэх цагаас хойш байж болохгүй.");
+    if (closesAt <= startsAt || closesAt >= endsAt) {
+      setNotice("Бүртгэл хаах цаг нь Meet эхэлснээс хойш, дуусахаас өмнө байх ёстой.");
       return;
     }
     setBusy(true);
@@ -882,7 +893,9 @@ function MeetModule({
       title: draft.title.trim(),
       scheduled_at: toIso(draft.scheduled_at),
       ends_at: toIso(draft.ends_at),
-      registration_closes_at: toIso(draft.registration_closes_at),
+      registration_closes_at: draft.registration_closes_at
+        ? toIso(draft.registration_closes_at)
+        : new Date(closesAt).toISOString(),
       capacity: Math.min(20, Math.max(1, Number(draft.capacity || 20))),
       ...(mode === "create" ? { status: "scheduled" } : {}),
     };
@@ -922,7 +935,7 @@ function MeetModule({
       <PanelHead
         code="MEET CONTROL"
         title="УУЛЗАЛТЫН УДИРДЛАГА"
-        desc="Хуваарь, бүртгэл, өрөөний нууцлал, амьдралын мөчлөг."
+        desc="Meet эхлэх мөчид бүртгэл нээгдэж, сонгосон хаах цагт автоматаар хаагдана."
       >
         <button type="button" className={btnClass} onClick={refresh}>
           <RefreshCw className="h-4 w-4" /> ШИНЭЧЛЭХ
@@ -957,7 +970,9 @@ function MeetModule({
           />
         </label>
         <label className="block">
-          <span className="hud-label block text-muted-foreground">SCHEDULE / ЭХЛЭХ ЦАГ</span>
+          <span className="hud-label block text-muted-foreground">
+            SCHEDULE / ЭХЛЭХ + БҮРТГЭЛ НЭЭХ ЦАГ
+          </span>
           <input
             type="datetime-local"
             className={`${fieldClass} mt-2`}

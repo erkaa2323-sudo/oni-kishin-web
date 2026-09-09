@@ -37,6 +37,7 @@ service cloud.firestore {
         && meet.enabled == true
         && meet.keys().hasAll(["startAt"])
         && meet.startAt is timestamp
+        && request.time >= meet.startAt
         && meet.get("status", "scheduled") != "closed"
         && meet.get("status", "scheduled") != "ended"
         && (
@@ -44,7 +45,7 @@ service cloud.firestore {
             && meet.registrationClosesAt is timestamp
             && request.time < meet.registrationClosesAt)
           || (!meet.keys().hasAny(["registrationClosesAt"])
-            && request.time < meet.startAt + duration.value(20, 'm'))
+            && request.time < meet.startAt + duration.value(30, 'm'))
         );
     }
 

@@ -125,11 +125,11 @@ for (const [name, browserType] of engines) {
     const status = response?.status() ?? 0;
     await page.waitForSelector('iframe[title="Kei Cubism 5 Meet host"]', { timeout: 30000 });
 
-    // Parent only flips to VISIBLE after the child reports a real pixel-verified ready event.
+    // Parent only flips to ONLINE after the child reports a real pixel-verified ready event.
     await page.waitForFunction(
       () => {
         const badges = Array.from(document.querySelectorAll("span"));
-        return badges.some((el) => el.textContent?.trim() === "VISIBLE");
+        return badges.some((el) => el.textContent?.trim() === "ONLINE");
       },
       null,
       { timeout: 30000 },
@@ -138,7 +138,7 @@ for (const [name, browserType] of engines) {
 
     const frameResult = await inspectKeiFrame(page);
     const parentVisible = await page
-      .locator("span", { hasText: /^VISIBLE$/ })
+      .locator("span", { hasText: /^ONLINE$/ })
       .count()
       .then((n) => n > 0);
     const body = await page.locator("body").innerText();
