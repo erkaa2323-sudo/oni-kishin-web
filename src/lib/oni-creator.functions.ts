@@ -20,7 +20,7 @@ export type CreatorGenerateResult =
 
 const FIREBASE_API_KEY = "AIzaSyDt0DjUhafGZ2D-co3ZhZlIde_Qe1K5trw";
 const PROJECT_ID = "oni-kishin-f59b4";
-const CLOUDFLARE_MODEL = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
+const CLOUDFLARE_MODEL = "@cf/black-forest-labs/flux-2-klein-4b";
 
 function stringField(
   doc: { fields?: Record<string, { stringValue?: unknown }> } | null,
@@ -75,7 +75,7 @@ function decodeImageDataUrl(sourceDataUrl: string) {
     const base64 = match[2].replace(/\s/g, "");
     const data = Buffer.from(base64, "base64");
     if (data.byteLength === 0) return null;
-    return { mediaType: match[1], base64 };
+    return { mediaType: match[1], data };
   } catch {
     return null;
   }
@@ -96,7 +96,7 @@ function isCloudflareConfigError(error: unknown) {
 }
 
 async function generateWithCloudflare(
-  sourceBase64: string,
+  sourceImage: { mediaType: string; data: Buffer },
   preset: z.infer<typeof Payload>["preset"],
   prompt: string,
 ) {
@@ -104,25 +104,19 @@ async function generateWithCloudflare(
   if (!config) throw new Error("Cloudflare Workers AI credentials are not configured");
 
   const { width, height } = outputSize(preset);
+  const form = new FormData();
+  form.append("prompt", prompt);
+  form.append("input_image_0", new Blob([sourceImage.data], { type: sourceImage.mediaType }), "car.jpg");
+  form.append("width", String(width));
+  form.append("height", String(height));
+  form.append("guidance", "3.5");
+
   const response = await fetch(
     `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(config.accountId)}/ai/run/${CLOUDFLARE_MODEL}`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt,
-        negative_prompt:
-          "different car, changed body kit, changed wheel design, changed paint color, fake sponsor logo, extra vehicle, duplicate car, warped body, distorted wheels, unreadable car, low quality, blurry, cartoon, illustration",
-        image_b64: sourceBase64,
-        width,
-        height,
-        num_steps: 20,
-        strength: 0.34,
-        guidance: 7.5,
-      }),
+      headers: { Authorization: `Bearer ${config.apiToken}` },
+      body: form,
     },
   );
 
@@ -131,7 +125,7 @@ async function generateWithCloudflare(
     throw new Error(`Cloudflare Workers AI ${response.status}: ${detail}`);
   }
 
-  const contentType = response.headers.get("content-type") || "image/png";
+  const contentType = response.headers.get("content-type") || "application/json";
   if (contentType.includes("application/json")) {
     const json = (await response.json()) as {
       result?: { image?: string; base64?: string } | string;
@@ -183,14 +177,14 @@ export const oniCreatorGenerate = createServerFn({ method: "POST" })
         message: "Creator AI холболтын Cloudflare тохиргоо дутуу байна.",
       };
 
-    const prompt = `High-quality image-to-image edit of the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. Preserve the same exact car identity, silhouette, body proportions, paint colors, decals, wheel design, stance and camera perspective. Do not redesign the vehicle and do not invent sponsor logos. Improve only the environment, lighting, atmosphere, clarity and premium presentation. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, realistic reflections, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, photorealistic finish. ${data.note || "Keep the original car unmistakably identical and make the result look official, cinematic and premium."}`;
+    const prompt = `Use image 0 as the strict vehicle reference. Create a high-quality image edit of the uploaded CPM car screenshot into a finished ONI And Kishin social asset. Output aspect ratio ${aspect(data.preset)}. Asset type: ${data.preset}. Member nickname: ${data.nickname || "ONI MEMBER"}${data.cpmId ? `, CPM ID ${data.cpmId}` : ""}. The car in image 0 must remain unmistakably the same exact vehicle: preserve its silhouette, body proportions, body kit, paint colors, decals, wheel design, stance and camera perspective. Do not redesign the vehicle, replace wheels, change paint, remove decals, add fake sponsor logos, duplicate the car or turn it into an illustration. Improve the environment, lighting, atmosphere, reflections, sharpness and premium presentation around the original vehicle. ONI visual system: midnight-black cinematic environment, restrained crimson rim light, realistic glossy reflections, premium Japanese motorsport editorial composition, clean negative space for typography, high contrast, photorealistic finish. ${data.note || "Keep image 0 as the hero reference and make the final result look official, cinematic and premium."}`;
 
     try {
-      const imageUrl = await generateWithCloudflare(sourceImage.base64, data.preset, prompt);
+      const imageUrl = await generateWithCloudflare(sourceImage, data.preset, prompt);
       return {
         ok: true,
         imageUrl,
-        text: "Cloudflare Workers AI-аар cinematic edit бэлэн боллоо.",
+        text: "FLUX.2 image edit бэлэн боллоо.",
       };
     } catch (error) {
       console.error(
