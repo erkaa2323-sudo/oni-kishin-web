@@ -5,9 +5,12 @@ import {
   assertFails,
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
-import { doc, setDoc } from "firebase/firestore";
+import { Timestamp, doc, setDoc, writeBatch } from "firebase/firestore";
 
 let env;
+const meetStart = Timestamp.fromMillis(Date.now() + 10 * 60 * 1000);
+const previousMeetStart = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+
 before(async () => {
   env = await initializeTestEnvironment({
     projectId: "demo-oni-hardening",
@@ -18,13 +21,35 @@ before(async () => {
     },
   });
   await env.withSecurityRulesDisabled(async (context) => {
-    await setDoc(doc(context.firestore(), "products", "real-product"), {
+    const db = context.firestore();
+    await setDoc(doc(db, "products", "real-product"), {
       name: "Change Gmail",
       price: 6000,
     });
-    await setDoc(doc(context.firestore(), "products", "invalid-product"), {
+    await setDoc(doc(db, "products", "invalid-product"), {
       name: "Invalid",
       price: "6000",
+    });
+    await setDoc(doc(db, "members", "member-alice"), {
+      nick: "ALICE",
+      cpmid: "ALICE01",
+      status: "active",
+    });
+    await setDoc(doc(db, "memberAccounts", "alice"), {
+      email: "alice@example.com",
+      memberId: "member-alice",
+      nickname: "ALICE",
+      cpmId: "ALICE01",
+      status: "approved",
+    });
+    await setDoc(doc(db, "meets", "current"), {
+      title: "NEXT MEET",
+      enabled: true,
+      status: "scheduled",
+      startAt: meetStart,
+      registrationClosesAt: Timestamp.fromMillis(meetStart.toMillis() + 20 * 60 * 1000),
+      maxPlayers: 20,
+      createdAt: Timestamp.now(),
     });
   });
 });
@@ -103,4 +128,119 @@ test("valid public Join still succeeds", async () => {
       status: "Шинэ",
     }),
   );
+});
+
+test("approved member can register all current Meet records atomically", async () => {
+  const db = env.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
+  const batch = writeBatch(db);
+  batch.set(doc(db, "meetParticipants", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    memberId: "member-alice",
+    nick: "ALICE",
+    name: "ALICE",
+    cpmId: "ALICE01",
+    joinedAt: Timestamp.now(),
+    source: "website",
+    slotId: "current_01",
+  });
+  batch.set(doc(db, "meetSlots", "current_01"), {
+    meetId: "current",
+    meetStartAt,
+    participantId: "alice",
+    memberId: "member-alice",
+    createdAt: Timestamp.now(),
+  });
+  batch.set(doc(db, "meetRoster", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    nickname: "ALICE",
+    joinedAt: Timestamp.now(),
+  });
+  await assertSucceeds(batch.commit());
+});
+
+test("stale previous Meet records can be replaced but current records cannot be rewritten", async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "meetParticipants", "alice"), {
+      meetId: "current",
+      meetStartAt: previousMeetStart,
+      memberId: "member-alice",
+      nick: "ALICE",
+      name: "ALICE",
+      cpmId: "ALICE01",
+      joinedAt: previousMeetStart,
+      source: "website",
+      slotId: "current_01",
+    });
+    await setDoc(doc(db, "meetSlots", "current_01"), {
+      meetId: "current",
+      meetStartAt: previousMeetStart,
+      participantId: "alice",
+      memberId: "member-alice",
+      createdAt: previousMeetStart,
+    });
+    await setDoc(doc(db, "meetRoster", "alice"), {
+      meetId: "current",
+      meetStartAt: previousMeetStart,
+      nickname: "ALICE",
+      joinedAt: previousMeetStart,
+    });
+  });
+
+  const db = env.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
+  const replace = writeBatch(db);
+  replace.set(doc(db, "meetParticipants", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    memberId: "member-alice",
+    nick: "ALICE",
+    name: "ALICE",
+    cpmId: "ALICE01",
+    joinedAt: Timestamp.now(),
+    source: "website",
+    slotId: "current_01",
+  });
+  replace.set(doc(db, "meetSlots", "current_01"), {
+    meetId: "current",
+    meetStartAt,
+    participantId: "alice",
+    memberId: "member-alice",
+    createdAt: Timestamp.now(),
+  });
+  replace.set(doc(db, "meetRoster", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    nickname: "ALICE",
+    joinedAt: Timestamp.now(),
+  });
+  await assertSucceeds(replace.commit());
+
+  const rewrite = writeBatch(db);
+  rewrite.set(doc(db, "meetParticipants", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    memberId: "member-alice",
+    nick: "ALICE",
+    name: "ALICE",
+    cpmId: "ALICE01",
+    joinedAt: Timestamp.now(),
+    source: "website",
+    slotId: "current_01",
+  });
+  rewrite.set(doc(db, "meetSlots", "current_01"), {
+    meetId: "current",
+    meetStartAt,
+    participantId: "alice",
+    memberId: "member-alice",
+    createdAt: Timestamp.now(),
+  });
+  rewrite.set(doc(db, "meetRoster", "alice"), {
+    meetId: "current",
+    meetStartAt,
+    nickname: "ALICE",
+    joinedAt: Timestamp.now(),
+  });
+  await assertFails(rewrite.commit());
 });
