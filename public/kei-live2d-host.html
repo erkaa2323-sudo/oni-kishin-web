@@ -55,7 +55,13 @@
           currentState = "idle",
           disposed = false;
         const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let runtimeType = "loading",
+          runtimeDetail;
         function send(type, detail) {
+          if (type === "ready" || type === "failed") {
+            runtimeType = type;
+            runtimeDetail = detail;
+          }
           try {
             parent.postMessage({ source: SOURCE, type, detail }, "*");
           } catch {}
@@ -301,7 +307,17 @@
         }
         window.addEventListener("message", (event) => {
           const d = event.data;
-          if (!d || d.source !== PARENT) return;
+          if (
+            event.source !== parent ||
+            event.origin !== location.origin ||
+            !d ||
+            d.source !== PARENT
+          )
+            return;
+          if (d.type === "request-status") {
+            if (runtimeType !== "loading") send(runtimeType, runtimeDetail);
+            return;
+          }
           if (d.type === "state") apply(d.state);
           if (d.type === "interact") {
             focus((Math.random() - 0.5) * 0.7, -0.1);

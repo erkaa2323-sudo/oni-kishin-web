@@ -31,6 +31,13 @@ type Props = {
 type RuntimeState = "loading" | "ready" | "failed";
 type KeiMessage = { source?: string; type?: string; detail?: unknown };
 
+function requestRuntimeStatus(frame: HTMLIFrameElement | null) {
+  frame?.contentWindow?.postMessage(
+    { source: "oni-kei-meet-parent", type: "request-status" },
+    window.location.origin,
+  );
+}
+
 function resolveHostState(
   life: MeetLifecycle,
   registrationState: RegistrationState,
@@ -145,7 +152,11 @@ export function KeiMeetHostCubism5({
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<KeiMessage>) => {
-      if (event.source !== frameRef.current?.contentWindow || event.data?.source !== "oni-kei-meet")
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== frameRef.current?.contentWindow ||
+        event.data?.source !== "oni-kei-meet"
+      )
         return;
       if (event.data.type === "ready") {
         retryCount.current = 0;
@@ -155,6 +166,8 @@ export function KeiMeetHostCubism5({
       }
     };
     window.addEventListener("message", onMessage);
+    // A cached iframe can finish before React hydration attaches this listener.
+    requestRuntimeStatus(frameRef.current);
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
@@ -211,6 +224,7 @@ export function KeiMeetHostCubism5({
         ref={frameRef}
         title="Kei Cubism 5 Meet host"
         src="/kei-live2d-host.html"
+        onLoad={() => requestRuntimeStatus(frameRef.current)}
         className="relative z-[1] block h-full min-h-0 w-full border-0 bg-transparent"
       />
 

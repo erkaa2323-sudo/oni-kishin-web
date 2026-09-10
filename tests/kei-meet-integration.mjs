@@ -106,15 +106,16 @@ async function inspectKeiFrame(page) {
 
 for (const [name, browserType] of engines) {
   const browser = await browserType.launch({ headless: true });
+  let page;
+  const consoleErrors = [];
+  const pageErrors = [];
   try {
-    const page = await browser.newPage({
+    page = await browser.newPage({
       viewport: { width: 430, height: 932 },
       deviceScaleFactor: 2,
       isMobile: true,
       hasTouch: true,
     });
-    const consoleErrors = [];
-    const pageErrors = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
@@ -230,6 +231,20 @@ for (const [name, browserType] of engines) {
   } catch (err) {
     failed = true;
     console.error(`[${name}][meet-integration] FATAL`, err);
+    console.error(
+      `[${name}] diagnostics`,
+      JSON.stringify({
+        consoleErrors,
+        pageErrors,
+        frame: page ? await inspectKeiFrame(page).catch(() => null) : null,
+        text: page
+          ? await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          : "",
+      }),
+    );
   } finally {
     await browser.close();
   }
