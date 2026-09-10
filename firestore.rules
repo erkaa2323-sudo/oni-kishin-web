@@ -31,9 +31,38 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/meets/current).data;
     }
 
+    // Shared authority for credentials and voice. Never trust a browser timer.
+    function meetActive() {
+      let meet = currentMeet();
+      return currentMeetExists() && meet.enabled == true
+        && meet.startAt is timestamp
+        && request.time >= meet.startAt
+        && request.time < meet.startAt + duration.value(20, 'm')
+        && meet.get("status", "scheduled") != "ended"
+        && meet.get("status", "scheduled") != "closed"
+        && (!meet.keys().hasAny(["endsAt"])
+          || (meet.endsAt is timestamp && request.time < meet.endsAt));
+    }
+
+    function registeredActiveMeet() {
+      let participant = get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data;
+      let account = get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data;
+      let slot = get(/databases/$(database)/documents/meetSlots/$(participant.slotId)).data;
+      return isApprovedMember() && meetActive()
+        && participant.meetId == "current"
+        && participant.meetStartAt == currentMeet().startAt
+        && participant.memberId == account.memberId
+        && slot.participantId == request.auth.uid
+        && slot.meetStartAt == currentMeet().startAt;
+    }
+
+    function safePublicMeet(data) {
+      return !data.keys().hasAny(["roomId", "room_id", "password", "pass", "roomPass", "credentials"]);
+    }
+
     function meetRegistrationOpen() {
       let meet = currentMeet();
-      return currentMeetExists()
+      return meetActive()
         && meet.enabled == true
         && meet.keys().hasAll(["startAt"])
         && meet.startAt is timestamp
@@ -45,7 +74,7 @@ service cloud.firestore {
             && meet.registrationClosesAt is timestamp
             && request.time < meet.registrationClosesAt)
           || (!meet.keys().hasAny(["registrationClosesAt"])
-            && request.time < meet.startAt + duration.value(30, 'm'))
+            && request.time < meet.startAt + duration.value(20, 'm'))
         );
     }
 
@@ -157,7 +186,13 @@ service cloud.firestore {
     match /site/{siteId} { allow read: if true; allow create, update, delete: if isAdmin(); }
     match /settings/{settingId} { allow read: if true; allow create, update, delete: if isAdmin(); }
     match /music/{musicId} { allow read: if true; allow create, update, delete: if isAdmin(); }
-    match /meets/{meetId} { allow read: if true; allow create, update, delete: if isAdmin(); }
+    match /meets/{meetId} {
+      // A legacy contaminated document fails closed until an admin removes secrets.
+      allow get: if isAdmin() || !exists(/databases/$(database)/documents/meets/$(meetId)) || safePublicMeet(resource.data);
+      allow list: if isAdmin() || safePublicMeet(resource.data);
+      allow create, update: if isAdmin() && safePublicMeet(request.resource.data);
+      allow delete: if isAdmin();
+    }
 
     function validParticipantBase(participantId) {
       let data = request.resource.data;
@@ -263,21 +298,21 @@ service cloud.firestore {
     }
 
     match /meetCredentials/{meetId} {
-      allow read: if isAdmin() || (meetId == "current" && isApprovedMember()
-        && currentMeetExists() && currentMeet().enabled == true
-        && currentMeet().keys().hasAll(["startAt", "createdAt"]) && currentMeet().startAt is timestamp && currentMeet().createdAt is timestamp
-        && resource.data.keys().hasAll(["updatedAt"]) && resource.data.updatedAt is timestamp
+      allow get: if isAdmin() || (meetId == "current" && registeredActiveMeet()
+        && currentMeet().createdAt is timestamp
+        && resource.data.updatedAt is timestamp
         && resource.data.updatedAt >= currentMeet().createdAt
-        && request.time >= currentMeet().startAt
-        && (!currentMeet().keys().hasAny(["endsAt"]) || !(currentMeet().endsAt is timestamp) || request.time < currentMeet().endsAt)
-        && exists(/databases/$(database)/documents/meetParticipants/$(request.auth.uid))
-        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetId == "current"
-        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.meetStartAt == currentMeet().startAt
-        && get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.memberId == get(/databases/$(database)/documents/memberAccounts/$(request.auth.uid)).data.memberId
-        && exists(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId))
-        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.participantId == request.auth.uid
-        && get(/databases/$(database)/documents/meetSlots/$(get(/databases/$(database)/documents/meetParticipants/$(request.auth.uid)).data.slotId)).data.meetStartAt == currentMeet().startAt);
+        && resource.data.get("meetStartAt", currentMeet().startAt) == currentMeet().startAt);
+      allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
+    }
+
+    // Virtual document: an authorized GET returns NOT_FOUND (no stored data).
+    // Voice server accepts only that result, never PERMISSION_DENIED or outages.
+    // No admin bypass: voice also requires registration in this active Meet.
+    match /meetVoiceAuthorization/{meetId} {
+      allow get: if meetId == "current" && registeredActiveMeet();
+      allow list, write: if false;
     }
 
     match /meetResults/{resultId} { allow read: if true; allow create, update, delete: if isAdmin(); }

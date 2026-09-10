@@ -22,6 +22,7 @@ import {
   REGISTRATION_MESSAGE,
   canRegister,
   deriveLifecycle,
+  isMeetActive,
   fetchActiveMeet,
   fetchCurrentMeetRegistration,
   fetchParticipants,
@@ -37,6 +38,7 @@ import {
 import { OniFooter } from "./OniFooter";
 import { OniHudNav } from "./OniHudNav";
 import { OniMemberGate } from "./OniMemberGate";
+import { MeetVoice } from "./MeetVoice";
 import { RenMeetHost } from "./RenMeetHost";
 
 const fieldClass =
@@ -140,6 +142,8 @@ export function OniMeetAccess() {
   const approved = memberAccount?.status === "approved";
   const open = canRegister(life) && state !== "registered" && approved;
   const sessionId = session?.id ?? null;
+  const sessionStart = session?.scheduledAt ?? null;
+  const activeAccess = isMeetActive(session, now);
 
   // Public roster is realtime too, and is the canonical participant count.
   useEffect(() => {
@@ -169,6 +173,8 @@ export function OniMeetAccess() {
   // Refresh/reopen safe: restore the signed-in rider's existing registration
   // from Firestore instead of forcing a second JOIN attempt.
   useEffect(() => {
+    setCredentials(null);
+    setState("idle");
     if (!approved || !sessionId) return;
     let cancelled = false;
 
@@ -188,17 +194,17 @@ export function OniMeetAccess() {
     return () => {
       cancelled = true;
     };
-  }, [approved, sessionId]);
+  }, [approved, sessionId, sessionStart, memberAccount?.uid]);
 
   // Credentials are intentionally unreadable before Meet start. Once lifecycle
   // becomes active, switch to a realtime listener so Admin changes appear at once.
   useEffect(() => {
-    if (!sessionId || state !== "registered" || life !== "active") {
+    if (!sessionId || state !== "registered" || !activeAccess || !approved) {
       setCredentials(null);
       return;
     }
     return subscribeMeetCredentialsForMember(sessionId, setCredentials);
-  }, [life, sessionId, state]);
+  }, [activeAccess, approved, sessionId, sessionStart, state]);
 
   const set = <K extends keyof VerificationInput>(k: K, v: string) => {
     setValues((p) => ({ ...p, [k]: v }));
@@ -253,8 +259,8 @@ export function OniMeetAccess() {
           <div className="absolute inset-0 scanline-veil opacity-30" />
         </div>
 
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-16 pt-[calc(46svh+7.75rem)] sm:px-8 sm:pt-[calc(44svh+7.75rem)] lg:grid-cols-[0.78fr_1.22fr] lg:gap-12 lg:pt-36">
-          <aside className="fixed inset-x-4 top-[4.75rem] z-30 h-[46svh] min-h-[320px] max-h-[480px] sm:inset-x-8 sm:h-[44svh] sm:min-h-[350px] sm:max-h-[520px] lg:sticky lg:inset-x-auto lg:top-24 lg:z-10 lg:h-[calc(100svh-7rem)] lg:min-h-[560px] lg:max-h-none lg:self-start">
+        <div className="meet-layout mx-auto grid max-w-6xl gap-8 px-4 pb-16 pt-24 sm:px-8 lg:grid-cols-[0.78fr_1.22fr] lg:gap-12 lg:pt-36">
+          <aside className="meet-host min-w-0 lg:sticky lg:top-24 lg:self-start">
             <RenMeetHost
               life={life}
               registrationState={state}
@@ -376,24 +382,31 @@ export function OniMeetAccess() {
                 </p>
               ) : null}
               {state === "registered" ? (
-                credentials ? (
+                credentials && activeAccess && approved ? (
                   <div className="mt-4 border border-emerald-500/45 bg-emerald-500/8 p-4">
                     <p className="hud-label text-emerald-300">MEET ACCESS НЭЭГДЛЭЭ</p>
-                    <p className="mt-3 font-mono text-sm text-foreground">
+                    <p className="mt-3 break-all font-mono text-sm text-foreground">
                       ROOM ID: {credentials.roomId}
                     </p>
-                    <p className="mt-2 font-mono text-sm text-foreground">
+                    <p className="mt-2 break-all font-mono text-sm text-foreground">
                       PASSWORD: {credentials.password}
                     </p>
                   </div>
                 ) : (
                   <p className="mt-4 text-xs text-amber-300">
-                    {life === "active"
-                      ? "Бүртгэл баталгаажсан. Admin өрөөний мэдээлэл оруулмагц энд шууд нээгдэнэ."
-                      : "Бүртгэл баталгаажсан. Room access Meet эхлэх үед автоматаар нээгдэнэ."}
+                    {life === "ended"
+                      ? "Meet дууссан. Өрөөний мэдээллийн хандалт хаагдсан."
+                      : activeAccess
+                        ? "Бүртгэл баталгаажсан. Admin өрөөний мэдээлэл оруулмагц энд шууд нээгдэнэ."
+                        : "Бүртгэл баталгаажсан. Room access Meet эхлэх үед автоматаар нээгдэнэ."}
                   </p>
                 )
               ) : null}
+
+              <MeetVoice
+                key={`${sessionStart}:${memberAccount?.uid ?? "guest"}`}
+                authorized={approved && state === "registered" && activeAccess}
+              />
 
               <form className="mt-6 space-y-5" onSubmit={onSubmit} noValidate>
                 <div>

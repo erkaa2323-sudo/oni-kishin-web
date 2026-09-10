@@ -36,6 +36,7 @@ function resolveHostState(
   registrationState: RegistrationState,
   accessReady: boolean,
 ): HostState {
+  if (life === "ended") return "closed";
   if (registrationState === "registered" && accessReady) return "access";
   if (registrationState === "registered") return "registered";
   if (registrationState === "sending") return "loading";
@@ -45,7 +46,7 @@ function resolveHostState(
   if (life === "open") return "open";
   if (life === "scheduled") return "scheduled";
   if (life === "full") return "full";
-  if (life === "closed" || life === "ended") return "closed";
+  if (life === "closed") return "closed";
   return "idle";
 }
 
@@ -185,12 +186,12 @@ export function KeiMeetHostCubism5({
 
   return (
     <div
-      className={`relative h-full min-h-[360px] overflow-hidden rounded-[28px] border bg-black/20 shadow-2xl transition-colors duration-700 ${positive ? "border-emerald-300/35 shadow-emerald-400/10" : hot ? "border-crimson/40 shadow-crimson/15" : "border-white/10 shadow-crimson/10"}`}
+      className={`relative grid grid-rows-[auto_minmax(0,1fr)_auto] h-full min-h-0 overflow-hidden rounded-[28px] border bg-black/20 shadow-2xl transition-colors duration-700 ${positive ? "border-emerald-300/35 shadow-emerald-400/10" : hot ? "border-crimson/40 shadow-crimson/15" : "border-white/10 shadow-crimson/10"}`}
       onPointerDown={interact}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,68,110,0.18),transparent_52%)]" />
 
-      <div className="pointer-events-none absolute inset-x-5 top-4 z-20 flex items-center justify-between text-[0.58rem] font-semibold tracking-[0.2em] text-white/55">
+      <div className="pointer-events-none relative px-5 pt-4 pb-2 z-20 flex items-center justify-between text-[0.58rem] font-semibold tracking-[0.2em] text-white/55">
         <span>KEI / LIVE2D</span>
         <span
           className={
@@ -210,8 +211,7 @@ export function KeiMeetHostCubism5({
         ref={frameRef}
         title="Kei Cubism 5 Meet host"
         src="/kei-live2d-host.html"
-        className="relative z-[1] block h-[360px] w-full border-0 bg-transparent sm:h-[430px] lg:h-[500px]"
-        onLoad={() => setRuntime("loading")}
+        className="relative z-[1] block h-full min-h-0 w-full border-0 bg-transparent"
       />
 
       {runtime === "loading" ? (
@@ -225,23 +225,23 @@ export function KeiMeetHostCubism5({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-4 left-4 z-20 w-[28%] max-w-[10rem] text-left sm:left-5 sm:w-[30%]">
-        <div
-          className={`text-[0.38rem] font-semibold tracking-[0.14em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"}`}
-        >
-          {signal}
+      <div className="pointer-events-none relative z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-5 pb-4 pt-2">
+        <div className="min-w-0 text-left">
+          <div
+            className={`text-[0.38rem] font-semibold tracking-[0.14em] ${positive ? "text-emerald-300/75" : hot ? "text-crimson/80" : "text-white/35"}`}
+          >
+            {signal}
+          </div>
+          <p className="mt-1 line-clamp-4 text-xs leading-relaxed text-white/68">{copy}</p>
         </div>
-        <p className="mt-1 line-clamp-4 text-[0.48rem] leading-relaxed text-white/68 sm:text-[0.56rem]">
-          {copy}
-        </p>
-      </div>
 
-      <div className="pointer-events-none absolute bottom-4 right-4 z-20 w-[22%] max-w-[7rem] text-right sm:right-5">
-        <div className="font-mono text-[0.9rem] font-semibold tracking-[0.06em] text-white/90 sm:text-[1rem]">
-          {participants}/{capacity ?? "∞"}
+        <div className="text-right">
+          <div className="font-mono text-[0.9rem] font-semibold tracking-[0.06em] text-white/90 sm:text-[1rem]">
+            {participants}/{capacity ?? "∞"}
+          </div>
+          <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
+          <div className="mt-1 text-[0.34rem] tracking-[0.12em] text-white/30">{mode}</div>
         </div>
-        <div className="mt-0.5 text-[0.34rem] tracking-[0.18em] text-white/35">RIDERS</div>
-        <div className="mt-1 text-[0.34rem] tracking-[0.12em] text-white/30">{mode}</div>
       </div>
     </div>
   );
