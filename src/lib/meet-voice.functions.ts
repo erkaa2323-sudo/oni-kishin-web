@@ -74,9 +74,7 @@ async function verifyFirebaseUser(idToken: string): Promise<string | null> {
 async function fetchFirestoreDocument(
   path: string,
   idToken: string,
-): Promise<
-  { code: "OK"; document: FirestoreDocument } | { code: "DENIED" | "UNAVAILABLE" }
-> {
+): Promise<{ code: "OK"; document: FirestoreDocument } | { code: "DENIED" | "UNAVAILABLE" }> {
   try {
     const response = await fetch(`${FIRESTORE_ROOT}/${path}`, {
       headers: { Authorization: `Bearer ${idToken}` },
