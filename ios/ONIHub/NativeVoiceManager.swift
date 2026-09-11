@@ -44,7 +44,7 @@ final class NativeVoiceManager: NSObject, RoomDelegate {
     try session.setCategory(
       .playAndRecord,
       mode: .voiceChat,
-      options: [.allowBluetoothHFP, .defaultToSpeaker, .mixWithOthers]
+      options: [.allowBluetooth, .defaultToSpeaker, .mixWithOthers]
     )
     try session.setActive(true)
   }
