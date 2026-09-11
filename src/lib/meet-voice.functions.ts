@@ -74,7 +74,9 @@ async function verifyFirebaseUser(idToken: string): Promise<string | null> {
 async function fetchFirestoreDocument(
   path: string,
   idToken: string,
-): Promise<{ code: "OK"; document: FirestoreDocument } | { code: "DENIED" | "UNAVAILABLE" }> {
+): Promise<
+  { code: "OK"; document: FirestoreDocument } | { code: "DENIED" | "UNAVAILABLE" }
+> {
   try {
     const response = await fetch(`${FIRESTORE_ROOT}/${path}`, {
       headers: { Authorization: `Bearer ${idToken}` },
@@ -162,7 +164,10 @@ async function authorizeCurrentMeet(
   const slotId = fieldString(participant, "slotId");
   if (!slotId) return { code: "DENIED" };
 
-  const slotResult = await fetchFirestoreDocument(`meetSlots/${encodeURIComponent(slotId)}`, idToken);
+  const slotResult = await fetchFirestoreDocument(
+    `meetSlots/${encodeURIComponent(slotId)}`,
+    idToken,
+  );
   if (slotResult.code !== "OK") return slotResult;
   const slot = slotResult.document;
 
