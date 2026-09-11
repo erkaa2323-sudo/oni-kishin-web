@@ -2,6 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
 import { firebaseAuth } from "@/integrations/firebase/client";
 import { getMeetVoiceToken } from "@/lib/meet-voice.functions";
+import {
+  hasNativeVoiceBridge,
+  sendNativeVoiceCommand,
+  type NativeVoiceState,
+} from "@/lib/native-voice";
 
 const LIVEKIT_SDK_URLS = [
   "https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js",
@@ -125,12 +130,19 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
   const roomRef = useRef<LiveKitRoom | null>(null);
   const audioHostRef = useRef<HTMLDivElement | null>(null);
   const authorizedRef = useRef(authorized);
+  const nativeActiveRef = useRef(false);
   const [phase, setPhase] = useState<VoicePhase>("idle");
   const [muted, setMuted] = useState(false);
   const [needsAudioUnlock, setNeedsAudioUnlock] = useState(false);
   const [message, setMessage] = useState("");
+  const nativeAvailable = typeof window !== "undefined" && hasNativeVoiceBridge();
 
   const leave = useCallback(async (reason = "") => {
+    if (nativeActiveRef.current || hasNativeVoiceBridge()) {
+      sendNativeVoiceCommand({ action: "leave" });
+      nativeActiveRef.current = false;
+    }
+
     const room = roomRef.current;
     roomRef.current = null;
     if (room) {
@@ -147,14 +159,51 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
   }, []);
 
   useEffect(() => {
+    const onNativeState = (event: WindowEventMap["oni-native-voice-state"]) => {
+      const detail: NativeVoiceState = event.detail;
+      if (typeof detail.muted === "boolean") setMuted(detail.muted);
+      setNeedsAudioUnlock(false);
+      if (detail.message) setMessage(detail.message);
+
+      switch (detail.state) {
+        case "connecting":
+          nativeActiveRef.current = true;
+          setPhase("connecting");
+          break;
+        case "connected":
+          nativeActiveRef.current = true;
+          setPhase("connected");
+          break;
+        case "reconnecting":
+          nativeActiveRef.current = true;
+          setPhase("reconnecting");
+          break;
+        case "disconnected":
+          nativeActiveRef.current = false;
+          setPhase("idle");
+          break;
+        case "error":
+          nativeActiveRef.current = false;
+          setPhase("error");
+          break;
+      }
+    };
+
+    window.addEventListener("oni-native-voice-state", onNativeState);
+    return () => window.removeEventListener("oni-native-voice-state", onNativeState);
+  }, []);
+
+  useEffect(() => {
     authorizedRef.current = authorized;
     if (!authorized) {
       void leave("");
       return;
     }
-    void loadLiveKitSdk().catch(() => {
-      // Join surfaces a retryable error if both pinned CDN sources fail.
-    });
+    if (!hasNativeVoiceBridge()) {
+      void loadLiveKitSdk().catch(() => {
+        // Join surfaces a retryable error if both pinned CDN sources fail.
+      });
+    }
   }, [authorized, leave]);
 
   useEffect(
@@ -162,12 +211,14 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
       const room = roomRef.current;
       roomRef.current = null;
       if (room) void room.disconnect(true);
+      // Native voice intentionally survives route changes and app backgrounding.
     },
     [],
   );
 
   const join = useCallback(async () => {
-    if (!authorizedRef.current || phase === "connecting" || roomRef.current) return;
+    if (!authorizedRef.current || phase === "connecting" || roomRef.current || nativeActiveRef.current)
+      return;
     const user = firebaseAuth.currentUser;
     if (!user) {
       setPhase("error");
@@ -196,6 +247,22 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
               ? "Voice хандалт хаалттай. Meet бүртгэл болон хугацаагаа шалгана уу."
               : "Voice үйлчилгээг шалгах боломжгүй байна.",
         );
+        return;
+      }
+
+      if (hasNativeVoiceBridge()) {
+        nativeActiveRef.current = true;
+        const sent = sendNativeVoiceCommand({
+          action: "join",
+          url: grant.url,
+          token: grant.token,
+          expiresAt: grant.expiresAt,
+        });
+        if (!sent) {
+          nativeActiveRef.current = false;
+          throw new Error("Native voice bridge unavailable");
+        }
+        setMessage("Native voice холбож байна…");
         return;
       }
 
@@ -265,9 +332,14 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
   }, [leave, phase]);
 
   const toggleMute = useCallback(async () => {
+    const nextMuted = !muted;
+    if (nativeActiveRef.current && hasNativeVoiceBridge()) {
+      sendNativeVoiceCommand({ action: "mute", muted: nextMuted });
+      return;
+    }
+
     const room = roomRef.current;
     if (!room || (phase !== "connected" && phase !== "reconnecting")) return;
-    const nextMuted = !muted;
     try {
       await room.localParticipant.setMicrophoneEnabled(!nextMuted);
       setMuted(nextMuted);
@@ -298,7 +370,9 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
         <div>
           <p className="hud-label text-foreground/80">PRIVATE VOICE / LIVEKIT</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Зөвхөн энэ Meet-д бүртгэлтэй, баталгаажсан гишүүд орно.
+            {nativeAvailable
+              ? "Native background voice — CPM рүү шилжсэн ч voice үргэлжилнэ."
+              : "Зөвхөн энэ Meet-д бүртгэлтэй, баталгаажсан гишүүд орно."}
           </p>
         </div>
         <span
@@ -311,7 +385,9 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
               : phase === "connected"
                 ? muted
                   ? "MUTED"
-                  : "LIVE"
+                  : nativeAvailable
+                    ? "LIVE / BG"
+                    : "LIVE"
                 : "READY"}
         </span>
       </div>
