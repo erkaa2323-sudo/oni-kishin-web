@@ -10,14 +10,18 @@ test("Meet voice token endpoint stays fail-closed and keeps LiveKit secrets serv
   assert.match(server, /process\.env\.LIVEKIT_API_KEY/);
   assert.match(server, /process\.env\.LIVEKIT_API_SECRET/);
   assert.doesNotMatch(server, /VITE_LIVEKIT_(API_KEY|API_SECRET)/);
-  assert.match(server, /meetVoiceAuthorization\/current/);
-  assert.match(server, /authorization\.status !== 404/);
-  assert.match(server, /body\.error\?\.status !== "NOT_FOUND"/);
+  assert.match(server, /identitytoolkit\.googleapis\.com\/v1\/accounts:lookup/);
+  assert.match(server, /memberAccounts\/\$\{encodeURIComponent\(uid\)\}/);
+  assert.match(server, /meetParticipants\/\$\{encodeURIComponent\(uid\)\}/);
+  assert.match(server, /meetSlots\/\$\{encodeURIComponent\(slotId\)\}/);
+  assert.match(server, /fieldString\(account, "status"\) === "approved"/);
+  assert.match(server, /fieldString\(slot, "participantId"\) === uid/);
 });
 
 test("Meet voice grants are audio-only and stop issuing at the Meet expiry boundary", () => {
   assert.match(server, /const MEET_DURATION_MS = 20 \* 60_000/);
-  assert.match(server, /now < startAtMs \|\| now >= expiresAtMs/);
+  assert.match(server, /now >= startAtMs/);
+  assert.match(server, /now < expiresAtMs/);
   assert.match(server, /canPublishSources: \["microphone"\]/);
   assert.match(server, /canPublishData: false/);
   assert.match(server, /exp: input\.expiresAtSeconds/);
