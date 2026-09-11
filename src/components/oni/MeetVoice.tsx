@@ -3,11 +3,14 @@ import { Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
 import { firebaseAuth } from "@/integrations/firebase/client";
 import { getMeetVoiceToken } from "@/lib/meet-voice.functions";
 
-const LIVEKIT_SDK_URL =
-  "https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js";
+const LIVEKIT_SDK_URLS = [
+  "https://cdn.jsdelivr.net/npm/livekit-client@2.22.3/dist/livekit-client.umd.min.js",
+  "https://unpkg.com/livekit-client@2.22.3/dist/livekit-client.umd.min.js",
+] as const;
 const LIVEKIT_SCRIPT_ID = "oni-livekit-client";
 
 type VoicePhase = "idle" | "connecting" | "connected" | "reconnecting" | "error";
+type VoiceStage = "sdk" | "token" | "connect" | "microphone";
 
 type LiveKitRemoteTrack = {
   kind: string;
@@ -47,35 +50,43 @@ declare global {
 
 let sdkPromise: Promise<LiveKitSdk> | null = null;
 
-function loadLiveKitSdk(): Promise<LiveKitSdk> {
-  if (window.LivekitClient) return Promise.resolve(window.LivekitClient);
-  if (sdkPromise) return sdkPromise;
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const stale = document.getElementById(LIVEKIT_SCRIPT_ID);
+    stale?.remove();
 
-  const loading = new Promise<LiveKitSdk>((resolve, reject) => {
-    const finish = () => {
-      if (window.LivekitClient) resolve(window.LivekitClient);
-      else reject(new Error("LiveKit SDK loaded without global export"));
-    };
-    const existing = document.getElementById(LIVEKIT_SCRIPT_ID) as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener("load", finish, { once: true });
-      existing.addEventListener("error", () => reject(new Error("LiveKit SDK load failed")), {
-        once: true,
-      });
-      return;
-    }
     const script = document.createElement("script");
     script.id = LIVEKIT_SCRIPT_ID;
-    script.src = LIVEKIT_SDK_URL;
+    script.src = src;
     script.async = true;
     script.crossOrigin = "anonymous";
     script.referrerPolicy = "no-referrer";
-    script.addEventListener("load", finish, { once: true });
-    script.addEventListener("error", () => reject(new Error("LiveKit SDK load failed")), {
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("error", () => reject(new Error(`LiveKit SDK load failed: ${src}`)), {
       once: true,
     });
     document.head.appendChild(script);
   });
+}
+
+function loadLiveKitSdk(): Promise<LiveKitSdk> {
+  if (window.LivekitClient) return Promise.resolve(window.LivekitClient);
+  if (sdkPromise) return sdkPromise;
+
+  const loading = (async () => {
+    let lastError: unknown = new Error("LiveKit SDK unavailable");
+    for (const src of LIVEKIT_SDK_URLS) {
+      try {
+        await loadScript(src);
+        if (window.LivekitClient) return window.LivekitClient;
+        lastError = new Error("LiveKit SDK loaded without global export");
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError;
+  })();
+
   sdkPromise = loading;
   void loading.catch(() => {
     if (sdkPromise === loading) sdkPromise = null;
@@ -83,12 +94,31 @@ function loadLiveKitSdk(): Promise<LiveKitSdk> {
   return loading;
 }
 
-function voiceErrorMessage(error: unknown): string {
-  const name = error instanceof Error ? error.name : "";
-  if (name === "NotAllowedError") {
-    return "Микрофоны зөвшөөрөл хаалттай байна. Safari/Browser settings-ээс Microphone-ийг Allow болгоно уу.";
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : "";
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function voiceErrorMessage(error: unknown, stage: VoiceStage): string {
+  const name = errorName(error);
+  const text = errorText(error).toLowerCase();
+
+  if (name === "NotAllowedError" || text.includes("permission") || text.includes("not allowed")) {
+    return "Микрофоны зөвшөөрөл хаалттай байна. iPhone Settings → Safari → Microphone хэсгээс Allow болгоод дахин орно уу.";
   }
-  return "Voice холболт амжилтгүй боллоо. Сүлжээгээ шалгаад дахин оролдоно уу.";
+  if (stage === "sdk") {
+    return "Voice системийн модуль ачаалагдсангүй. Сүлжээ/CDN холболтоо шалгаад дахин оролдоно уу.";
+  }
+  if (stage === "connect") {
+    return `LiveKit сервертэй холбогдож чадсангүй${errorText(error) ? `: ${errorText(error)}` : "."}`;
+  }
+  if (stage === "microphone") {
+    return `Voice өрөөнд орсон ч микрофон ассангүй${errorText(error) ? `: ${errorText(error)}` : "."}`;
+  }
+  return "Voice холболт амжилтгүй боллоо. Дахин оролдоно уу.";
 }
 
 export function MeetVoice({ authorized }: { authorized: boolean }) {
@@ -123,7 +153,7 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
       return;
     }
     void loadLiveKitSdk().catch(() => {
-      // Join surfaces a retryable error if the pinned SDK cannot load.
+      // Join surfaces a retryable error if both pinned CDN sources fail.
     });
   }, [authorized, leave]);
 
@@ -147,8 +177,10 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
 
     setPhase("connecting");
     setMessage("Voice эрх болон LiveKit холболтыг шалгаж байна…");
+
+    let stage: VoiceStage = "token";
     try {
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(true);
       const grant = await getMeetVoiceToken({ data: { idToken } });
       if (!authorizedRef.current) {
         setPhase("idle");
@@ -167,10 +199,12 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
         return;
       }
 
+      stage = "sdk";
       const sdk = await loadLiveKitSdk();
       if (sdk.isBrowserSupported && !sdk.isBrowserSupported()) {
-        throw new Error("Browser does not support LiveKit");
+        throw new Error("Энэ browser LiveKit WebRTC-г дэмжихгүй байна");
       }
+
       const room = new sdk.Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
       room.on(sdk.RoomEvent.Reconnecting, () => {
@@ -211,18 +245,21 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
         if (roomRef.current === room) setNeedsAudioUnlock(!room.canPlaybackAudio);
       });
 
+      stage = "connect";
       await room.connect(grant.url, grant.token, { autoSubscribe: true });
       if (!authorizedRef.current) {
         await leave("");
         return;
       }
+
+      stage = "microphone";
       await room.localParticipant.setMicrophoneEnabled(true);
       setMuted(false);
       setNeedsAudioUnlock(!room.canPlaybackAudio);
       setPhase("connected");
       setMessage("Voice-д холбогдлоо. Микрофон нээлттэй байна.");
     } catch (error) {
-      await leave(voiceErrorMessage(error));
+      await leave(voiceErrorMessage(error, stage));
       setPhase("error");
     }
   }, [leave, phase]);
@@ -236,7 +273,7 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
       setMuted(nextMuted);
       setMessage(nextMuted ? "Микрофон хаалттай." : "Микрофон нээлттэй.");
     } catch (error) {
-      setMessage(voiceErrorMessage(error));
+      setMessage(voiceErrorMessage(error, "microphone"));
     }
   }, [muted, phase]);
 
