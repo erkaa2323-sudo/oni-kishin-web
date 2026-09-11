@@ -1,4 +1,7 @@
 Deploy PR #91 Meet voice mobile connection fix to Vercel production.
 Verified PR head: 4f6742535ee3006bea2275c4a9b0e3407825b20e
-Foundation Verification: 34583936177 (success).
 Merged main: 887a9d49127cca191710988c5a004a0989f46d41
+
+Fresh production rebuild after LiveKit credential rotation.
+Reason: LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET were replaced in Vercel Production.
+Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
