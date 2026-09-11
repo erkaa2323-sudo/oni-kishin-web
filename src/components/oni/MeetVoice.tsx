@@ -51,7 +51,7 @@ function loadLiveKitSdk(): Promise<LiveKitSdk> {
   if (window.LivekitClient) return Promise.resolve(window.LivekitClient);
   if (sdkPromise) return sdkPromise;
 
-  sdkPromise = new Promise((resolve, reject) => {
+  const loading = new Promise<LiveKitSdk>((resolve, reject) => {
     const finish = () => {
       if (window.LivekitClient) resolve(window.LivekitClient);
       else reject(new Error("LiveKit SDK loaded without global export"));
@@ -75,12 +75,12 @@ function loadLiveKitSdk(): Promise<LiveKitSdk> {
       once: true,
     });
     document.head.appendChild(script);
-  }).catch((error) => {
-    sdkPromise = null;
-    throw error;
   });
-
-  return sdkPromise;
+  sdkPromise = loading;
+  void loading.catch(() => {
+    if (sdkPromise === loading) sdkPromise = null;
+  });
+  return loading;
 }
 
 function voiceErrorMessage(error: unknown): string {
