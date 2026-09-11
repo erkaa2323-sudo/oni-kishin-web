@@ -25,12 +25,9 @@ jobs:
           distribution: temurin
           java-version: "21"
       - run: npm ci --no-audit --no-fund
-      - name: Format check
-        run: |
-          npx --no-install prettier --write src/lib/meet-voice.functions.ts
-          git diff -- src/lib/meet-voice.functions.ts
-          exit 1
       - run: npx --no-install playwright install --with-deps chromium webkit
+      - name: Format check
+        run: npm run format:check
       - name: Lint
         run: npm run lint
       - name: Typecheck
