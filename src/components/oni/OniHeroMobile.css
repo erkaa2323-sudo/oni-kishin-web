@@ -19,7 +19,13 @@
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgb(4 4 10 / 0.9) 0%, rgb(4 4 10 / 0.58) 30%, rgb(4 4 10 / 0.08) 63%, rgb(4 4 10 / 0.2) 100%),
+    linear-gradient(
+      90deg,
+      rgb(4 4 10 / 0.9) 0%,
+      rgb(4 4 10 / 0.58) 30%,
+      rgb(4 4 10 / 0.08) 63%,
+      rgb(4 4 10 / 0.2) 100%
+    ),
     linear-gradient(0deg, rgb(4 4 10 / 0.92) 0%, transparent 44%);
 }
 
@@ -69,8 +75,22 @@
 
   .oni-command__cinematic-shade {
     background:
-      linear-gradient(180deg, rgb(4 4 10 / 0.03) 0%, rgb(4 4 10 / 0.04) 31%, rgb(4 4 10 / 0.48) 45%, rgb(4 4 10 / 0.88) 63%, #05050a 84%, #05050a 100%),
-      linear-gradient(90deg, rgb(4 4 10 / 0.2), transparent 38%, transparent 72%, rgb(4 4 10 / 0.14));
+      linear-gradient(
+        180deg,
+        rgb(4 4 10 / 0.03) 0%,
+        rgb(4 4 10 / 0.04) 31%,
+        rgb(4 4 10 / 0.48) 45%,
+        rgb(4 4 10 / 0.88) 63%,
+        #05050a 84%,
+        #05050a 100%
+      ),
+      linear-gradient(
+        90deg,
+        rgb(4 4 10 / 0.2),
+        transparent 38%,
+        transparent 72%,
+        rgb(4 4 10 / 0.14)
+      );
   }
 
   .oni-command__ui {
