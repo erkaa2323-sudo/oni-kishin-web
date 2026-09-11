@@ -14,6 +14,10 @@ type WebKitMessageHandler = {
   postMessage: (message: NativeVoiceCommand) => void;
 };
 
+type AndroidVoiceBridge = {
+  postMessage: (message: string) => void;
+};
+
 declare global {
   interface Window {
     webkit?: {
@@ -21,6 +25,7 @@ declare global {
         oniVoice?: WebKitMessageHandler;
       };
     };
+    ONIVoice?: AndroidVoiceBridge;
   }
 
   interface WindowEventMap {
@@ -29,12 +34,21 @@ declare global {
 }
 
 export function hasNativeVoiceBridge(): boolean {
-  return Boolean(window.webkit?.messageHandlers?.oniVoice);
+  return Boolean(window.webkit?.messageHandlers?.oniVoice || window.ONIVoice?.postMessage);
 }
 
 export function sendNativeVoiceCommand(command: NativeVoiceCommand): boolean {
-  const handler = window.webkit?.messageHandlers?.oniVoice;
-  if (!handler) return false;
-  handler.postMessage(command);
-  return true;
+  const iosHandler = window.webkit?.messageHandlers?.oniVoice;
+  if (iosHandler) {
+    iosHandler.postMessage(command);
+    return true;
+  }
+
+  const androidHandler = window.ONIVoice;
+  if (androidHandler?.postMessage) {
+    androidHandler.postMessage(JSON.stringify(command));
+    return true;
+  }
+
+  return false;
 }
