@@ -1,6 +1,6 @@
-Deploy PR #92 iOS native background Meet voice to Vercel production.
-Verified PR head: 0ffe4d0746ec3c1f1d9795931437a67369c48380
-Merged main: 55ac19c17c3d907c4fe93283475bf9346aee90b9
+Deploy PR #93 native mobile shells to Vercel production.
+Verified PR head: ac0e47877f94c7d8ab27d5c4262924e43cd9ee7b
+Merged main: c73f3c549fe218c4e5fa4c54c453fd44638ea16d
 
-Release intent: deploy the verified web-side Meet bridge and current main production bundle after PR #92 passed Foundation Verification and iOS Background Voice CI.
+Release intent: deploy the verified shared web-side native voice bridge and current main production bundle after PR #93 passed Foundation Verification, iOS Background Voice, and Android Native CI.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
