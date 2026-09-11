@@ -217,7 +217,12 @@ export function MeetVoice({ authorized }: { authorized: boolean }) {
   );
 
   const join = useCallback(async () => {
-    if (!authorizedRef.current || phase === "connecting" || roomRef.current || nativeActiveRef.current)
+    if (
+      !authorizedRef.current ||
+      phase === "connecting" ||
+      roomRef.current ||
+      nativeActiveRef.current
+    )
       return;
     const user = firebaseAuth.currentUser;
     if (!user) {
