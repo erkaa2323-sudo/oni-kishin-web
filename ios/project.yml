@@ -1,0 +1,37 @@
+name: ONIHub
+options:
+  bundleIdPrefix: mn.onikishin
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift
+    from: 2.15.1
+targets:
+  ONIHub:
+    type: application
+    platform: iOS
+    sources:
+      - ONIHub
+    dependencies:
+      - package: LiveKit
+        product: LiveKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: mn.onikishin.hub
+        PRODUCT_NAME: ONI HUB
+        SWIFT_VERSION: 6.0
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: ONIHub/Info.plist
+      properties:
+        CFBundleDisplayName: ONI HUB
+        UILaunchScreen: {}
+        NSMicrophoneUsageDescription: ONI HUB Meet voice-д таны микрофоныг ашиглана.
+        UIBackgroundModes:
+          - audio
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
