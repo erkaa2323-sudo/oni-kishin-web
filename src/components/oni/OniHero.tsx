@@ -2,54 +2,47 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUpRight, ShieldCheck } from "lucide-react";
 
 import cityBg from "@/assets/oni-city-2099.webp";
-import oniCar from "@/assets/garage/car-01.webp";
-import oniCharacter from "@/assets/oni-character.webp";
-import { useParallax } from "./useParallax";
+
+const HERO_VIDEO = "/ScreenRecording_09-11-2026%2011-36-49_1.mov";
 
 export function OniHero() {
-  const { px, py, sp } = useParallax();
-  const layer = (depth: number, extraY = 0) => ({
-    transform: `translate3d(${px * depth * -16}px, ${py * depth * -9 + sp * depth * 34 + extraY}px, 0)`,
-  });
-
   return (
     <section className="oni-command" aria-labelledby="oni-hero-title">
-      <div className="oni-command__city" style={{ ...layer(0.28), scale: "1.08" }}>
-        <img
-          src={cityBg}
-          alt="2099 оны ОНИ хотын шөнийн сектор"
-          width={1920}
-          height={1088}
-          fetchPriority="high"
-        />
+      <div className="oni-command__city" aria-hidden="true" style={{ inset: 0 }}>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster={cityBg}
+          disablePictureInPicture
+          tabIndex={-1}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center",
+          }}
+        >
+          <source src={HERO_VIDEO} type="video/quicktime" />
+        </video>
       </div>
+      <div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          zIndex: 1,
+          inset: 0,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(90deg, rgba(4,4,10,.9) 0%, rgba(4,4,10,.58) 30%, rgba(4,4,10,.08) 63%, rgba(4,4,10,.2) 100%), linear-gradient(0deg, rgba(4,4,10,.92) 0%, transparent 44%)",
+        }}
+      />
       <div className="oni-command__flare" aria-hidden="true" />
       <div className="oni-command__rain" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--one" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--two" aria-hidden="true" />
-      <div className="oni-command__title" aria-hidden="true">
-        <span>ONI</span>
-        <span>CITY</span>
-      </div>
-
-      <div className="oni-command__car" style={layer(0.72)}>
-        <img
-          src={oniCar}
-          alt="ОНИ секторын JDM машин"
-          width={1536}
-          height={1024}
-          decoding="async"
-        />
-      </div>
-      <div className="oni-command__subject" style={layer(1.15)}>
-        <img
-          src={oniCharacter}
-          alt="ОНИ хотын гол дүр"
-          width={1024}
-          height={1536}
-          fetchPriority="high"
-        />
-      </div>
 
       <div className="oni-command__ui">
         <div className="oni-command__eyebrow">
