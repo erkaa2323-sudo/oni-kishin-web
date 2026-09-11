@@ -1,44 +1,58 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUpRight, ShieldCheck } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 import cityBg from "@/assets/oni-city-2099.webp";
 
 const HERO_VIDEO = "/ScreenRecording_09-11-2026%2011-36-49_1.mov";
 
 export function OniHero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+
+    const tryPlay = () => {
+      void video.play().catch(() => undefined);
+    };
+
+    tryPlay();
+    video.addEventListener("canplay", tryPlay);
+    document.addEventListener("visibilitychange", tryPlay);
+    window.addEventListener("pageshow", tryPlay);
+
+    return () => {
+      video.removeEventListener("canplay", tryPlay);
+      document.removeEventListener("visibilitychange", tryPlay);
+      window.removeEventListener("pageshow", tryPlay);
+    };
+  }, []);
+
   return (
     <section className="oni-command" aria-labelledby="oni-hero-title">
-      <div className="oni-command__city" aria-hidden="true" style={{ inset: 0 }}>
+      <div className="oni-command__city oni-command__cinematic" aria-hidden="true">
+        <div className="oni-command__cinematic-fill" />
         <video
+          ref={videoRef}
+          className="oni-command__cinematic-video"
           autoPlay
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="auto"
           poster={cityBg}
           disablePictureInPicture
           tabIndex={-1}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center",
-          }}
         >
           <source src={HERO_VIDEO} type="video/quicktime" />
         </video>
       </div>
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          zIndex: 1,
-          inset: 0,
-          pointerEvents: "none",
-          background:
-            "linear-gradient(90deg, rgba(4,4,10,.9) 0%, rgba(4,4,10,.58) 30%, rgba(4,4,10,.08) 63%, rgba(4,4,10,.2) 100%), linear-gradient(0deg, rgba(4,4,10,.92) 0%, transparent 44%)",
-        }}
-      />
+      <div className="oni-command__cinematic-shade" aria-hidden="true" />
       <div className="oni-command__flare" aria-hidden="true" />
       <div className="oni-command__rain" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--one" aria-hidden="true" />
