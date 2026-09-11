@@ -1,7 +1,6 @@
-Deploy PR #91 Meet voice mobile connection fix to Vercel production.
-Verified PR head: 4f6742535ee3006bea2275c4a9b0e3407825b20e
-Merged main: 887a9d49127cca191710988c5a004a0989f46d41
+Deploy PR #92 iOS native background Meet voice to Vercel production.
+Verified PR head: 0ffe4d0746ec3c1f1d9795931437a67369c48380
+Merged main: 55ac19c17c3d907c4fe93283475bf9346aee90b9
 
-Fresh production rebuild after LiveKit credential rotation.
-Reason: LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET were replaced in Vercel Production.
+Release intent: deploy the verified web-side Meet bridge and current main production bundle after PR #92 passed Foundation Verification and iOS Background Voice CI.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
