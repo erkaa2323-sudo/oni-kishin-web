@@ -27,6 +27,21 @@
   display: none;
 }
 
+.oni-command__play-fallback {
+  position: absolute;
+  z-index: 12;
+  top: 8.5rem;
+  right: 1.25rem;
+  min-height: 2.5rem;
+  border: 1px solid rgb(255 255 255 / 0.22);
+  background: rgb(4 4 10 / 0.68);
+  padding: 0 0.9rem;
+  color: white;
+  font: 700 0.58rem/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  backdrop-filter: blur(12px);
+}
+
 @media (max-width: 760px) {
   .oni-command__cinematic::before {
     content: "";
@@ -65,6 +80,11 @@
   .oni-command__copy {
     grid-row: 3;
     align-self: end;
+  }
+
+  .oni-command__play-fallback {
+    top: 7.75rem;
+    right: 1rem;
   }
 }
 
