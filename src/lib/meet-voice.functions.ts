@@ -90,7 +90,9 @@ async function signLiveKitToken(input: {
   return `${unsigned}.${bytesToBase64Url(new Uint8Array(signature))}`;
 }
 
-async function authorizeCurrentMeet(idToken: string): Promise<
+async function authorizeCurrentMeet(
+  idToken: string,
+): Promise<
   | { code: "AUTHORIZED"; startAtMs: number; expiresAtMs: number }
   | { code: "DENIED" | "UNAVAILABLE" }
 > {
