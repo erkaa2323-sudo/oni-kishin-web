@@ -1,13 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUpRight, ShieldCheck } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import cityBg from "@/assets/oni-city-2099.webp";
+
+import "./OniHeroMobile.css";
 
 const HERO_VIDEO = "/ScreenRecording_09-11-2026%2011-36-49_1.mov";
 
 export function OniHero() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -17,26 +20,47 @@ export function OniHero() {
     video.defaultMuted = true;
     video.playsInline = true;
 
-    const tryPlay = () => {
-      void video.play().catch(() => undefined);
+    const tryPlay = async () => {
+      if (document.hidden) return;
+
+      try {
+        await video.play();
+        setNeedsTapToPlay(false);
+      } catch {
+        setNeedsTapToPlay(true);
+      }
     };
 
-    tryPlay();
+    void tryPlay();
     video.addEventListener("canplay", tryPlay);
-    document.addEventListener("visibilitychange", tryPlay);
+    video.addEventListener("loadeddata", tryPlay);
     window.addEventListener("pageshow", tryPlay);
+    document.addEventListener("visibilitychange", tryPlay);
 
     return () => {
       video.removeEventListener("canplay", tryPlay);
-      document.removeEventListener("visibilitychange", tryPlay);
+      video.removeEventListener("loadeddata", tryPlay);
       window.removeEventListener("pageshow", tryPlay);
+      document.removeEventListener("visibilitychange", tryPlay);
     };
   }, []);
+
+  const resumeVideo = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    try {
+      await video.play();
+      setNeedsTapToPlay(false);
+    } catch {
+      setNeedsTapToPlay(true);
+    }
+  };
 
   return (
     <section className="oni-command" aria-labelledby="oni-hero-title">
       <div className="oni-command__city oni-command__cinematic" aria-hidden="true">
-        <div className="oni-command__cinematic-fill" />
         <video
           ref={videoRef}
           className="oni-command__cinematic-video"
@@ -44,7 +68,7 @@ export function OniHero() {
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           poster={cityBg}
           disablePictureInPicture
           tabIndex={-1}
@@ -57,6 +81,12 @@ export function OniHero() {
       <div className="oni-command__rain" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--one" aria-hidden="true" />
       <div className="oni-command__fog oni-command__fog--two" aria-hidden="true" />
+
+      {needsTapToPlay ? (
+        <button type="button" className="oni-command__play-fallback" onClick={resumeVideo}>
+          ▶ CINEMATIC PLAY
+        </button>
+      ) : null}
 
       <div className="oni-command__ui">
         <div className="oni-command__eyebrow">
