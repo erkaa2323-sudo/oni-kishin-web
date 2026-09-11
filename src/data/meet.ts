@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocFromServer,
   onSnapshot,
   query,
   runTransaction,
@@ -22,7 +23,7 @@ import { firebaseAuth, firebaseDb } from "@/integrations/firebase/client";
 
 export const CPM_ID_MAX = 40;
 export const CPM_NICKNAME_MAX = 32;
-export const MEET_REGISTRATION_GRACE_MS = 30 * 60 * 1000;
+export const MEET_REGISTRATION_GRACE_MS = 20 * 60 * 1000;
 
 /**
  * Configurable launch target for Car Parking Multiplayer. No unofficial or
@@ -57,7 +58,7 @@ export type MeetSession = {
   registrationClosesAt: string | null;
   capacity: number | null;
   registered: number;
-  status: "scheduled" | "live";
+  status: "scheduled" | "live" | "closed" | "ended";
 };
 
 export type MeetParticipant = {
@@ -126,12 +127,28 @@ function effectiveRegistrationCloseMs(s: MeetSession): number | null {
   return new Date(s.scheduledAt).getTime() + MEET_REGISTRATION_GRACE_MS;
 }
 
+export function meetAccessEndsAt(s: MeetSession): number {
+  const start = s.scheduledAt ? Date.parse(s.scheduledAt) : NaN;
+  const end = s.endsAt ? Date.parse(s.endsAt) : Infinity;
+  return Math.min(start + MEET_REGISTRATION_GRACE_MS, end);
+}
+
+export function isMeetActive(s: MeetSession | null, now = Date.now()): boolean {
+  return (
+    !!s &&
+    s.status !== "ended" &&
+    s.status !== "closed" &&
+    !!s.scheduledAt &&
+    Date.parse(s.scheduledAt) <= now &&
+    now < meetAccessEndsAt(s)
+  );
+}
+
 /** Derived, refresh-consistent lifecycle from status + timestamps + capacity. */
 export function deriveLifecycle(s: MeetSession | null, now = Date.now()): MeetLifecycle {
   if (!s) return "none";
   const starts = s.scheduledAt ? new Date(s.scheduledAt).getTime() : null;
-  const ends = s.endsAt ? new Date(s.endsAt).getTime() : null;
-  if (ends !== null && ends <= now) return "ended";
+  if (s.status === "ended" || s.status === "closed" || meetAccessEndsAt(s) <= now) return "ended";
   const closes = effectiveRegistrationCloseMs(s);
   if (closes !== null && closes <= now) return "closed";
   if (s.capacity !== null && s.registered >= s.capacity) return "full";
@@ -217,7 +234,10 @@ export async function fetchActiveMeet(): Promise<MeetLoad> {
         // Only the current start timestamp belongs to this Meet. Stale rows from
         // a previous `current` session are deliberately ignored.
         registered,
-        status: row["status"] === "live" ? "live" : "scheduled",
+        status:
+          row["status"] === "ended" || row["status"] === "closed" || row["status"] === "live"
+            ? row["status"]
+            : "scheduled",
       },
     };
   } catch {
@@ -332,7 +352,11 @@ export async function registerForMeet(
       if (startAt === null) return "invalid" as const;
       if (now < startAt) return "registration_not_open" as const;
       const explicitClose = timestampMs(meet["registrationClosesAt"]);
-      const closesAt = explicitClose ?? startAt + MEET_REGISTRATION_GRACE_MS;
+      const closesAt = Math.min(
+        explicitClose ?? Infinity,
+        startAt + MEET_REGISTRATION_GRACE_MS,
+        timestampMs(meet["endsAt"]) ?? Infinity,
+      );
       if (meet["status"] === "closed" || meet["status"] === "ended" || closesAt <= now)
         return "registration_closed" as const;
 
@@ -382,7 +406,7 @@ export async function fetchMeetCredentialsForMember(
   const user = firebaseAuth.currentUser;
   if (!user || meetId !== "current") return null;
   try {
-    const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
+    const snapshot = await getDocFromServer(doc(firebaseDb, "meetCredentials", meetId));
     return snapshot.exists() ? snapshotCredentials(snapshot.data()) : null;
   } catch {
     return null;
@@ -405,7 +429,13 @@ export function subscribeMeetCredentialsForMember(
 
   return onSnapshot(
     doc(firebaseDb, "meetCredentials", meetId),
-    (snapshot) => onChange(snapshot.exists() ? snapshotCredentials(snapshot.data()) : null),
+    { includeMetadataChanges: true },
+    (snapshot) =>
+      onChange(
+        !snapshot.metadata.fromCache && snapshot.exists()
+          ? snapshotCredentials(snapshot.data())
+          : null,
+      ),
     () => onChange(null),
   );
 }

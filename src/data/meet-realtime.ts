@@ -60,7 +60,10 @@ export function subscribeActiveMeet(
         registrationClosesAt,
         capacity: typeof row["maxPlayers"] === "number" ? row["maxPlayers"] : 20,
         registered: 0,
-        status: row["status"] === "live" ? "live" : "scheduled",
+        status:
+          row["status"] === "ended" || row["status"] === "closed" || row["status"] === "live"
+            ? row["status"]
+            : "scheduled",
       });
     },
     () => onError?.("Meet мэдээллийн realtime холболт тасарлаа."),

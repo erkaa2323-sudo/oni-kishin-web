@@ -1,18 +1,18 @@
+.meet-host {
+  width: 100%;
+  height: clamp(360px, 62svh, 620px);
+}
+
+@media (min-width: 1024px) {
+  .meet-host {
+    height: min(720px, calc(100svh - 8rem));
+    min-height: 440px;
+  }
+}
+
 @media (max-width: 767px) {
   main:has(#meet-title) {
     overflow-x: hidden;
-  }
-
-  main:has(#meet-title) > .mx-auto.grid {
-    gap: 1.25rem !important;
-    padding-top: calc(24svh + 6.25rem) !important;
-    padding-bottom: 2.5rem !important;
-  }
-
-  main:has(#meet-title) aside {
-    top: 4.5rem !important;
-    height: 24svh !important;
-    min-height: 190px !important;
   }
 
   main:has(#meet-title) .min-w-0.space-y-8 > * + * {

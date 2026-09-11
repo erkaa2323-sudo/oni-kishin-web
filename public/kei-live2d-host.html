@@ -55,7 +55,13 @@
           currentState = "idle",
           disposed = false;
         const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let runtimeType = "loading",
+          runtimeDetail;
         function send(type, detail) {
+          if (type === "ready" || type === "failed") {
+            runtimeType = type;
+            runtimeDetail = detail;
+          }
           try {
             parent.postMessage({ source: SOURCE, type, detail }, "*");
           } catch {}
@@ -301,7 +307,17 @@
         }
         window.addEventListener("message", (event) => {
           const d = event.data;
-          if (!d || d.source !== PARENT) return;
+          if (
+            event.source !== parent ||
+            event.origin !== location.origin ||
+            !d ||
+            d.source !== PARENT
+          )
+            return;
+          if (d.type === "request-status") {
+            if (runtimeType !== "loading") send(runtimeType, runtimeDetail);
+            return;
+          }
           if (d.type === "state") apply(d.state);
           if (d.type === "interact") {
             focus((Math.random() - 0.5) * 0.7, -0.1);
@@ -398,14 +414,19 @@
           app.stage.addChild(model);
           frameKei();
           apply(currentState, true);
-          await new Promise((r) =>
-            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r))),
-          );
-          frameKei();
-          await new Promise((r) => setTimeout(r, 260));
-          app.renderer.render(app.stage);
-          const pixels = alphaSamples();
-          if (pixels === 0) throw new Error("Canvas alpha is empty after Cubism 5 render");
+          // Safari can suspend iframe RAF callbacks during reload/scroll restoration.
+          // Readiness must not wait forever for three animation frames. Draw and
+          // verify real pixels explicitly, with a bounded retry for texture upload.
+          let pixels = 0;
+          for (let attempt = 0; attempt < 8 && !disposed; attempt++) {
+            frameKei();
+            app.renderer.render(app.stage);
+            pixels = alphaSamples();
+            if (pixels > 0) break;
+            await new Promise((resolve) => setTimeout(resolve, 150));
+          }
+          if (disposed) return;
+          if (pixels <= 0) throw new Error("Canvas alpha is empty after Cubism 5 render");
           loading.remove();
           send("ready", pixels);
           if ("ResizeObserver" in window) {

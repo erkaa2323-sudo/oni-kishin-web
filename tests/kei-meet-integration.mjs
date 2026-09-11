@@ -76,15 +76,17 @@ async function inspectKeiFrame(page) {
       }
     }
     const tolerance = 16;
-    const leftSafe = frameFit ? (width - frameFit.usableW) * 0.5 : 0;
+    const ratioX = frameFit ? width / frameFit.width : 1;
+    const ratioY = frameFit ? height / frameFit.height : 1;
+    const leftSafe = frameFit ? (width - frameFit.usableW * ratioX) * 0.5 : 0;
     const rightSafe = frameFit ? width - leftSafe : width;
     const frameContained = Boolean(
       frameFit &&
       alphaBounds &&
       alphaBounds.minX >= leftSafe - tolerance &&
       alphaBounds.maxX <= rightSafe + tolerance &&
-      alphaBounds.minY >= frameFit.topSafe - tolerance &&
-      alphaBounds.maxY <= height - frameFit.bottomSafe + tolerance,
+      alphaBounds.minY >= frameFit.topSafe * ratioY - tolerance &&
+      alphaBounds.maxY <= height - frameFit.bottomSafe * ratioY + tolerance,
     );
     return {
       frameFound: true,
@@ -104,15 +106,16 @@ async function inspectKeiFrame(page) {
 
 for (const [name, browserType] of engines) {
   const browser = await browserType.launch({ headless: true });
+  let page;
+  const consoleErrors = [];
+  const pageErrors = [];
   try {
-    const page = await browser.newPage({
+    page = await browser.newPage({
       viewport: { width: 430, height: 932 },
-      deviceScaleFactor: 1,
+      deviceScaleFactor: 2,
       isMobile: true,
       hasTouch: true,
     });
-    const consoleErrors = [];
-    const pageErrors = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
@@ -135,6 +138,59 @@ for (const [name, browserType] of engines) {
       { timeout: 30000 },
     );
     await page.waitForTimeout(600);
+
+    // Real model, responsive layout, refresh, short viewport and content growth.
+    for (const viewport of [
+      { width: 375, height: 667 },
+      { width: 430, height: 932 },
+      { width: 390, height: 600 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(250);
+      const layout = await page.evaluate(() => {
+        const host = document.querySelector(".meet-host").getBoundingClientRect();
+        const title = document.querySelector("#meet-title").getBoundingClientRect();
+        const frame = document
+          .querySelector('iframe[title="Kei Cubism 5 Meet host"]')
+          .getBoundingClientRect();
+        return {
+          noOverflow: document.documentElement.scrollWidth <= innerWidth,
+          noOverlap: host.bottom <= title.top,
+          contained: frame.top >= host.top && frame.bottom <= host.bottom,
+          inputSize: parseFloat(getComputedStyle(document.querySelector("input")).fontSize) >= 16,
+        };
+      });
+      if (Object.values(layout).some((value) => !value))
+        throw new Error(`Mobile layout ${JSON.stringify({ viewport, layout })}`);
+      // Synthetic content growth only; authorization itself is covered by emulator tests.
+      await page.evaluate(() => {
+        const section = document.querySelector('[aria-labelledby="meet-form-title"]');
+        const fixture = document.createElement("div");
+        fixture.id = "meet-layout-fixture";
+        fixture.style.cssText = "height:240px;overflow-wrap:anywhere";
+        fixture.textContent = "Өрөөний мэдээлэл • Voice тохиргооны байрлалын туршилт";
+        section.appendChild(fixture);
+      });
+      await page.locator("#meet-layout-fixture").scrollIntoViewIfNeeded();
+      const overlap = await page.evaluate(() => {
+        const host = document.querySelector(".meet-host").getBoundingClientRect();
+        const content = document.querySelector("#meet-layout-fixture").getBoundingClientRect();
+        return host.bottom > content.top;
+      });
+      if (overlap) throw new Error("Live2D overlaps expanded Meet controls");
+      await page.locator("#meet-layout-fixture").evaluate((element) => element.remove());
+      await page.evaluate(() => scrollTo(0, 0));
+    }
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll("span")).some(
+          (el) => el.textContent?.trim() === "ONLINE",
+        ),
+      null,
+      { timeout: 30000 },
+    );
+    await page.waitForTimeout(250);
 
     const frameResult = await inspectKeiFrame(page);
     const parentVisible = await page
@@ -175,6 +231,20 @@ for (const [name, browserType] of engines) {
   } catch (err) {
     failed = true;
     console.error(`[${name}][meet-integration] FATAL`, err);
+    console.error(
+      `[${name}] diagnostics`,
+      JSON.stringify({
+        consoleErrors,
+        pageErrors,
+        frame: page ? await inspectKeiFrame(page).catch(() => null) : null,
+        text: page
+          ? await page
+              .locator("body")
+              .innerText()
+              .catch(() => "")
+          : "",
+      }),
+    );
   } finally {
     await browser.close();
   }

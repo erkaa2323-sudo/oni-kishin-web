@@ -12,6 +12,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   query,
   runTransaction,
@@ -481,7 +482,9 @@ export const meetService = {
       const meetRef = doc(firebaseDb, "meets", "current");
       const credentialsRef = doc(firebaseDb, "meetCredentials", "current");
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
-      const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
+      const endsAt = scheduledAt
+        ? Timestamp.fromMillis(scheduledAt.toMillis() + 20 * 60 * 1000)
+        : firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
       const registrationClosesAt = firebaseTimestamp(
         data["registration_closes_at"] ?? data["registrationClosesAt"],
       );
@@ -503,7 +506,12 @@ export const meetService = {
         }),
       );
       if (roomId || password) {
-        await setDoc(credentialsRef, { roomId, password, updatedAt: serverTimestamp() });
+        await setDoc(credentialsRef, {
+          roomId,
+          password,
+          meetStartAt: scheduledAt,
+          updatedAt: serverTimestamp(),
+        });
       }
       return ok({ id: "current" });
     } catch (err) {
@@ -516,8 +524,11 @@ export const meetService = {
   ): Promise<ServiceResult<{ id: string }>> => {
     try {
       const meetRef = doc(firebaseDb, "meets", id);
+      const previous = await getDoc(meetRef);
       const scheduledAt = firebaseTimestamp(data["scheduled_at"] ?? data["scheduledAt"]);
-      const endsAt = firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
+      const endsAt = scheduledAt
+        ? Timestamp.fromMillis(scheduledAt.toMillis() + 20 * 60 * 1000)
+        : firebaseTimestamp(data["ends_at"] ?? data["endsAt"]);
       const registrationClosesAt = firebaseTimestamp(
         data["registration_closes_at"] ?? data["registrationClosesAt"],
       );
@@ -527,6 +538,10 @@ export const meetService = {
         compact({
           title: data["title"],
           startAt: scheduledAt,
+          createdAt:
+            scheduledAt && previous.data()?.["startAt"]?.toMillis?.() !== scheduledAt.toMillis()
+              ? serverTimestamp()
+              : undefined,
           endsAt,
           registrationClosesAt,
           maxPlayers: Number.isFinite(capacity) ? capacity : 20,
@@ -543,6 +558,7 @@ export const meetService = {
           compact({
             roomId: roomId || undefined,
             password: password || undefined,
+            meetStartAt: scheduledAt,
             updatedAt: serverTimestamp(),
           }),
           { merge: true },
@@ -563,9 +579,11 @@ export const meetService = {
     password: string,
   ): Promise<ServiceResult<{ id: string }>> => {
     try {
+      const meet = await getDoc(doc(firebaseDb, "meets", id));
+      if (!meet.exists()) throw new Error("Meet not found");
       await setDoc(
         doc(firebaseDb, "meetCredentials", id),
-        { roomId, password, updatedAt: serverTimestamp() },
+        { roomId, password, meetStartAt: meet.data()["startAt"], updatedAt: serverTimestamp() },
         { merge: true },
       );
       return ok({ id });
@@ -611,7 +629,7 @@ export const meetService = {
   credentials: {
     reveal: async (meetId: string): Promise<ServiceResult<MeetCredentials>> => {
       try {
-        const snapshot = await getDoc(doc(firebaseDb, "meetCredentials", meetId));
+        const snapshot = await getDocFromServer(doc(firebaseDb, "meetCredentials", meetId));
         if (!snapshot.exists()) return fail("NOT_FOUND", "Уулзалтын нууц мэдээлэл олдсонгүй.");
         return ok({
           roomId: str(snapshot.data()["roomId"]),

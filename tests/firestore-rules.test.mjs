@@ -285,3 +285,105 @@ test("stale previous Meet records can be replaced but current records cannot be 
   });
   await assertFails(rewrite.commit());
 });
+
+test("Meet credentials and voice enforce registration, session binding and server expiry", async () => {
+  const { getDocFromServer, getDocs, collection, updateDoc } = await import("firebase/firestore");
+  const guest = env.unauthenticatedContext().firestore();
+  const alice = env.authenticatedContext("alice").firestore();
+  const bob = env.authenticatedContext("bob").firestore();
+  const admin = env.authenticatedContext("owner", { admin: true }).firestore();
+  const start = Timestamp.fromMillis(Date.now() - 60_000);
+  const secret = {
+    roomId: "test-room-secret",
+    password: "test-password-secret",
+    meetStartAt: start,
+    updatedAt: Timestamp.now(),
+  };
+  const fixture = async (changes = {}, participantChanges = {}, credentialChanges = {}) => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "meets", "current"), {
+        enabled: true,
+        status: "live",
+        title: "Private Meet",
+        startAt: start,
+        createdAt: Timestamp.fromMillis(start.toMillis() - 1000),
+        maxPlayers: 20,
+        ...changes,
+      });
+      await setDoc(doc(db, "meetCredentials", "current"), { ...secret, ...credentialChanges });
+      await setDoc(doc(db, "memberAccounts", "bob"), {
+        status: "approved",
+        memberId: "member-bob",
+      });
+      await setDoc(doc(db, "meetParticipants", "alice"), {
+        meetId: "current",
+        memberId: "member-alice",
+        meetStartAt: start,
+        slotId: "current_01",
+        ...participantChanges,
+      });
+      await setDoc(doc(db, "meetSlots", "current_01"), {
+        participantId: "alice",
+        meetStartAt: start,
+      });
+    });
+  };
+  const credentials = (db) => getDocFromServer(doc(db, "meetCredentials", "current"));
+  const voice = (db) => getDocFromServer(doc(db, "meetVoiceAuthorization", "current"));
+  await fixture();
+  for (const db of [guest, bob]) {
+    await assertFails(credentials(db));
+    await assertFails(voice(db));
+  }
+  await assertSucceeds(getDocFromServer(doc(guest, "meets", "current")));
+  await assertSucceeds(credentials(alice));
+  const virtual = await assertSucceeds(voice(alice));
+  if (virtual.exists()) throw new Error("Voice authorization must have no stored data");
+  await assertFails(voice(admin)); // Admin must also register for voice.
+  await assertFails(getDocs(collection(alice, "meetCredentials")));
+  await assertFails(setDoc(doc(bob, "meetVoiceAuthorization", "current"), { allowed: true }));
+  await assertFails(setDoc(doc(bob, "meetCredentials", "current"), secret));
+  for (const changes of [
+    { startAt: Timestamp.fromMillis(Date.now() - 21 * 60_000) },
+    { endsAt: Timestamp.fromMillis(Date.now() - 1000) },
+    { endsAt: "invalid" },
+    { status: "ended" },
+    { status: "closed" },
+    { enabled: false },
+    { startAt: Timestamp.fromMillis(Date.now() + 60_000) },
+  ]) {
+    await fixture(
+      changes,
+      { meetStartAt: changes.startAt || start },
+      { meetStartAt: changes.startAt || start },
+    );
+    if (changes.startAt)
+      await env.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), "meetSlots", "current_01"), {
+          meetStartAt: changes.startAt,
+        });
+      });
+    await assertFails(credentials(alice));
+    await assertFails(voice(alice));
+    await assertSucceeds(credentials(admin));
+  }
+  await fixture({}, { meetStartAt: previousMeetStart });
+  await assertFails(credentials(alice));
+  await assertFails(voice(alice));
+  await fixture({}, {}, { meetStartAt: previousMeetStart });
+  await assertFails(credentials(alice));
+  await fixture({}, {}, { updatedAt: previousMeetStart });
+  await assertFails(credentials(alice));
+  await fixture();
+  await assertSucceeds(
+    updateDoc(doc(admin, "meetCredentials", "current"), { password: "admin-edited" }),
+  );
+  await assertSucceeds(updateDoc(doc(admin, "meets", "current"), { title: "Admin can manage" }));
+  await assertFails(updateDoc(doc(admin, "meets", "current"), { password: "must-be-private" }));
+  await fixture({ roomId: "legacy-secret", password: "legacy-password" });
+  await assertFails(getDocFromServer(doc(guest, "meets", "current")));
+  await assertFails(getDocFromServer(doc(alice, "meets", "current")));
+  await assertSucceeds(getDocFromServer(doc(admin, "meets", "current")));
+  await fixture();
+});
