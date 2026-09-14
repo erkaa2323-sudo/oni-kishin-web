@@ -14,6 +14,7 @@ import { Route as OniAiRouteImport } from './routes/oni-ai'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProgressionRouteImport } from './routes/progression'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as StreetOpsRouteImport } from './routes/street-ops'
 
 const IndexRoute=IndexRouteImport.update({id:'/',path:'/',getParentRoute:()=>rootRouteImport} as any)
 const AdminRoute=AdminRouteImport.update({id:'/admin',path:'/admin',getParentRoute:()=>rootRouteImport} as any)
@@ -27,12 +28,13 @@ const OniAiRoute=OniAiRouteImport.update({id:'/oni-ai',path:'/oni-ai',getParentR
 const ProfileRoute=ProfileRouteImport.update({id:'/profile',path:'/profile',getParentRoute:()=>rootRouteImport} as any)
 const ProgressionRoute=ProgressionRouteImport.update({id:'/progression',path:'/progression',getParentRoute:()=>rootRouteImport} as any)
 const ShopRoute=ShopRouteImport.update({id:'/shop',path:'/shop',getParentRoute:()=>rootRouteImport} as any)
+const StreetOpsRoute=StreetOpsRouteImport.update({id:'/street-ops',path:'/street-ops',getParentRoute:()=>rootRouteImport} as any)
 
-export interface FileRoutesByFullPath {'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/profile':typeof ProfileRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute}
+export interface FileRoutesByFullPath {'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/profile':typeof ProfileRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute;'/street-ops':typeof StreetOpsRoute}
 export interface FileRoutesByTo extends FileRoutesByFullPath {}
-export interface FileRoutesById {__root__:typeof rootRouteImport;'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/profile':typeof ProfileRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute}
+export interface FileRoutesById {__root__:typeof rootRouteImport;'/':typeof IndexRoute;'/admin':typeof AdminRoute;'/crew':typeof CrewRoute;'/gallery':typeof GalleryRoute;'/garage':typeof GarageRoute;'/join':typeof JoinRoute;'/meet':typeof MeetRoute;'/music':typeof MusicRoute;'/oni-ai':typeof OniAiRoute;'/profile':typeof ProfileRoute;'/progression':typeof ProgressionRoute;'/shop':typeof ShopRoute;'/street-ops':typeof StreetOpsRoute}
 export interface FileRouteTypes {fileRoutesByFullPath:FileRoutesByFullPath;fullPaths:keyof FileRoutesByFullPath;fileRoutesByTo:FileRoutesByTo;to:keyof FileRoutesByTo;id:keyof FileRoutesById;fileRoutesById:FileRoutesById}
-export interface RootRouteChildren {IndexRoute:typeof IndexRoute;AdminRoute:typeof AdminRoute;CrewRoute:typeof CrewRoute;GalleryRoute:typeof GalleryRoute;GarageRoute:typeof GarageRoute;JoinRoute:typeof JoinRoute;MeetRoute:typeof MeetRoute;MusicRoute:typeof MusicRoute;OniAiRoute:typeof OniAiRoute;ProfileRoute:typeof ProfileRoute;ProgressionRoute:typeof ProgressionRoute;ShopRoute:typeof ShopRoute}
+export interface RootRouteChildren {IndexRoute:typeof IndexRoute;AdminRoute:typeof AdminRoute;CrewRoute:typeof CrewRoute;GalleryRoute:typeof GalleryRoute;GarageRoute:typeof GarageRoute;JoinRoute:typeof JoinRoute;MeetRoute:typeof MeetRoute;MusicRoute:typeof MusicRoute;OniAiRoute:typeof OniAiRoute;ProfileRoute:typeof ProfileRoute;ProgressionRoute:typeof ProgressionRoute;ShopRoute:typeof ShopRoute;StreetOpsRoute:typeof StreetOpsRoute}
 
 declare module '@tanstack/react-router' { interface FileRoutesByPath {
 '/':{id:'/';path:'/';fullPath:'/';preLoaderRoute:typeof IndexRouteImport;parentRoute:typeof rootRouteImport}
@@ -47,8 +49,9 @@ declare module '@tanstack/react-router' { interface FileRoutesByPath {
 '/profile':{id:'/profile';path:'/profile';fullPath:'/profile';preLoaderRoute:typeof ProfileRouteImport;parentRoute:typeof rootRouteImport}
 '/progression':{id:'/progression';path:'/progression';fullPath:'/progression';preLoaderRoute:typeof ProgressionRouteImport;parentRoute:typeof rootRouteImport}
 '/shop':{id:'/shop';path:'/shop';fullPath:'/shop';preLoaderRoute:typeof ShopRouteImport;parentRoute:typeof rootRouteImport}
+'/street-ops':{id:'/street-ops';path:'/street-ops';fullPath:'/street-ops';preLoaderRoute:typeof StreetOpsRouteImport;parentRoute:typeof rootRouteImport}
 }}
-const rootRouteChildren:RootRouteChildren={IndexRoute,AdminRoute,CrewRoute,GalleryRoute,GarageRoute,JoinRoute,MeetRoute,MusicRoute,OniAiRoute,ProfileRoute,ProgressionRoute,ShopRoute}
+const rootRouteChildren:RootRouteChildren={IndexRoute,AdminRoute,CrewRoute,GalleryRoute,GarageRoute,JoinRoute,MeetRoute,MusicRoute,OniAiRoute,ProfileRoute,ProgressionRoute,ShopRoute,StreetOpsRoute}
 export const routeTree=rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
 import type { getRouter } from './router.tsx'
 import type { startInstance } from './start.ts'
