@@ -1,6 +1,6 @@
-Deploy PR #93 native mobile shells to Vercel production.
-Verified PR head: ac0e47877f94c7d8ab27d5c4262924e43cd9ee7b
-Merged main: c73f3c549fe218c4e5fa4c54c453fd44638ea16d
+Deploy PR #94 ONI World System foundation to Vercel production.
+Verified PR head: 83532c2139d3911a96c7a20fe9e070a4a689f1a5
+Merged main: 9f2e3da259c832e83063042e3d6c08bb8d2c9e53
 
-Release intent: deploy the verified shared web-side native voice bridge and current main production bundle after PR #93 passed Foundation Verification, iOS Background Voice, and Android Native CI.
+Release intent: deploy the verified ONI Digital Crew Passport and Garage DNA foundation without changing Firebase security boundaries.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
