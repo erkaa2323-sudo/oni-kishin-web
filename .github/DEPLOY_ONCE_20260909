@@ -1,7 +1,6 @@
-Deploy PR #99 Admin V3 to Vercel production.
-Verified PR head: 76084f08870231575fa876cd2f35c187bd900ea2
-Merged main: 27a68eac86c78cf4835b57284f685da2713552d0
-Main verification run: 34861681163 (GREEN)
-
-Release intent: deploy the verified Admin V3 clean mobile-first control center while preserving Cinematic Home 2.0, ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, native voice, native notifications, economy, and existing backend security boundaries.
-Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
+Deploy PR #100 Join Request V2 to Vercel production.
+Verified PR head: 2bb93596a40ef80be1b2ffded97dbcbb52d3aee3
+Merged main: 44cbecb2efe66d431c6feba4e1e2596555696ac2
+Foundation verification run: 34878361929 (success).
+User authorized merge and deploy after disclosure of the separate Cloudflare Workers failure.
+Release workflow must pass full verification before deploying, then verify production routes and interactions in Chromium and WebKit.
