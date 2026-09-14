@@ -83,7 +83,10 @@ export function fallbackGarageArt(key: string): string {
 }
 
 function garageRegistry(id: string): string {
-  const compact = id.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(-6);
+  const compact = id
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase()
+    .slice(-6);
   return `ONI-${compact || "UNIT"}`;
 }
 
@@ -98,9 +101,7 @@ export async function fetchVehicles(): Promise<GarageLoad> {
     const owner = v.ownerName ?? "—";
     const build = v.build ?? "STOCK / UNSPECIFIED";
     const discipline = VEHICLE_CATEGORIES.find((c) => c.id === categoryId)!.label;
-    const specs: { label: string; value: string }[] = [
-      { label: "АНГИЛАЛ", value: discipline },
-    ];
+    const specs: { label: string; value: string }[] = [{ label: "АНГИЛАЛ", value: discipline }];
     if (v.build) specs.push({ label: "БҮТЭЦ", value: v.build });
     if (v.ownerName) specs.push({ label: "ЭЗЭН", value: v.ownerName });
 
