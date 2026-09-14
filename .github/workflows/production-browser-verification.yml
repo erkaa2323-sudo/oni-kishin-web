@@ -1,0 +1,27 @@
+name: Production Browser Verification
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/production-browser-verification.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      KEI_APP_ORIGIN: https://oni-hub-v3.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - run: npm install --global npm@11.9.0
+      - run: npm ci --no-audit --no-fund
+      - run: npx --no-install playwright install --with-deps chromium webkit
+      - name: Verify production routes
+        run: node tests/route-smoke.mjs
+      - name: Verify production Join and Profile interactions
+        run: node tests/interaction-smoke.mjs
