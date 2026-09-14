@@ -41,6 +41,10 @@ for (const [name, engine] of [
         );
         assert.equal(await page.locator("vite-error-overlay").count(), 0);
         assert.deepEqual(errors, []);
+        if (route === "/join") {
+          assert.ok(text.includes("Oni & Kishin-д нэгдэх хүсэлт"), "join v2 heading missing");
+          assert.ok(text.includes("1. Таны тухай"), "join v2 step indicator missing");
+        }
         if (route === "/admin") {
           assert.ok(text.includes("НЭВТРЭХ"), "signed-out admin should show sign-in");
           assert.ok(!text.includes("EVENT REWARD"), "reward dock must be hidden");

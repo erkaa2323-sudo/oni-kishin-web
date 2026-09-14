@@ -12,6 +12,11 @@ for (const [name, engine] of [
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
     const errors = [];
+    const writes = [];
+    await page.route("https://firestore.googleapis.com/**/Write/**", async (route) => {
+      writes.push(route.request().url());
+      await route.abort();
+    });
     page.on("pageerror", (error) => errors.push(error.message));
 
     try {
@@ -23,18 +28,40 @@ for (const [name, engine] of [
       await expectVisible(page.getByRole("navigation", { name: "Бүх хэсэг" }));
       await page.getByRole("button", { name: "Цэс хаах" }).click();
 
-      const newExperience = page.getByRole("button", { name: "ШИНЭ", exact: true });
-      await newExperience.click();
-      assert.equal(await newExperience.getAttribute("aria-pressed"), "true");
+      const continueButton = page.getByRole("button", { name: /Үргэлжлүүлэх/ });
+      await continueButton.click();
+      await expectVisible(page.getByText("Улаанаар тэмдэглэсэн мэдээллийг шалгана уу."));
+      await expectVisible(page.getByRole("heading", { name: "Хувийн мэдээлэл" }));
 
-      const drift = page.getByRole("button", { name: "ДРИФТ", exact: true });
-      await drift.click();
-      assert.equal(await drift.getAttribute("aria-pressed"), "true");
-      await drift.click();
-      assert.equal(await drift.getAttribute("aria-pressed"), "false");
+      await page.locator('input[autocomplete="family-name"]').fill("Smoke Family");
+      await page.locator('input[autocomplete="given-name"]').fill("Smoke Rider");
+      await page.locator('input[type="number"]').fill("24");
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "CPM мэдээлэл" }));
 
-      await page.getByRole("button", { name: /ХҮСЭЛТ ИЛГЭЭХ/ }).click();
-      await page.getByText("Заавал бөглөх мэдээллүүдээ шалгана уу.").waitFor({ state: "visible" });
+      await page.getByPlaceholder("ONI RIDER").fill("SMOKE RIDER");
+      await page.getByPlaceholder("ONI0001").fill("SMOKE-001");
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "Туршлага ба холбоо" }));
+
+      await page.getByPlaceholder("@username").fill("@smoke");
+      await page.getByRole("button", { name: "ШИНЭ", exact: true }).click();
+      await page.getByRole("button", { name: "ДРИФТ", exact: true }).click();
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "Шалгах ба илгээх", level: 2 }));
+      await expectVisible(page.getByText("Smoke Family Smoke Rider", { exact: true }));
+      await expectVisible(page.getByText("SMOKE RIDER · SMOKE-001", { exact: true }));
+      await expectVisible(page.getByText("Instagram · @smoke", { exact: true }));
+      const submitButton = page.getByRole("button", { name: /Хүсэлт илгээх/ });
+      await expectVisible(submitButton);
+      assert.equal(await submitButton.isEnabled(), true, "review must not submit the request");
+      await page.getByRole("button", { name: "Өмнөх", exact: true }).click();
+      await expectVisible(page.getByRole("heading", { name: "Туршлага ба холбоо" }));
+      await continueButton.click();
+      await expectVisible(submitButton);
+      assert.equal(await submitButton.isEnabled(), true);
+      assert.deepEqual(writes, [], "step navigation must not write to Firestore");
+
       assert.deepEqual(errors, []);
       console.log(`[${name}][interaction join] PASS`);
 
@@ -50,6 +77,7 @@ for (const [name, engine] of [
       await forgotPassword.click();
       await expectVisible(page.getByText("Зөв и-мэйл хаяг оруулна уу."));
       assert.deepEqual(errors, []);
+      assert.deepEqual(writes, [], "review must not leave a pending Firestore write");
       console.log(`[${name}][interaction profile] PASS`);
     } catch (error) {
       failed = true;
