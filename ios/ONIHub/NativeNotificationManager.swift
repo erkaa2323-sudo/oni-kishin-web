@@ -127,7 +127,7 @@ final class NativeNotificationManager: NSObject, UNUserNotificationCenterDelegat
     webView.load(URLRequest(url: url))
   }
 
-  func userNotificationCenter(
+  nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
@@ -135,13 +135,17 @@ final class NativeNotificationManager: NSObject, UNUserNotificationCenterDelegat
     completionHandler([.banner, .sound, .badge])
   }
 
-  func userNotificationCenter(
+  nonisolated func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    let path = safePath(response.notification.request.content.userInfo["url"] as? String)
-    open(path: path)
+    let rawPath = response.notification.request.content.userInfo["url"] as? String
+    Task { @MainActor [weak self] in
+      guard let self else { return }
+      let path = self.safePath(rawPath)
+      self.open(path: path)
+    }
     completionHandler()
   }
 }
