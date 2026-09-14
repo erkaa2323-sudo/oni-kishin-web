@@ -43,9 +43,9 @@ export const ONI_DESTINATIONS: OniDestination[] = [
   },
   {
     to: "/street-ops",
-    label: "STREET OPS",
-    code: "OPS / EVENT",
-    desc: "Live operation, Garage DNA ба event activity",
+    label: "ONI WORLD",
+    code: "WORLD / LIVE",
+    desc: "Digital city, live Meet, Garage DNA ба AI command",
     index: "03",
   },
   {

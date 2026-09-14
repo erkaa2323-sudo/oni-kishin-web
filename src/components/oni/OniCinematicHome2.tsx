@@ -4,7 +4,7 @@ import {
   ArrowUpRight,
   Fingerprint,
   Gauge,
-  Radio,
+  Map,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -19,7 +19,7 @@ const HERO_VIDEO = "/ScreenRecording_09-11-2026%2011-36-49_1.mov";
 const systems = [
   { label: "ONI ID", value: "CREW PASSPORT", to: "/profile" as const, Icon: Fingerprint },
   { label: "GARAGE DNA", value: "MACHINE LINK", to: "/garage" as const, Icon: Gauge },
-  { label: "STREET OPS", value: "LIVE COMMAND", to: "/street-ops" as const, Icon: Radio },
+  { label: "ONI WORLD", value: "DIGITAL CITY", to: "/street-ops" as const, Icon: Map },
   { label: "MEET", value: "CREW CHANNEL", to: "/meet" as const, Icon: ShieldCheck },
 ];
 
@@ -134,12 +134,12 @@ export function OniCinematicHome2() {
               <strong>СЭРЭВ.</strong>
             </h1>
             <p className="oni-home2__lede">
-              Клан биш — амьд дижитал ертөнц. ONI ID, Garage DNA, Street Ops болон Meet системүүд
-              нэг cinematic command layer дээр холбогдлоо.
+              Клан биш — амьд дижитал ертөнц. ONI ID, Garage DNA, ONI WORLD болон Meet системүүд нэг
+              cinematic world layer дээр холбогдлоо.
             </p>
             <div className="oni-home2__actions">
               <Link to="/street-ops" className="oni-home2__primary">
-                STREET OPS НЭЭХ <ArrowUpRight className="h-4 w-4" />
+                ONI WORLD НЭЭХ <ArrowUpRight className="h-4 w-4" />
               </Link>
               <Link to="/profile" className="oni-home2__secondary">
                 ONI ID ҮЗЭХ
@@ -153,7 +153,7 @@ export function OniCinematicHome2() {
                 GARAGE DNA <b>LIVE</b>
               </span>
               <span>
-                STREET OPS <b>LIVE</b>
+                ONI WORLD <b>LIVE</b>
               </span>
             </div>
           </div>

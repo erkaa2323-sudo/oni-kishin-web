@@ -8,7 +8,7 @@ import { OniFooter } from "@/components/oni/OniFooter";
 
 const TITLE = "ONI HUB — Cinematic Home 2.0";
 const DESCRIPTION =
-  "ОНИ ХОТ — Oni And Kishin-ийн cinematic digital world. ONI ID, Garage DNA, Street Ops, Meet болон кланы бүх систем нэг ертөнцөд.";
+  "ОНИ ХОТ — Oni And Kishin-ийн cinematic digital world. ONI ID, Garage DNA, ONI WORLD, Meet болон кланы бүх систем нэг ертөнцөд.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
