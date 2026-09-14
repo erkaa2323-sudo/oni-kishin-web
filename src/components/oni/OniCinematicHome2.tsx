@@ -119,7 +119,9 @@ export function OniCinematicHome2() {
 
       <div className="oni-home2__shell">
         <div className="oni-home2__statusbar">
-          <span><i /> ONI // KISHIN NETWORK</span>
+          <span>
+            <i /> ONI // KISHIN NETWORK
+          </span>
           <span>HOME 2.0 / 2099</span>
           <span className="hidden sm:inline">ULAANBAATAR · MN</span>
         </div>
@@ -144,9 +146,15 @@ export function OniCinematicHome2() {
               </Link>
             </div>
             <div className="oni-home2__mobile-status" aria-label="Системийн төлөв">
-              <span>ONI ID <b>LIVE</b></span>
-              <span>GARAGE DNA <b>LIVE</b></span>
-              <span>STREET OPS <b>LIVE</b></span>
+              <span>
+                ONI ID <b>LIVE</b>
+              </span>
+              <span>
+                GARAGE DNA <b>LIVE</b>
+              </span>
+              <span>
+                STREET OPS <b>LIVE</b>
+              </span>
             </div>
           </div>
 

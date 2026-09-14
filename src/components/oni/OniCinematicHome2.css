@@ -12,8 +12,7 @@
 .oni-home2__media {
   position: absolute;
   inset: -2.5%;
-  transform: translate3d(calc(var(--home2-x) * -10px), calc(var(--home2-y) * -8px), 0)
-    scale(1.03);
+  transform: translate3d(calc(var(--home2-x) * -10px), calc(var(--home2-y) * -8px), 0) scale(1.03);
   transition: transform 180ms ease-out;
   will-change: transform;
 }
@@ -50,8 +49,20 @@
   z-index: 1;
   background:
     radial-gradient(circle at 72% 48%, rgb(167 18 37 / 0.13), transparent 24%),
-    linear-gradient(90deg, rgb(2 2 8 / 0.92) 0%, rgb(2 2 8 / 0.58) 30%, rgb(2 2 8 / 0.12) 58%, rgb(2 2 8 / 0.42) 100%),
-    linear-gradient(0deg, #05050a 0%, rgb(5 5 10 / 0.9) 12%, transparent 52%, rgb(3 3 8 / 0.22) 100%);
+    linear-gradient(
+      90deg,
+      rgb(2 2 8 / 0.92) 0%,
+      rgb(2 2 8 / 0.58) 30%,
+      rgb(2 2 8 / 0.12) 58%,
+      rgb(2 2 8 / 0.42) 100%
+    ),
+    linear-gradient(
+      0deg,
+      #05050a 0%,
+      rgb(5 5 10 / 0.9) 12%,
+      transparent 52%,
+      rgb(3 3 8 / 0.22) 100%
+    );
 }
 
 .oni-home2__beam {
@@ -224,7 +235,14 @@
   justify-content: center;
   gap: 0.7rem;
   padding: 0 1.25rem;
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
   font: 600 0.62rem/1 var(--font-mono);
   letter-spacing: 0.18em;
   transition: 0.3s var(--ease-cinema);
@@ -256,7 +274,14 @@
   background: rgb(5 5 10 / 0.58);
   backdrop-filter: blur(18px) saturate(1.15);
   box-shadow: 0 28px 80px rgb(0 0 0 / 0.38);
-  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% 100%,
+    16px 100%,
+    0 calc(100% - 16px)
+  );
   transform: translate3d(calc(var(--home2-x) * -9px), calc(var(--home2-y) * -5px), 0);
   transition: transform 180ms ease-out;
 }
@@ -470,7 +495,14 @@
 
   .oni-home2__depth {
     background:
-      linear-gradient(180deg, rgb(4 4 10 / 0.02) 0%, rgb(4 4 10 / 0.04) 31%, rgb(4 4 10 / 0.55) 47%, #05050a 70%, #05050a 100%),
+      linear-gradient(
+        180deg,
+        rgb(4 4 10 / 0.02) 0%,
+        rgb(4 4 10 / 0.04) 31%,
+        rgb(4 4 10 / 0.55) 47%,
+        #05050a 70%,
+        #05050a 100%
+      ),
       linear-gradient(90deg, rgb(4 4 10 / 0.22), transparent 45%, rgb(4 4 10 / 0.14));
   }
 
