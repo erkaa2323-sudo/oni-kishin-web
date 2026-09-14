@@ -10,6 +10,7 @@ export type OniDestination = {
     | "/"
     | "/crew"
     | "/garage"
+    | "/street-ops"
     | "/gallery"
     | "/music"
     | "/join"
@@ -41,41 +42,48 @@ export const ONI_DESTINATIONS: OniDestination[] = [
     index: "02",
   },
   {
+    to: "/street-ops",
+    label: "STREET OPS",
+    code: "OPS / EVENT",
+    desc: "Live operation, Garage DNA ба event activity",
+    index: "03",
+  },
+  {
     to: "/oni-ai",
     label: "ОНИ АЙ",
     code: "ONI AI / MUSIC",
     desc: "Oni Shizuki туслах ба хөгжмийн танхим",
-    index: "03",
+    index: "04",
   },
   {
     to: "/shop",
     label: "ОНИ ШОП",
     code: "SHOP / CPM",
     desc: "ONI Coin-оор CPM үйлчилгээ худалдан авах",
-    index: "04",
+    index: "05",
   },
-  { to: "/join", label: "НЭГДЭХ", code: "JOIN", desc: "Элсэлтийн хүсэлт", index: "05" },
-  { to: "/meet", label: "УУЛЗАЛТ", code: "MEET", desc: "Цугларалт ба уулзалт", index: "06" },
+  { to: "/join", label: "НЭГДЭХ", code: "JOIN", desc: "Элсэлтийн хүсэлт", index: "06" },
+  { to: "/meet", label: "УУЛЗАЛТ", code: "MEET", desc: "Цугларалт ба уулзалт", index: "07" },
   {
     to: "/gallery",
     label: "ГАЛЕРЕЙ",
     code: "GALLERY",
     desc: "Кланы зураг ба дурсамж",
-    index: "07",
+    index: "08",
   },
   {
     to: "/profile",
     label: "PROFILE",
     code: "PROFILE",
     desc: "Account, XP, Coin, Meet болон achievement",
-    index: "08",
+    index: "09",
   },
   {
     to: "/admin",
     label: "УДИРДЛАГА",
     code: "ADMIN",
     desc: "Хяналтын самбар",
-    index: "09",
+    index: "10",
   },
 ];
 
