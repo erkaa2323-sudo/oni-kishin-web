@@ -165,11 +165,14 @@ export function OniProfileStage() {
                   Зураг, creator контент болон Crew дурсамж.
                 </p>
               </Link>
-              <Link to="/meet" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/street-ops"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Users className="h-4 w-4 text-crimson" />
-                <p className="mt-3 text-cinema text-2xl">STREET OPS</p>
+                <p className="mt-3 text-cinema text-2xl">ONI WORLD</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Meet бүртгэл, private room болон ажиллагааны төв.
+                  Digital city, live Meet, Garage DNA болон AI command төв.
                 </p>
               </Link>
               <Link
