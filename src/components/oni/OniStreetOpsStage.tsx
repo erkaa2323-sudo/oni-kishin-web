@@ -124,7 +124,10 @@ export function OniStreetOpsStage() {
   }, [participants]);
 
   const worldState = meet ? "WORLD ACTIVE" : "CITY STANDBY";
-  const worldPulse = Math.min(100, 24 + activeRiders * 5 + eventWins.length * 8 + vehicles.length * 2);
+  const worldPulse = Math.min(
+    100,
+    24 + activeRiders * 5 + eventWins.length * 8 + vehicles.length * 2,
+  );
 
   return (
     <div className="min-h-screen bg-ink text-foreground">
@@ -219,7 +222,9 @@ export function OniStreetOpsStage() {
                 <span className="hud-label text-crimson/80">LIVE WORLD EVENT</span>
                 <h2 className="mt-2 text-cinema text-3xl">{meet?.title ?? "CITY IN STANDBY"}</h2>
               </div>
-              <span className="hud-label">{meet ? formatDate(meet.scheduledAt) : "NO ACTIVE MEET"}</span>
+              <span className="hud-label">
+                {meet ? formatDate(meet.scheduledAt) : "NO ACTIVE MEET"}
+              </span>
             </div>
 
             {loading ? (
@@ -281,7 +286,10 @@ export function OniStreetOpsStage() {
               <h2 className="mt-2 text-cinema text-3xl">WORLD OBJECTIVES</h2>
             </div>
             <div className="mt-4 space-y-3">
-              <Link to="/meet" className="flex items-start gap-3 border border-border bg-ink/45 p-4">
+              <Link
+                to="/meet"
+                className="flex items-start gap-3 border border-border bg-ink/45 p-4"
+              >
                 <Target className="mt-0.5 h-4 w-4 shrink-0 text-crimson" />
                 <div>
                   <strong className="text-sm">LIVE MEET DEPLOYMENT</strong>
@@ -290,7 +298,10 @@ export function OniStreetOpsStage() {
                   </p>
                 </div>
               </Link>
-              <Link to="/garage" className="flex items-start gap-3 border border-border bg-ink/45 p-4">
+              <Link
+                to="/garage"
+                className="flex items-start gap-3 border border-border bg-ink/45 p-4"
+              >
                 <Gauge className="mt-0.5 h-4 w-4 shrink-0 text-crimson" />
                 <div>
                   <strong className="text-sm">GARAGE DNA SYNC</strong>
@@ -299,7 +310,10 @@ export function OniStreetOpsStage() {
                   </p>
                 </div>
               </Link>
-              <Link to="/oni-ai" className="flex items-start gap-3 border border-border bg-ink/45 p-4">
+              <Link
+                to="/oni-ai"
+                className="flex items-start gap-3 border border-border bg-ink/45 p-4"
+              >
                 <Bot className="mt-0.5 h-4 w-4 shrink-0 text-crimson" />
                 <div>
                   <strong className="text-sm">AI COMMAND LINK</strong>
@@ -336,7 +350,9 @@ export function OniStreetOpsStage() {
                   </div>
                 ))
               ) : (
-                <p className="py-6 text-sm text-muted-foreground">World history-д event win хараахан алга.</p>
+                <p className="py-6 text-sm text-muted-foreground">
+                  World history-д event win хараахан алга.
+                </p>
               )}
             </div>
           </section>
@@ -369,7 +385,9 @@ export function OniStreetOpsStage() {
                     </div>
                   )}
                   <div className="min-w-0 py-1">
-                    <span className="hud-label text-crimson/80">{disciplineLabel[car.categoryId]}</span>
+                    <span className="hud-label text-crimson/80">
+                      {disciplineLabel[car.categoryId]}
+                    </span>
                     <h3 className="mt-1 truncate text-cinema text-xl">{car.name}</h3>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
                       PILOT / {car.ownerCallsign} · {car.dna.registry}
@@ -378,7 +396,9 @@ export function OniStreetOpsStage() {
                 </Link>
               ))}
               {!featured.length && !loading ? (
-                <p className="py-6 text-sm text-muted-foreground">Garage DNA machine хараахан алга.</p>
+                <p className="py-6 text-sm text-muted-foreground">
+                  Garage DNA machine хараахан алга.
+                </p>
               ) : null}
             </div>
           </section>
