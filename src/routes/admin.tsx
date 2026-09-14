@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import "@/services/application-workflow";
-import "@/admin-cleanup.css";
 import { OniAdminPage } from "@/components/oni/OniAdminPage";
 
 const description =
-  "ONI HUB удирдлагын төв — гишүүд, элсэлтийн анкет, гишүүний нэвтрэх хүсэлт, гараж, уулзалт, эдийн засаг, шагнал, контент, системийн бүртгэл болон ONI админ туслах.";
+  "ONI HUB Admin V3 — гишүүд, хүсэлт, Meet, эдийн засаг, контент, системийн төлөв болон audit-ийг нэг цэгээс удирдах төв.";
 
 function AdminRoutePage() {
   return <OniAdminPage />;
@@ -14,9 +13,9 @@ function AdminRoutePage() {
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Удирдлага — ONI HUB" },
+      { title: "Admin V3 — ONI HUB" },
       { name: "description", content: description },
-      { property: "og:title", content: "Удирдлага — ONI HUB" },
+      { property: "og:title", content: "Admin V3 — ONI HUB" },
       { property: "og:description", content: description },
       { name: "robots", content: "noindex" },
     ],
