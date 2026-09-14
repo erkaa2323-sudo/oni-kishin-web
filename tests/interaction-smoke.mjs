@@ -23,18 +23,32 @@ for (const [name, engine] of [
       await expectVisible(page.getByRole("navigation", { name: "Бүх хэсэг" }));
       await page.getByRole("button", { name: "Цэс хаах" }).click();
 
-      const newExperience = page.getByRole("button", { name: "ШИНЭ", exact: true });
-      await newExperience.click();
-      assert.equal(await newExperience.getAttribute("aria-pressed"), "true");
+      const continueButton = page.getByRole("button", { name: /Үргэлжлүүлэх/ });
+      await continueButton.click();
+      await expectVisible(page.getByText("Улаанаар тэмдэглэсэн мэдээллийг шалгана уу."));
+      await expectVisible(page.getByRole("heading", { name: "Хувийн мэдээлэл" }));
 
-      const drift = page.getByRole("button", { name: "ДРИФТ", exact: true });
-      await drift.click();
-      assert.equal(await drift.getAttribute("aria-pressed"), "true");
-      await drift.click();
-      assert.equal(await drift.getAttribute("aria-pressed"), "false");
+      await page.locator('input[autocomplete="family-name"]').fill("Smoke Family");
+      await page.locator('input[autocomplete="given-name"]').fill("Smoke Rider");
+      await page.locator('input[type="number"]').fill("24");
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "CPM мэдээлэл" }));
 
-      await page.getByRole("button", { name: /ХҮСЭЛТ ИЛГЭЭХ/ }).click();
-      await page.getByText("Заавал бөглөх мэдээллүүдээ шалгана уу.").waitFor({ state: "visible" });
+      await page.getByPlaceholder("ONI RIDER").fill("SMOKE RIDER");
+      await page.getByPlaceholder("ONI0001").fill("SMOKE-001");
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "Туршлага ба холбоо" }));
+
+      await page.getByPlaceholder("@username").fill("@smoke");
+      await page.getByRole("button", { name: "ШИНЭ", exact: true }).click();
+      await page.getByRole("button", { name: "ДРИФТ", exact: true }).click();
+      await continueButton.click();
+      await expectVisible(page.getByRole("heading", { name: "Шалгах ба илгээх" }));
+      await expectVisible(page.getByText("Smoke Family Smoke Rider", { exact: true }));
+      await expectVisible(page.getByText("SMOKE RIDER · SMOKE-001", { exact: true }));
+      await expectVisible(page.getByText("Instagram · @smoke", { exact: true }));
+      await expectVisible(page.getByRole("button", { name: /Хүсэлт илгээх/ }));
+
       assert.deepEqual(errors, []);
       console.log(`[${name}][interaction join] PASS`);
 
