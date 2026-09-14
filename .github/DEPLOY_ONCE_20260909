@@ -1,6 +1,7 @@
-Deploy PR #98 Native Notifications to Vercel production.
-Verified PR head: 3efd28eef61eb3b2d6f5314998d638cb0a5a76f3
-Merged main: c305b5c5c5b5f1295b057ae3094c23c675529357
+Deploy PR #99 Admin V3 to Vercel production.
+Verified PR head: 76084f08870231575fa876cd2f35c187bd900ea2
+Merged main: 27a68eac86c78cf4835b57284f685da2713552d0
+Main verification run: 34861681163 (GREEN)
 
-Release intent: deploy the verified native notification bridge while preserving Cinematic Home 2.0, ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, native voice, and existing backend security boundaries.
+Release intent: deploy the verified Admin V3 clean mobile-first control center while preserving Cinematic Home 2.0, ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, native voice, native notifications, economy, and existing backend security boundaries.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
