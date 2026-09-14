@@ -27,10 +27,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx --no-install playwright install --with-deps chromium webkit
       - name: Format check
-        run: |
-          npx --no-install prettier --write src/components/oni/OniCinematicHome2.tsx src/components/oni/OniStreetOpsStage.tsx
-          git diff -- src/components/oni/OniCinematicHome2.tsx src/components/oni/OniStreetOpsStage.tsx
-          git diff --quiet -- src/components/oni/OniCinematicHome2.tsx src/components/oni/OniStreetOpsStage.tsx
+        run: npm run format:check
       - name: Lint
         run: npm run lint
       - name: Typecheck
