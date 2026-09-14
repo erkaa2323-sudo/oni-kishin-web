@@ -81,8 +81,12 @@ export function OniProfileStage() {
         {account?.status === "approved" ? (
           <section className="mt-8 space-y-6" aria-label="ONI ID мэдээлэл">
             <div className="glass-panel relative overflow-hidden p-5 clip-notch sm:p-7">
-              <div className="pointer-events-none absolute right-[-3rem] top-[-3rem] h-48 w-48 rounded-full bg-crimson/10 blur-3xl" />
-              <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div
+                className="pointer-events-none absolute right-[-3rem] top-[-3rem] h-48 w-48 rounded-full bg-crimson/10 blur-3xl"
+              />
+              <div
+                className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
+              >
                 <div>
                   <span className="hud-label text-crimson/80">DIGITAL CREW PASSPORT</span>
                   <h2 className="mt-2 text-cinema text-4xl">{account.nickname}</h2>
