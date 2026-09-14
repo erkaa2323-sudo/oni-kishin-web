@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Award, Copy, Crown, UserRound, X } from "lucide-react";
 
 import garageBay from "@/assets/garage/garage-bay.jpg";
 import {
@@ -20,6 +21,8 @@ export function OniGarageStage() {
   const [loadError, setLoadError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [activeId, setActiveId] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState("");
+  const [copyNotice, setCopyNotice] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -31,7 +34,18 @@ export function OniGarageStage() {
         return;
       }
       setVehicles(r.rows);
-      setActiveId(r.rows[0]?.id ?? "");
+      const params = new URLSearchParams(window.location.search);
+      const requestedOwner = params.get("owner") ?? "";
+      const requestedVehicle = params.get("vehicle") ?? "";
+      setOwnerFilter(requestedOwner);
+      setActiveId(
+        r.rows.some((vehicle) => vehicle.id === requestedVehicle)
+          ? requestedVehicle
+          : (r.rows.find((vehicle) => vehicle.ownerMemberId === requestedOwner)?.id ??
+              r.rows.find((vehicle) => vehicle.featured)?.id ??
+              r.rows[0]?.id ??
+              ""),
+      );
       setLoadState("ready");
     });
     return () => {
@@ -40,15 +54,56 @@ export function OniGarageStage() {
   }, []);
 
   const visible = useMemo(
-    () => (filter === "all" ? vehicles : vehicles.filter((v) => v.categoryId === filter)),
-    [vehicles, filter],
+    () =>
+      vehicles.filter(
+        (vehicle) =>
+          (filter === "all" || vehicle.categoryId === filter) &&
+          (!ownerFilter || vehicle.ownerMemberId === ownerFilter),
+      ),
+    [vehicles, filter, ownerFilter],
   );
-  const active = vehicles.find((v) => v.id === activeId) ?? visible[0] ?? vehicles[0];
+  const active =
+    vehicles.find((vehicle) => vehicle.id === activeId && visible.includes(vehicle)) ??
+    visible[0] ??
+    (ownerFilter ? undefined : vehicles[0]);
 
   const selectFilter = (f: Filter) => {
     setFilter(f);
-    const next = f === "all" ? vehicles : vehicles.filter((v) => v.categoryId === f);
+    const next = vehicles.filter(
+      (vehicle) =>
+        (f === "all" || vehicle.categoryId === f) &&
+        (!ownerFilter || vehicle.ownerMemberId === ownerFilter),
+    );
     if (next.length && !next.some((v) => v.id === activeId)) setActiveId(next[0]!.id);
+  };
+
+  const selectVehicle = (vehicle: Vehicle) => {
+    setActiveId(vehicle.id);
+    const url = new URL(window.location.href);
+    url.searchParams.set("vehicle", vehicle.id);
+    if (ownerFilter) url.searchParams.set("owner", ownerFilter);
+    window.history.replaceState(null, "", url);
+  };
+
+  const clearOwnerFilter = () => {
+    setOwnerFilter("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("owner");
+    window.history.replaceState(null, "", url);
+  };
+
+  const copyVehicleLink = async () => {
+    if (!active) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("vehicle", active.id);
+    if (active.ownerMemberId) url.searchParams.set("owner", active.ownerMemberId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setCopyNotice("МАШИНЫ LINK ХУУЛАГДЛАА");
+    } catch {
+      setCopyNotice("LINK ХУУЛАХ БОЛОМЖГҮЙ БАЙНА");
+    }
+    window.setTimeout(() => setCopyNotice(""), 1800);
   };
 
   const recoverImage = (vehicle: Vehicle) => {
@@ -140,7 +195,24 @@ export function OniGarageStage() {
               )}
             </div>
 
-            {loadState !== "ready" || vehicles.length === 0 ? (
+            {ownerFilter ? (
+              <div className="mt-3 flex items-center gap-3">
+                <span className="inline-flex min-h-11 items-center gap-2 border border-crimson/40 bg-crimson/10 px-3 hud-label text-crimson">
+                  <UserRound className="h-3.5 w-3.5" />
+                  ONI ID {ownerFilter}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearOwnerFilter}
+                  className="grid h-11 w-11 place-items-center border border-border bg-ink/55 text-muted-foreground transition-colors hover:border-crimson/50 hover:text-foreground"
+                  aria-label="Эзэмшигчийн шүүлтүүр цэвэрлэх"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : null}
+
+            {loadState !== "ready" || visible.length === 0 ? (
               <div className="mt-8 flex flex-1 items-center justify-center">
                 <div className="max-w-md border border-dashed border-border bg-ink/60 p-8 text-center backdrop-blur-md">
                   <span className="hud-label block text-crimson/80">
@@ -155,14 +227,16 @@ export function OniGarageStage() {
                       ? "Гаражийн бүртгэл ачаалж байна…"
                       : loadState === "error"
                         ? loadError
-                        : "Нийтлэгдсэн автомашины бичлэг одоогоор алга. Админ бүртгэл нэмсний дараа энд харагдана."}
+                        : ownerFilter
+                          ? "Энэ ONI ID-д холбогдсон машин алга. Админ гаражийн бүртгэл дээр эзэмшигчийн ONI ID-г холбоно."
+                          : "Нийтлэгдсэн автомашины бичлэг одоогоор алга. Админ бүртгэл нэмсний дараа энд харагдана."}
                   </p>
                 </div>
               </div>
             ) : null}
 
             <div
-              className={`relative mt-2 flex-1 ${loadState === "ready" && vehicles.length ? "flex" : "hidden"} flex-col justify-center gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-center lg:gap-10`}
+              className={`relative mt-2 flex-1 ${loadState === "ready" && visible.length ? "flex" : "hidden"} flex-col justify-center gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-center lg:gap-10`}
             >
               <div className="min-w-0">
                 {active ? (
@@ -223,22 +297,63 @@ export function OniGarageStage() {
                         <p className="mt-2 text-sm tracking-[0.14em] text-crimson/90">
                           ЭЗЭН — {active.ownerCallsign}
                         </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {active.featured ? (
+                            <span className="inline-flex min-h-9 items-center gap-2 border border-crimson/40 bg-crimson/10 px-3 hud-label text-crimson">
+                              <Crown className="h-3.5 w-3.5" /> FEATURED MACHINE
+                            </span>
+                          ) : null}
+                          {active.ownerMemberId ? (
+                            <a
+                              href={`/crew?member=${encodeURIComponent(active.ownerMemberId)}`}
+                              className="inline-flex min-h-9 items-center gap-2 border border-border bg-ink/45 px-3 hud-label text-muted-foreground transition-colors hover:border-crimson/50 hover:text-foreground"
+                            >
+                              <UserRound className="h-3.5 w-3.5" /> ЭЗЭМШИГЧИЙН ONI ID
+                            </a>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => void copyVehicleLink()}
+                            className="inline-flex min-h-9 items-center gap-2 border border-border bg-ink/45 px-3 hud-label text-muted-foreground transition-colors hover:border-crimson/50 hover:text-foreground"
+                          >
+                            <Copy className="h-3.5 w-3.5" /> LINK
+                          </button>
+                        </div>
                         <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
                           {active.summary}
                         </p>
+                        {copyNotice ? (
+                          <p className="mt-3 hud-label text-crimson" role="status">
+                            {copyNotice}
+                          </p>
+                        ) : null}
                       </div>
 
-                      <dl className="grid gap-px self-start overflow-hidden border border-border bg-border/60 sm:grid-cols-2">
-                        {active.specs.map((s) => (
-                          <div
-                            key={s.label}
-                            className="min-w-0 bg-ink/70 px-4 py-3 backdrop-blur-md"
-                          >
-                            <dt className="hud-label truncate">{s.label}</dt>
-                            <dd className="mt-1 truncate text-sm text-foreground">{s.value}</dd>
+                      <div className="space-y-3">
+                        <dl className="grid gap-px self-start overflow-hidden border border-border bg-border/60 sm:grid-cols-2">
+                          {active.specs.map((s) => (
+                            <div
+                              key={s.label}
+                              className="min-w-0 bg-ink/70 px-4 py-3 backdrop-blur-md"
+                            >
+                              <dt className="hud-label truncate">{s.label}</dt>
+                              <dd className="mt-1 truncate text-sm text-foreground">{s.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {active.awards.length ? (
+                          <div className="border border-crimson/25 bg-crimson/5 p-4">
+                            <span className="inline-flex items-center gap-2 hud-label text-crimson">
+                              <Award className="h-3.5 w-3.5" /> GARAGE HONORS
+                            </span>
+                            <ul className="mt-3 space-y-2 text-xs text-foreground">
+                              {active.awards.map((award) => (
+                                <li key={award}>— {award}</li>
+                              ))}
+                            </ul>
                           </div>
-                        ))}
-                      </dl>
+                        ) : null}
+                      </div>
                     </div>
                   </>
                 ) : null}
@@ -257,7 +372,7 @@ export function OniGarageStage() {
                         <button
                           type="button"
                           aria-pressed={on}
-                          onClick={() => setActiveId(v.id)}
+                          onClick={() => selectVehicle(v)}
                           className={`flex w-44 items-center gap-3 border px-3 py-3 text-left transition-colors duration-300 clip-notch lg:w-full ${
                             on
                               ? "border-crimson/70 bg-crimson/15"

@@ -1,6 +1,7 @@
 import type { AdminMemberRecord } from "@/data/admin";
 
 export const MEMBER_ADMIN_FIELDS = [
+  { key: "oni_id", label: "ONI ID", max: 40 },
   { key: "cpm_nickname", label: "CPM ХОЧ", required: true, max: 40 },
   { key: "cpm_id", label: "CPM ID", required: true, max: 40 },
   { key: "role", label: "ҮҮРЭГ" },
@@ -20,6 +21,7 @@ export const MEMBER_ADMIN_FIELDS = [
 export function mapAdminMemberRow(m: AdminMemberRecord) {
   return {
     id: m.id,
+    oni_id: m.oniId,
     cpm_nickname: m.cpmNickname,
     cpm_id: m.cpmId,
     role: m.role,

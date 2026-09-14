@@ -129,6 +129,7 @@ async function firebaseRemove(name: string, id: string): Promise<ServiceResult<{
 /* ── Members ──────────────────────────────────────────────────── */
 
 export type MemberRecord = BaseRecord & {
+  oniId?: string | undefined;
   cpmNickname: string;
   cpmId: string;
   role?: string | undefined;
@@ -170,6 +171,7 @@ export const membersService = {
           .filter((r) => str(r["status"]) !== "archived" && str(r["status"]) !== "inactive")
           .map((r) => ({
             id: str(r["id"]),
+            oniId: opt(r["oniId"] || r["oni_id"] || r["memberCode"]),
             cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
             cpmId: str(r["cpmid"] || r["cpmId"] || r["cpm_id"]),
             role: opt(r["role"] || r["title"]),
@@ -194,6 +196,7 @@ export const membersService = {
 function mapFirebaseMember(r: Row): MemberRecord {
   return {
     id: str(r["id"]),
+    oniId: opt(r["oniId"] || r["oni_id"] || r["memberCode"]),
     cpmNickname: str(r["nick"] || r["nickname"] || r["name"]),
     cpmId: str(r["cpmid"] || r["cpmId"] || r["cpm_id"]),
     role: opt(r["role"] || r["title"]),
@@ -215,6 +218,8 @@ function memberWrite(data: Record<string, unknown>): Record<string, unknown> {
   const cpmId = data["cpm_id"] ?? data["cpmid"] ?? data["cpmId"];
   const joinedAt = data["joined_at"] ?? data["joinedAt"];
   return compact({
+    oniId: data["oni_id"] ?? data["oniId"] ?? data["member_code"],
+    oni_id: data["oni_id"] ?? data["oniId"] ?? data["member_code"],
     nick: data["cpm_nickname"] ?? data["nick"] ?? data["nickname"] ?? data["name"],
     cpmid: cpmId,
     cpmId,
@@ -237,6 +242,11 @@ export type VehicleRecord = BaseRecord & {
   ownerMemberId?: string | undefined;
   category?: string | undefined;
   build?: string | undefined;
+  drivetrain?: string | undefined;
+  horsepower?: number | undefined;
+  liveryTheme?: string | undefined;
+  awards?: string[] | undefined;
+  featured?: boolean | undefined;
   imagePath?: string | undefined;
   status: "published" | "draft" | "archived";
 };
@@ -274,6 +284,19 @@ function mapFirebaseVehicle(r: Row): VehicleRecord {
     ownerMemberId: opt(r["ownerMemberId"] || r["owner_member_id"]),
     category: opt(r["category"]),
     build: opt(r["build"] || r["description"] || r["anime"]),
+    drivetrain: opt(r["drivetrain"] || r["driveTrain"] || r["drive_train"]),
+    horsepower:
+      typeof (r["horsepower"] ?? r["hp"]) === "number"
+        ? Number(r["horsepower"] ?? r["hp"])
+        : undefined,
+    liveryTheme: opt(r["liveryTheme"] || r["livery_theme"] || r["anime"]),
+    awards: Array.isArray(r["awards"])
+      ? (r["awards"] as unknown[]).map(String).filter(Boolean)
+      : opt(r["awards"])
+          ?.split(",")
+          .map((award) => award.trim())
+          .filter(Boolean),
+    featured: r["featured"] === true,
     imagePath: opt(
       r["image"] ||
         r["imagePath"] ||
@@ -292,6 +315,16 @@ function vehicleWrite(data: Record<string, unknown>): Record<string, unknown> {
   const owner = data["owner_name"] ?? data["ownerName"] ?? data["owner"];
   const ownerMemberId = data["owner_member_id"] ?? data["ownerMemberId"];
   const build = data["build"] ?? data["description"];
+  const drivetrain = data["drivetrain"] ?? data["drive_train"];
+  const horsepower = data["horsepower"] ?? data["hp"];
+  const liveryTheme = data["livery_theme"] ?? data["liveryTheme"];
+  const awards =
+    typeof data["awards"] === "string"
+      ? data["awards"]
+          .split(",")
+          .map((award) => award.trim())
+          .filter(Boolean)
+      : data["awards"];
   const imagePath =
     data["image_path"] ??
     data["imagePath"] ??
@@ -308,6 +341,13 @@ function vehicleWrite(data: Record<string, unknown>): Record<string, unknown> {
     category: data["category"],
     description: build,
     build,
+    drivetrain,
+    horsepower,
+    hp: horsepower,
+    liveryTheme,
+    livery_theme: liveryTheme,
+    awards,
+    featured: data["featured"] === true || data["featured"] === "true",
     image: imagePath,
     imagePath,
     image_path: imagePath,

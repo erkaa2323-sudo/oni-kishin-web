@@ -37,6 +37,7 @@ export const CREW_STATUS_LABEL: Record<CrewStatus, string> = {
 
 export type CrewMember = {
   id: string;
+  oniId: string;
   callsign: string;
   kana?: string;
   roleId: CrewRoleId;
@@ -102,6 +103,7 @@ export async function fetchCrew(): Promise<CrewLoad> {
     const roleId = parseCrewRole(m.role);
     const joined = formatDate(m.joinedAt);
     const traits: { label: string; value: string }[] = [
+      { label: "ONI ID", value: m.oniId || m.id },
       { label: "CPM ID", value: m.cpmId || "—" },
       { label: "ҮҮРЭГ", value: m.role || CREW_ROLE_TITLE[roleId] },
     ];
@@ -109,6 +111,7 @@ export async function fetchCrew(): Promise<CrewLoad> {
 
     return {
       id: m.id,
+      oniId: m.oniId || m.id,
       callsign: m.cpmNickname,
       roleId,
       title: m.role || CREW_ROLE_TITLE[roleId],

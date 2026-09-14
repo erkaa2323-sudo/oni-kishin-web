@@ -183,6 +183,7 @@ export function getServiceStatuses(): ServiceStatus[] {
 
 export type AdminMemberRecord = {
   id: string;
+  oniId: string;
   cpmNickname: string;
   cpmId: string;
   role: string;
@@ -194,8 +195,14 @@ export type AdminVehicleRecord = {
   id: string;
   model: string;
   owner: string;
+  ownerMemberId: string;
   category: string;
   build: string;
+  drivetrain: string;
+  horsepower: number | null;
+  liveryTheme: string;
+  awards: string;
+  featured: boolean;
   imagePath: string;
   status: "published" | "draft" | "archived";
 };
@@ -257,6 +264,7 @@ async function toResult<T, R>(
 export async function getMembers(): Promise<DataResult<AdminMemberRecord>> {
   return toResult(membersService.list, (m) => ({
     id: m.id,
+    oniId: m.oniId ?? "",
     cpmNickname: m.cpmNickname,
     cpmId: m.cpmId,
     role: m.role ?? "",
@@ -270,8 +278,14 @@ export async function getVehicles(): Promise<DataResult<AdminVehicleRecord>> {
     id: v.id,
     model: v.model,
     owner: v.ownerName ?? "—",
+    ownerMemberId: v.ownerMemberId ?? "",
     category: v.category ?? "",
     build: v.build ?? "",
+    drivetrain: v.drivetrain ?? "",
+    horsepower: v.horsepower ?? null,
+    liveryTheme: v.liveryTheme ?? "",
+    awards: v.awards?.join(", ") ?? "",
+    featured: v.featured === true,
     imagePath: v.imagePath ?? "",
     status: v.status,
   }));

@@ -36,8 +36,14 @@ export type Vehicle = {
   name: string;
   kana?: string;
   ownerCallsign: string;
+  ownerMemberId?: string;
   categoryId: VehicleCategoryId;
   buildStage?: BuildStage;
+  drivetrain?: string;
+  horsepower?: number;
+  liveryTheme?: string;
+  awards: string[];
+  featured: boolean;
   summary: string;
   image?: string;
   specs: { label: string; value: string }[];
@@ -56,6 +62,12 @@ export function parseBuildStage(value: string | undefined | null): BuildStage | 
   if (v.includes("stage2") || v.includes("2")) return "stage2";
   if (v.includes("stage1") || v.includes("1")) return "stage1";
   return undefined;
+}
+
+export function normalizeHorsepower(value: unknown): number | undefined {
+  const hp =
+    typeof value === "number" ? value : Number(String(value ?? "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(hp) && hp > 0 && hp <= 10_000 ? Math.round(hp) : undefined;
 }
 
 /** Allow remote, same-origin relative and legacy raster data URLs; SVG stays blocked. */
@@ -84,18 +96,28 @@ export async function fetchVehicles(): Promise<GarageLoad> {
   const rows: Vehicle[] = res.data.map((v) => {
     const categoryId = parseCategory(v.category);
     const buildStage = parseBuildStage(v.build);
+    const horsepower = normalizeHorsepower(v.horsepower);
     const specs: { label: string; value: string }[] = [
       { label: "АНГИЛАЛ", value: VEHICLE_CATEGORIES.find((c) => c.id === categoryId)!.label },
     ];
     if (v.build) specs.push({ label: "БҮТЭЦ", value: v.build });
+    if (v.drivetrain) specs.push({ label: "ХӨТЛӨГЧ", value: v.drivetrain.toUpperCase() });
+    if (horsepower) specs.push({ label: "ХҮЧ", value: `${horsepower} HP` });
+    if (v.liveryTheme) specs.push({ label: "LIVERY", value: v.liveryTheme });
     if (v.ownerName) specs.push({ label: "ЭЗЭН", value: v.ownerName });
 
     return {
       id: v.id,
       name: v.model,
       ownerCallsign: v.ownerName ?? "—",
+      ...(v.ownerMemberId ? { ownerMemberId: v.ownerMemberId } : {}),
       categoryId,
       ...(buildStage ? { buildStage } : {}),
+      ...(v.drivetrain ? { drivetrain: v.drivetrain } : {}),
+      ...(horsepower ? { horsepower } : {}),
+      ...(v.liveryTheme ? { liveryTheme: v.liveryTheme } : {}),
+      awards: v.awards ?? [],
+      featured: v.featured === true,
       summary: v.build ?? "",
       image: safeImageUrl(v.imagePath) ?? fallbackGarageArt(`${v.id}:${v.model}`),
       specs,

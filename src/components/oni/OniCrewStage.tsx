@@ -33,7 +33,14 @@ export function OniCrewStage() {
         return;
       }
       setRoster(result.rows);
-      setActiveId(result.rows[0]?.id ?? "");
+      const requestedMember = new URLSearchParams(window.location.search).get("member") ?? "";
+      setActiveId(
+        result.rows.find(
+          (member) => member.id === requestedMember || member.oniId === requestedMember,
+        )?.id ??
+          result.rows[0]?.id ??
+          "",
+      );
       setLoadState("ready");
     });
     return () => {
