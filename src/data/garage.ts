@@ -73,9 +73,7 @@ export function safeImageUrl(value: string | undefined | null): string | undefin
   return undefined;
 }
 
-export type GarageLoad =
-  | { status: "ok"; rows: Vehicle[] }
-  | { status: "error"; reason: string };
+export type GarageLoad = { status: "ok"; rows: Vehicle[] } | { status: "error"; reason: string };
 
 const GARAGE_ART = [car01, car02, car03];
 
