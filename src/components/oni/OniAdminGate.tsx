@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { KeyRound, Loader2, ShieldAlert, ShieldPlus } from "lucide-react";
 
 import { OniAuthProvider, useOniAuth } from "@/hooks/useOniAuth";
 import { claimFirstOwner, ownerExists, signUpFirstOwner } from "@/services/bootstrap";
-import { OniAdminCopilot } from "./OniAdminCopilot";
-import { OniControlCenter } from "./OniControlCenter";
-import { OniCreatorReviewDock } from "./OniCreatorReviewDock";
-import { OniEconomyAdminDock } from "./OniEconomyAdminDock";
-import { OniEventRewardDock } from "./OniEventRewardDock";
+import { OniAdminV3 } from "./OniAdminV3";
 import { OniHudNav } from "./OniHudNav";
 
 const fieldClass =
-  "w-full min-h-[44px] border border-border bg-ink/70 px-3 py-2.5 text-sm tracking-wide text-foreground placeholder:text-muted-foreground/60 transition-colors focus:border-crimson/70 focus:outline-none";
+  "w-full min-h-[44px] rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-base text-white placeholder:text-white/25 outline-none transition focus:border-white/25 sm:text-sm";
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-[100svh] bg-ink text-foreground">
+    <div className="min-h-[100svh] bg-[#09090d] text-white">
       <OniHudNav />
       <main className="mx-auto flex min-h-[100svh] max-w-[38rem] flex-col justify-center px-4 pb-[max(3rem,env(safe-area-inset-bottom))] pt-24 sm:px-7">
         {children}
@@ -24,12 +20,17 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Өгөгдлийн санд эзэмшигч эрхтэй админ огт байхгүй үед true. */
 function useOwnerMissing(): boolean | null {
   const [missing, setMissing] = useState<boolean | null>(null);
   useEffect(() => {
     let alive = true;
-    void ownerExists().then((exists) => alive && setMissing(!exists));
+    void ownerExists()
+      .then((exists) => {
+        if (alive) setMissing(!exists);
+      })
+      .catch(() => {
+        if (alive) setMissing(false);
+      });
     return () => {
       alive = false;
     };
@@ -46,16 +47,16 @@ function BootstrapPanel() {
   const run = async () => {
     setBusy(true);
     setNotice(null);
-    const res = await signUpFirstOwner(email, password);
-    if (!res.ok) {
+    const response = await signUpFirstOwner(email, password);
+    if (!response.ok) {
       setBusy(false);
-      setNotice(res.message);
+      setNotice(response.message);
       return;
     }
-    if (!res.hasSession) {
+    if (!response.hasSession) {
       setBusy(false);
       setNotice(
-        "Бүртгэл үүслээ. И-мэйл дэх баталгаажуулах холбоосыг дарж, дараа нь энд нэвтэрвэл эзэмшигчийн эрх автоматаар олгогдоно.",
+        "Бүртгэл үүслээ. И-мэйл дэх баталгаажуулах холбоосыг дарж, дараа нь энд нэвтэрнэ үү.",
       );
       return;
     }
@@ -63,60 +64,55 @@ function BootstrapPanel() {
     setBusy(false);
     if (claim === "granted") {
       setNotice("Эзэмшигчийн эрх олгогдлоо. Самбар руу шилжиж байна…");
+      window.setTimeout(() => window.location.reload(), 350);
       return;
     }
-    if (claim === "already_bootstrapped") {
-      setNotice("Эзэмшигчийн эрхтэй админ аль хэдийн үүссэн байна. Энгийн нэвтрэлтээр орно уу.");
-      return;
-    }
-    setNotice("Эрх олгож чадсангүй. Нэвтэрсний дараа дахин оролдоно уу.");
+    setNotice(
+      claim === "already_bootstrapped"
+        ? "Эзэмшигчийн эрхтэй админ аль хэдийн үүссэн байна."
+        : "Эрх олгож чадсангүй.",
+    );
   };
 
   return (
-    <section className="mt-5 border border-crimson/35 bg-crimson/8 p-5 sm:p-6">
-      <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-        <ShieldPlus className="h-4 w-4" /> АНХНЫ ЭЗЭМШИГЧИЙН ТОХИРГОО
-      </span>
-      <h2 className="mt-3 text-lg font-semibold tracking-[0.12em]">АНХНЫ АДМИН ҮҮСГЭХ</h2>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        Системд эзэмшигчийн эрхтэй админ хараахан алга. Энэ нэг удаагийн бүртгэл зөвхөн одоо
-        ажиллана. Анхны эзэмшигч үүссэний дараа энэ хэсэг автоматаар хаагдана.
+    <section className="mt-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+      <div className="flex items-center gap-2 text-crimson/80">
+        <ShieldPlus className="h-4 w-4" />
+        <span className="text-[0.66rem] font-semibold uppercase tracking-[0.16em]">
+          Анхны эзэмшигчийн тохиргоо
+        </span>
+      </div>
+      <h2 className="mt-3 text-xl font-semibold">Анхны админ үүсгэх</h2>
+      <p className="mt-2 text-xs leading-5 text-white/40">
+        Системд owner эрхтэй админ байхгүй үед энэ нэг удаагийн тохиргоо нээгдэнэ.
       </p>
-
-      <label className="mt-4 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
-        И-МЭЙЛ
+      <div className="mt-4 space-y-3">
         <input
           type="email"
           autoComplete="email"
-          className={`${fieldClass} mt-1.5`}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="И-мэйл"
+          className={fieldClass}
         />
-      </label>
-      <label className="mt-3 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
-        НУУЦ ҮГ
         <input
           type="password"
           autoComplete="new-password"
-          className={`${fieldClass} mt-1.5`}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(event) => setPassword(event.target.value)}
+          placeholder="Нууц үг"
+          className={fieldClass}
         />
-      </label>
-
-      {notice ? (
-        <p role="status" className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          {notice}
-        </p>
-      ) : null}
-
+      </div>
+      {notice ? <p className="mt-3 text-xs leading-5 text-white/55">{notice}</p> : null}
       <button
         type="button"
         disabled={busy || !email || !password}
         onClick={() => void run()}
-        className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-crimson/60 bg-crimson/15 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-foreground transition-colors clip-notch hover:bg-crimson/25 disabled:opacity-60"
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-crimson/45 bg-crimson/15 px-4 text-xs font-semibold text-white disabled:opacity-40"
       >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} АНХНЫ АДМИН ҮҮСГЭХ
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        Анхны админ үүсгэх
       </button>
     </section>
   );
@@ -132,58 +128,52 @@ function SignIn() {
   return (
     <Shell>
       <form
-        className="border border-border bg-midnight/40 p-5 sm:p-7"
-        onSubmit={(e) => {
-          e.preventDefault();
+        className="rounded-3xl border border-white/10 bg-white/[0.025] p-5 shadow-2xl sm:p-7"
+        onSubmit={(event) => {
+          event.preventDefault();
           void signIn(email, password);
         }}
       >
-        <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <KeyRound className="h-4 w-4" /> АДМИН НЭВТРЭЛТ
-        </span>
-        <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">УДИРДЛАГЫН НЭВТРЭЛТ</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Зөвхөн зөвшөөрөгдсөн админ профайлтай хэрэглэгч удирдлагын самбарт нэвтэрнэ.
+        <div className="flex items-center gap-2 text-crimson/80">
+          <KeyRound className="h-4 w-4" />
+          <span className="text-[0.66rem] font-semibold uppercase tracking-[0.16em]">Admin V3</span>
+        </div>
+        <h1 className="mt-3 text-2xl font-semibold">Удирдлагын нэвтрэлт</h1>
+        <p className="mt-2 text-sm leading-6 text-white/40">
+          Firebase нэвтрэлт болон админы role хоёул баталгаажсаны дараа Control Center нээгдэнэ.
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
-          Firebase нэвтрэлт болон админы эрх хоёул баталгаажсан үед мэдээлэл, удирдлага нээгдэнэ.
-        </p>
-
-        <label className="mt-5 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
-          И-МЭЙЛ
+        <div className="mt-5 space-y-3">
           <input
             type="email"
             required
             autoComplete="email"
-            className={`${fieldClass} mt-1.5`}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="И-мэйл"
+            className={fieldClass}
           />
-        </label>
-        <label className="mt-4 block text-[0.65rem] tracking-[0.2em] text-muted-foreground">
-          НУУЦ ҮГ
           <input
             type="password"
             required
             autoComplete="current-password"
-            className={`${fieldClass} mt-1.5`}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Нууц үг"
+            className={fieldClass}
           />
-        </label>
-
+        </div>
         {error ? (
-          <p role="alert" className="mt-4 text-sm text-crimson">
+          <p role="alert" className="mt-3 rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3 text-xs text-red-200">
             {error}
           </p>
         ) : null}
-
         <button
           type="submit"
           disabled={busy}
-          className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-crimson/60 bg-crimson/15 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-foreground transition-colors clip-notch hover:bg-crimson/25 disabled:opacity-60"
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-crimson/45 bg-crimson/15 px-4 text-xs font-semibold text-white disabled:opacity-40"
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} НЭВТРЭХ
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Нэвтрэх
         </button>
       </form>
       {ownerMissing ? <BootstrapPanel /> : null}
@@ -199,62 +189,44 @@ function AccessDenied() {
 
   const claim = async () => {
     setBusy(true);
-    const res = await claimFirstOwner();
+    const result = await claimFirstOwner();
     setBusy(false);
-    if (res === "granted") {
+    if (result === "granted") {
       window.location.reload();
       return;
     }
-    setNotice(
-      res === "already_bootstrapped"
-        ? "Эзэмшигчийн эрхтэй админ аль хэдийн үүссэн байна."
-        : "Эрх олгож чадсангүй.",
-    );
+    setNotice(result === "already_bootstrapped" ? "Owner аль хэдийн үүссэн байна." : "Эрх олгож чадсангүй.");
   };
 
   return (
     <Shell>
-      <section className="border border-crimson/40 bg-crimson/8 p-5 sm:p-7">
-        <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <ShieldAlert className="h-4 w-4" /> ХАНДАХ ЭРХ ХҮРЭЛЦЭХГҮЙ
-        </span>
-        <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">ХАНДАХ ЭРХГҮЙ</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {email ? <span className="font-mono">{email}</span> : "Энэ хэрэглэгч"} — админ эрх
-          олгогдоогүй байна. Удирдлагын өгөгдөл, үйлдэл харагдахгүй.
+      <section className="rounded-3xl border border-red-500/20 bg-red-500/[0.04] p-5 sm:p-7">
+        <div className="flex items-center gap-2 text-red-200">
+          <ShieldAlert className="h-4 w-4" />
+          <span className="text-xs font-semibold">Хандах эрх хүрэлцэхгүй</span>
+        </div>
+        <h1 className="mt-3 text-2xl font-semibold">Админ эрхгүй</h1>
+        <p className="mt-3 text-sm leading-6 text-white/45">
+          {email || "Энэ хэрэглэгч"} — зөвшөөрөгдсөн admin profile байхгүй тул хамгаалагдсан өгөгдөл нээгдэхгүй.
         </p>
         {ownerMissing ? (
-          <>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-              Системд эзэмшигчийн эрхтэй админ хараахан алга. Энэ бүртгэлээр анхны эзэмшигчийн
-              эрхийг нэг удаа авах боломжтой.
-            </p>
-            {notice ? (
-              <p role="status" className="mt-3 text-xs text-muted-foreground">
-                {notice}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void claim()}
-              className="mt-4 inline-flex min-h-[44px] w-full items-center justify-center gap-2 border border-crimson/60 bg-crimson/15 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-foreground clip-notch hover:bg-crimson/25 disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} ЭЗЭМШИГЧИЙН ЭРХ АВАХ
-            </button>
-          </>
-        ) : (
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-            Эрх олгох хүсэлтээ эзэмшигчийн эрхтэй админд хандаж шийдвэрлүүлнэ үү.
-          </p>
-        )}
-
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void claim()}
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-crimson/45 bg-crimson/15 px-4 text-xs font-semibold disabled:opacity-40"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Owner эрх авах
+          </button>
+        ) : null}
+        {notice ? <p className="mt-3 text-xs text-white/50">{notice}</p> : null}
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-6 inline-flex min-h-[44px] items-center gap-2 border border-border bg-ink/60 px-4 text-[0.7rem] font-semibold tracking-[0.2em] text-muted-foreground clip-notch hover:text-foreground"
+          className="mt-4 min-h-11 rounded-xl border border-white/10 px-4 text-xs text-white/55"
         >
-          ГАРАХ
+          Гарах
         </button>
       </section>
     </Shell>
@@ -264,8 +236,8 @@ function AccessDenied() {
 function Loading() {
   return (
     <Shell>
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin text-crimson" /> Нэвтрэлтийн төлөв шалгаж байна…
+      <div className="flex items-center justify-center gap-3 text-sm text-white/45">
+        <Loader2 className="h-4 w-4 animate-spin" /> Нэвтрэлтийн төлөв шалгаж байна…
       </div>
     </Shell>
   );
@@ -274,17 +246,14 @@ function Loading() {
 function BackendUnavailable() {
   return (
     <Shell>
-      <section className="border border-crimson/40 bg-crimson/8 p-5 sm:p-7">
-        <span className="hud-label inline-flex items-center gap-2 text-crimson/85">
-          <ShieldAlert className="h-4 w-4" /> СЕРВЕРИЙН ХОЛБОЛТ
-        </span>
-        <h1 className="mt-3 text-xl font-semibold tracking-[0.12em]">ХОЛБОЛТ ТОХИРУУЛАГДААГҮЙ</h1>
-        <p role="alert" className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Энэ хувилбарт серверийн холболтын тохиргоо ирээгүй байна. Админ нэвтрэлт болон
-          хамгаалагдсан өгөгдөл аюулгүйгээр хаалттай хэвээр байна.
-        </p>
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">
-          Firebase холболтыг шалгаад төслийг дахин нээнэ үү.
+      <section className="rounded-3xl border border-red-500/20 bg-red-500/[0.04] p-5 sm:p-7">
+        <div className="flex items-center gap-2 text-red-200">
+          <ShieldAlert className="h-4 w-4" />
+          <span className="text-xs font-semibold">Серверийн холболт</span>
+        </div>
+        <h1 className="mt-3 text-2xl font-semibold">Холболт тохируулагдаагүй</h1>
+        <p role="alert" className="mt-3 text-sm leading-6 text-white/45">
+          Firebase тохиргоо ирээгүй тул админ нэвтрэлт болон хамгаалагдсан өгөгдөл хаалттай хэвээр байна.
         </p>
       </section>
     </Shell>
@@ -297,15 +266,7 @@ function GateBody() {
   if (phase === "backend_unavailable") return <BackendUnavailable />;
   if (phase === "signed_out") return <SignIn />;
   if (phase === "unauthorized") return <AccessDenied />;
-  return (
-    <>
-      <OniControlCenter />
-      <OniAdminCopilot />
-      <OniEconomyAdminDock />
-      <OniEventRewardDock />
-      <OniCreatorReviewDock />
-    </>
-  );
+  return <OniAdminV3 />;
 }
 
 export function OniAdminGate() {
