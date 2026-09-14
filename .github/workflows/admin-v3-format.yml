@@ -1,0 +1,46 @@
+name: Admin V3 Formatter
+
+on:
+  push:
+    branches:
+      - gpt6/admin-v3-control-center
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: gpt6/admin-v3-control-center
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+
+      - name: Install npm 11.9
+        run: npm install --global npm@11.9.0
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Format Admin V3
+        run: npx --no-install prettier --write src/components/oni/OniAdminV3.tsx src/components/oni/OniAdminGate.tsx src/routes/admin.tsx
+
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            echo "Already formatted"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/oni/OniAdminV3.tsx src/components/oni/OniAdminGate.tsx src/routes/admin.tsx
+          git commit -m "style(admin): format Admin V3"
+          git push origin HEAD:gpt6/admin-v3-control-center
