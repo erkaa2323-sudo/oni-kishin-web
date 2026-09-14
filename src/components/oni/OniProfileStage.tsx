@@ -145,35 +145,50 @@ export function OniProfileStage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Link to="/garage" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/garage"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Medal className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">GARAGE DNA</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Crew машин, build identity болон vehicle registry.
                 </p>
               </Link>
-              <Link to="/gallery" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/gallery"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Image className="h-4 w-4 text-crimson" aria-hidden="true" />
                 <p className="mt-3 text-cinema text-2xl">GALLERY</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Зураг, creator контент болон Crew дурсамж.
                 </p>
               </Link>
-              <Link to="/meet" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/meet"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Users className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">STREET OPS</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Meet бүртгэл, private room болон ажиллагааны төв.
                 </p>
               </Link>
-              <Link to="/progression" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/progression"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Award className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">ACHIEVEMENTS</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Одоогоор {achievementCount} achievement claim хийсэн.
                 </p>
               </Link>
-              <Link to="/progression" className={`${statClass} transition-colors hover:border-crimson/55`}>
+              <Link
+                to="/progression"
+                className={`${statClass} transition-colors hover:border-crimson/55`}
+              >
                 <Coins className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">ARCHIVE</p>
                 <p className="mt-1 text-xs text-muted-foreground">
