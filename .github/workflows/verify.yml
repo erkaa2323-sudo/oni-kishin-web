@@ -40,6 +40,8 @@ jobs:
         run: node --test tests/meet-voice.test.mjs
       - name: iOS background voice bridge tests
         run: node --test tests/ios-background-voice.test.mjs
+      - name: Native notification bridge tests
+        run: node --test tests/native-notifications.test.mjs
       - name: Firestore rules tests
         run: npm run test:rules
       - name: Economy audit

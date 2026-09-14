@@ -15,6 +15,7 @@ import { OniOfflineBanner } from "../components/oni/OniOfflineBanner";
 import { OniWorldTransition } from "../components/oni/OniWorldTransition";
 import { OniNexusDock } from "../components/oni/OniNexusDock";
 import { NexusMeetPushBridge } from "../components/oni/NexusMeetPushBridge";
+import { OniNativeNotificationBridge } from "../components/oni/OniNativeNotificationBridge";
 import { OniProgressionRewardBridge } from "../components/oni/OniProgressionRewardBridge";
 
 const RECOVERY_KEY = "oni:last-hard-recovery";
@@ -170,6 +171,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <NexusMeetPushBridge />
+      <OniNativeNotificationBridge />
       <OniProgressionRewardBridge />
       <OniOfflineBanner />
       <OniWorldTransition>
