@@ -12,6 +12,11 @@ for (const [name, engine] of [
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true });
     const errors = [];
+    const writes = [];
+    await page.route("https://firestore.googleapis.com/**/Write/**", async (route) => {
+      writes.push(route.request().url());
+      await route.abort();
+    });
     page.on("pageerror", (error) => errors.push(error.message));
 
     try {
@@ -47,7 +52,15 @@ for (const [name, engine] of [
       await expectVisible(page.getByText("Smoke Family Smoke Rider", { exact: true }));
       await expectVisible(page.getByText("SMOKE RIDER · SMOKE-001", { exact: true }));
       await expectVisible(page.getByText("Instagram · @smoke", { exact: true }));
-      await expectVisible(page.getByRole("button", { name: /Хүсэлт илгээх/ }));
+      const submitButton = page.getByRole("button", { name: /Хүсэлт илгээх/ });
+      await expectVisible(submitButton);
+      assert.equal(await submitButton.isEnabled(), true, "review must not submit the request");
+      await page.getByRole("button", { name: "Өмнөх", exact: true }).click();
+      await expectVisible(page.getByRole("heading", { name: "Туршлага ба холбоо" }));
+      await continueButton.click();
+      await expectVisible(submitButton);
+      assert.equal(await submitButton.isEnabled(), true);
+      assert.deepEqual(writes, [], "step navigation must not write to Firestore");
 
       assert.deepEqual(errors, []);
       console.log(`[${name}][interaction join] PASS`);
@@ -64,6 +77,7 @@ for (const [name, engine] of [
       await forgotPassword.click();
       await expectVisible(page.getByText("Зөв и-мэйл хаяг оруулна уу."));
       assert.deepEqual(errors, []);
+      assert.deepEqual(writes, [], "review must not leave a pending Firestore write");
       console.log(`[${name}][interaction profile] PASS`);
     } catch (error) {
       failed = true;

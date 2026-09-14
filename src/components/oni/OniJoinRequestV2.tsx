@@ -371,7 +371,8 @@ export function OniJoinRequestV2() {
     return Object.keys(currentErrors).length === 0;
   };
 
-  const next = () => {
+  const next = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
     if (step === 3) return;
     if (!validateCurrentStep()) {
       setNotice("Улаанаар тэмдэглэсэн мэдээллийг шалгана уу.");
@@ -391,7 +392,7 @@ export function OniJoinRequestV2() {
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (submitStatus === "loading") return;
+    if (step !== 3 || submitStatus === "loading") return;
 
     const nextErrors = validateApplication(values);
     setErrors(nextErrors);
@@ -818,6 +819,7 @@ export function OniJoinRequestV2() {
 
                   {step < 3 ? (
                     <button
+                      key="continue"
                       type="button"
                       onClick={next}
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-crimson/45 bg-crimson/12 px-5 text-xs font-semibold text-white transition hover:bg-crimson/20"
@@ -827,6 +829,7 @@ export function OniJoinRequestV2() {
                     </button>
                   ) : (
                     <button
+                      key="submit"
                       type="submit"
                       disabled={submitStatus === "loading"}
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/15 disabled:opacity-50"
