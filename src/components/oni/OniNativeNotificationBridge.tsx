@@ -212,9 +212,13 @@ export function OniNativeNotificationBridge() {
         stopMeet = onSnapshot(
           doc(firebaseDb, "meets", "current"),
           (snapshot) => {
-            syncMeetNotifications(snapshot.exists() ? snapshot.data() : {}, scheduledMeetIds, (ids) => {
-              scheduledMeetIds = ids;
-            });
+            syncMeetNotifications(
+              snapshot.exists() ? snapshot.data() : {},
+              scheduledMeetIds,
+              (ids) => {
+                scheduledMeetIds = ids;
+              },
+            );
           },
           () => undefined,
         );
@@ -234,10 +238,7 @@ export function OniNativeNotificationBridge() {
               if (type !== "event_win" && type !== "creator_approved") continue;
               showNativeNotification({
                 id: `oni-social-${change.doc.id}`,
-                title:
-                  type === "event_win"
-                    ? "ONI HUB · STREET OPS"
-                    : "ONI HUB · CREATOR APPROVED",
+                title: type === "event_win" ? "ONI HUB · STREET OPS" : "ONI HUB · CREATOR APPROVED",
                 body: String(row["detail"] ?? row["title"] ?? "ONI activity шинэчлэгдлээ."),
                 url: nativePath(
                   row["targetUrl"],

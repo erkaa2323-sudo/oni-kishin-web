@@ -1,4 +1,5 @@
-export type NativeNotificationPath = "/meet" | "/profile" | "/garage" | "/street-ops" | "/gallery" | "/admin";
+export type NativeNotificationPath =
+  "/meet" | "/profile" | "/garage" | "/street-ops" | "/gallery" | "/admin";
 
 export type NativeNotificationCommand =
   | { type: "requestPermission" }
@@ -45,7 +46,7 @@ export function hasNativeNotificationBridge() {
   const target = nativeWindow();
   return Boolean(
     target?.webkit?.messageHandlers?.oniNotifications?.postMessage ||
-      target?.ONINotifications?.postMessage,
+    target?.ONINotifications?.postMessage,
   );
 }
 
