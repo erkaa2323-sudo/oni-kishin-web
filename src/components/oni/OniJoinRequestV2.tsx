@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -161,7 +161,11 @@ function StatusTimeline({ status }: { status: JoinMembershipStatus }) {
           : status.state === "rejected"
             ? "Шаардлагатай бол мэдээллээ шинэчлэн дахин хүсэлт илгээж болно."
             : "Шийдвэр гармагц энд автоматаар шинэчлэгдэнэ.",
-      state: final ? (finalAccepted ? ("success" as const) : ("error" as const)) : ("idle" as const),
+      state: final
+        ? finalAccepted
+          ? ("success" as const)
+          : ("error" as const)
+        : ("idle" as const),
     },
   ];
 
@@ -192,7 +196,9 @@ function StatusTimeline({ status }: { status: JoinMembershipStatus }) {
         return (
           <div key={row.title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
             <div className="flex flex-col items-center">
-              <span className={`grid h-8 w-8 place-items-center rounded-full bg-white/[0.04] ${tone}`}>
+              <span
+                className={`grid h-8 w-8 place-items-center rounded-full bg-white/[0.04] ${tone}`}
+              >
                 <Icon className="h-4 w-4" />
               </span>
               {index < rows.length - 1 ? <span className="h-8 w-px bg-white/10" /> : null}
@@ -246,7 +252,9 @@ function RequestStatusCard({
             {watch.cpmNickname} · CPM {watch.cpmId}
           </p>
         </div>
-        <span className={`w-fit rounded-full border px-3 py-1.5 text-[0.65rem] font-semibold ${statusTone}`}>
+        <span
+          className={`w-fit rounded-full border px-3 py-1.5 text-[0.65rem] font-semibold ${statusTone}`}
+        >
           {statusLabel}
         </span>
       </div>
@@ -299,23 +307,25 @@ export function OniJoinRequestV2() {
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [notice, setNotice] = useState("");
   const [watch, setWatch] = useState<JoinMembershipWatch | null>(null);
-  const [membershipStatus, setMembershipStatus] = useState<JoinMembershipStatus>({ state: "pending" });
+  const [membershipStatus, setMembershipStatus] = useState<JoinMembershipStatus>({
+    state: "pending",
+  });
   const [refreshingStatus, setRefreshingStatus] = useState(false);
   const [showFormDespiteWatch, setShowFormDespiteWatch] = useState(false);
 
-  const refreshMembershipStatus = async (target: JoinMembershipWatch) => {
+  const refreshMembershipStatus = useCallback(async (target: JoinMembershipWatch) => {
     setRefreshingStatus(true);
     const result = await checkJoinMembershipStatus(target);
     setMembershipStatus(result);
     setRefreshingStatus(false);
-  };
+  }, []);
 
   useEffect(() => {
     const saved = readJoinMembershipWatch();
     if (!saved) return;
     setWatch(saved);
     void refreshMembershipStatus(saved);
-  }, []);
+  }, [refreshMembershipStatus]);
 
   useEffect(() => {
     if (!watch || membershipStatus.state !== "pending") return undefined;
@@ -323,7 +333,7 @@ export function OniJoinRequestV2() {
       void refreshMembershipStatus(watch);
     }, 30000);
     return () => window.clearInterval(timer);
-  }, [watch, membershipStatus.state]);
+  }, [watch, membershipStatus.state, refreshMembershipStatus]);
 
   const stepDefinition = STEPS[step];
   const StepIcon = stepDefinition.icon;
@@ -388,7 +398,7 @@ export function OniJoinRequestV2() {
     if (Object.keys(nextErrors).length) {
       const firstError = Object.keys(nextErrors)[0] as keyof JoinApplication;
       const errorStep = STEP_FIELDS.findIndex((fields) => fields.includes(firstError));
-      setStep((Math.max(0, errorStep) as StepIndex) ?? 0);
+      setStep(Math.max(0, errorStep) as StepIndex);
       setSubmitStatus("failed");
       setNotice("Мэдээллээ дахин шалгана уу.");
       return;
@@ -441,8 +451,7 @@ export function OniJoinRequestV2() {
                 <div>
                   <p className="text-sm font-semibold text-white/80">Яаж ажиллах вэ?</p>
                   <p className="mt-1 text-xs leading-5 text-white/38">
-                    Та мэдээллээ илгээнэ → админ шалгана → шийдвэр таны хүсэлтийн дугаарт
-                    харагдана.
+                    Та мэдээллээ илгээнэ → админ шалгана → шийдвэр таны хүсэлтийн дугаарт харагдана.
                   </p>
                 </div>
               </div>
@@ -466,13 +475,17 @@ export function OniJoinRequestV2() {
                       <div className="flex gap-3">
                         <span
                           className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-                            active || done ? "bg-white/10 text-white" : "bg-white/[0.03] text-white/25"
+                            active || done
+                              ? "bg-white/10 text-white"
+                              : "bg-white/[0.03] text-white/25"
                           }`}
                         >
                           {done ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                         </span>
                         <div>
-                          <p className={`text-sm font-semibold ${active ? "text-white" : "text-white/55"}`}>
+                          <p
+                            className={`text-sm font-semibold ${active ? "text-white" : "text-white/55"}`}
+                          >
                             {index + 1}. {item.title}
                           </p>
                           <p className="mt-1 text-xs leading-5 text-white/30">{item.description}</p>
@@ -517,8 +530,12 @@ export function OniJoinRequestV2() {
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/30">
                       {step + 1} / 4
                     </p>
-                    <h2 className="mt-1 text-xl font-semibold text-white">{stepDefinition.title}</h2>
-                    <p className="mt-1 text-xs leading-5 text-white/38">{stepDefinition.description}</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">
+                      {stepDefinition.title}
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-white/38">
+                      {stepDefinition.description}
+                    </p>
                   </div>
                 </div>
 
@@ -568,7 +585,9 @@ export function OniJoinRequestV2() {
                         id={`${uid}-gender`}
                         className={`${fieldClass} mt-2`}
                         value={values.gender}
-                        onChange={(event) => set("gender", event.target.value as JoinApplication["gender"])}
+                        onChange={(event) =>
+                          set("gender", event.target.value as JoinApplication["gender"])
+                        }
                       >
                         <option value="Эрэгтэй">Эрэгтэй</option>
                         <option value="Эмэгтэй">Эмэгтэй</option>
@@ -631,7 +650,9 @@ export function OniJoinRequestV2() {
                   <div className="mt-6 space-y-6">
                     <div className="grid gap-5 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-xs font-semibold text-white/55">Холбоо барих суваг *</span>
+                        <span className="text-xs font-semibold text-white/55">
+                          Холбоо барих суваг *
+                        </span>
                         <select
                           className={`${fieldClass} mt-2`}
                           value={values.contactType}
@@ -687,7 +708,8 @@ export function OniJoinRequestV2() {
 
                     <fieldset>
                       <legend className="text-xs font-semibold text-white/55">
-                        Сонирхдог хэсэг <span className="font-normal text-white/25">· заавал биш</span>
+                        Сонирхдог хэсэг{" "}
+                        <span className="font-normal text-white/25">· заавал биш</span>
                       </legend>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {INTEREST_OPTIONS.map((option) => {
@@ -733,7 +755,8 @@ export function OniJoinRequestV2() {
                 {step === 3 ? (
                   <div className="mt-6 space-y-3">
                     <p className="text-sm leading-6 text-white/45">
-                      Илгээхийн өмнө мэдээллээ шалгана уу. Алдаа байвал өмнөх алхам руу буцаж засаж болно.
+                      Илгээхийн өмнө мэдээллээ шалгана уу. Алдаа байвал өмнөх алхам руу буцаж засаж
+                      болно.
                     </p>
                     {[
                       ["Нэр", `${values.lastName} ${values.firstName}`],
