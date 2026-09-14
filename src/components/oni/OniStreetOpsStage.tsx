@@ -59,9 +59,14 @@ export function OniStreetOpsStage() {
 
   const lifecycle = deriveLifecycle(meet);
   const featured = useMemo(() => vehicles.slice(0, 6), [vehicles]);
-  const eventWins = useMemo(() => feed.filter((item) => item.type === "event_win").slice(0, 6), [feed]);
+  const eventWins = useMemo(
+    () => feed.filter((item) => item.type === "event_win").slice(0, 6),
+    [feed],
+  );
   const activeRiders = useMemo(() => {
-    const unique = new Set(participants.map((item) => item.cpmNickname.toLocaleLowerCase("mn-MN")));
+    const unique = new Set(
+      participants.map((item) => item.cpmNickname.toLocaleLowerCase("mn-MN")),
+    );
     return unique.size;
   }, [participants]);
 
@@ -74,9 +79,12 @@ export function OniStreetOpsStage() {
           <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
             <div>
               <span className="hud-label text-crimson/85">ONI CITY / LIVE OPERATIONS</span>
-              <h1 className="mt-3 text-cinema text-4xl leading-none sm:text-5xl lg:text-6xl">STREET OPS</h1>
+              <h1 className="mt-3 text-cinema text-4xl leading-none sm:text-5xl lg:text-6xl">
+                STREET OPS
+              </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-                ONI ID, Garage DNA, Meet болон event activity-г нэг command board дээр холбосон live ажиллагааны төв.
+                ONI ID, Garage DNA, Meet болон event activity-г нэг command board дээр холбосон
+                live ажиллагааны төв.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link
@@ -97,7 +105,9 @@ export function OniStreetOpsStage() {
             <div className="grid grid-cols-2 gap-px bg-border">
               <div className="bg-ink/90 p-4">
                 <span className="hud-label">OPS STATUS</span>
-                <strong className="mt-2 block text-cinema text-xl">{LIFECYCLE_LABEL[lifecycle]}</strong>
+                <strong className="mt-2 block text-cinema text-xl">
+                  {LIFECYCLE_LABEL[lifecycle]}
+                </strong>
               </div>
               <div className="bg-ink/90 p-4">
                 <span className="hud-label">ACTIVE RIDERS</span>
@@ -120,9 +130,13 @@ export function OniStreetOpsStage() {
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
               <div>
                 <span className="hud-label text-crimson/80">CURRENT OPERATION</span>
-                <h2 className="mt-2 text-cinema text-3xl">{meet?.title ?? "NO ACTIVE OPERATION"}</h2>
+                <h2 className="mt-2 text-cinema text-3xl">
+                  {meet?.title ?? "NO ACTIVE OPERATION"}
+                </h2>
               </div>
-              <span className="hud-label">{meet ? formatDate(meet.scheduledAt) : "STANDBY"}</span>
+              <span className="hud-label">
+                {meet ? formatDate(meet.scheduledAt) : "STANDBY"}
+              </span>
             </div>
 
             {loading ? (
@@ -149,7 +163,8 @@ export function OniStreetOpsStage() {
               </div>
             ) : (
               <p className="py-8 text-sm leading-6 text-muted-foreground">
-                Одоогоор идэвхтэй operation алга. Admin шинэ Meet нээхэд энэ board автоматаар шинэчлэгдэнэ.
+                Одоогоор идэвхтэй operation алга. Admin шинэ Meet нээхэд энэ board автоматаар
+                шинэчлэгдэнэ.
               </p>
             )}
 
@@ -186,16 +201,22 @@ export function OniStreetOpsStage() {
                           <strong className="text-sm">{item.nickname}</strong>
                           <span className="hud-label">{formatDate(item.createdAt)}</span>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-foreground/85">{item.title}</p>
+                        <p className="mt-1 text-xs font-medium text-foreground/85">
+                          {item.title}
+                        </p>
                         {item.detail ? (
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</p>
+                          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                            {item.detail}
+                          </p>
                         ) : null}
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="py-6 text-sm text-muted-foreground">Event win activity хараахан бүртгэгдээгүй байна.</p>
+                <p className="py-6 text-sm text-muted-foreground">
+                  Event win activity хараахан бүртгэгдээгүй байна.
+                </p>
               )}
             </div>
           </section>
@@ -213,17 +234,29 @@ export function OniStreetOpsStage() {
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {featured.map((car) => (
-              <article key={car.id} className="overflow-hidden border border-border bg-ink/45 clip-notch">
+              <article
+                key={car.id}
+                className="overflow-hidden border border-border bg-ink/45 clip-notch"
+              >
                 {car.image ? (
-                  <img src={car.image} alt="" className="aspect-[16/9] w-full object-cover" loading="lazy" />
+                  <img
+                    src={car.image}
+                    alt=""
+                    className="aspect-[16/9] w-full object-cover"
+                    loading="lazy"
+                  />
                 ) : null}
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="hud-label text-crimson/80">{disciplineLabel[car.categoryId]}</span>
+                    <span className="hud-label text-crimson/80">
+                      {disciplineLabel[car.categoryId]}
+                    </span>
                     <span className="hud-label">{car.dna.registry}</span>
                   </div>
                   <h3 className="mt-2 text-cinema text-2xl">{car.name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">PILOT / {car.ownerCallsign}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    PILOT / {car.ownerCallsign}
+                  </p>
                   <div className="mt-3 grid grid-cols-2 gap-px bg-border">
                     <div className="bg-midnight/75 p-3">
                       <span className="hud-label">BUILD</span>
