@@ -1,6 +1,6 @@
-Deploy PR #96 Street Ops live event command board to Vercel production.
-Verified PR head: db10c9e60a56daed3d7a7ae9e7a6ffa0422ed3ba
-Merged main: 5540a894cb5b09dac2da319469bb79512f4bec2f
+Deploy PR #97 Cinematic Home 2.0 to Vercel production.
+Verified PR head: 15382bd7a0e7946d970dcce8fd546a2a6294b390
+Merged main: 52718fbef74e5fc27105ecb9d8ee95079507da97
 
-Release intent: deploy the verified Street Ops command board connecting the existing Meet lifecycle, registered crew, Garage DNA, and event activity without weakening Firebase security boundaries.
+Release intent: deploy the verified Cinematic Home 2.0 landing world while preserving ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, and existing backend security boundaries.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
