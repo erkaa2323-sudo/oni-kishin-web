@@ -127,7 +127,6 @@ export function OniNativeNotificationBridge() {
   useEffect(() => {
     if (!hasNativeNotificationBridge()) return undefined;
 
-    requestNativeNotificationPermission();
     clearNativeNotificationBadge();
 
     let accountStatus: MemberAccountStatus | null = null;
@@ -161,6 +160,7 @@ export function OniNativeNotificationBridge() {
 
         stopRealtime();
         if (!user || !account || account.status !== "approved") return;
+        requestNativeNotificationPermission();
 
         let profileReady = false;
         let lastXp = 0;
