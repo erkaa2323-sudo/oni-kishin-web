@@ -330,7 +330,12 @@ function Dashboard({ onJump }: { onJump: (jump: Jump) => void }) {
   }, []);
 
   const pendingTotal = pendingApps + pendingAccounts + pendingCreator;
-  const cards = [
+  const cards: Array<{
+    label: string;
+    value: string | number;
+    icon: typeof Users;
+    jump: Jump;
+  }> = [
     {
       label: "Идэвхтэй гишүүн",
       value: members,
