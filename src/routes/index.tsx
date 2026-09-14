@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { OniHudNav } from "@/components/oni/OniHudNav";
-import { OniHero } from "@/components/oni/OniHero";
+import { OniCinematicHome2 } from "@/components/oni/OniCinematicHome2";
 import { OniCreed } from "@/components/oni/OniCreed";
 import { OniSectors } from "@/components/oni/OniSectors";
 import { OniFooter } from "@/components/oni/OniFooter";
 
-const TITLE = "ONI HUB — Oni And Kishin кланы төв";
+const TITLE = "ONI HUB — Cinematic Home 2.0";
 const DESCRIPTION =
-  "ОНИ ХОТ — Монголын CPM клан Oni And Kishin-ийн албан ёсны дижитал төв. Бүрэлдэхүүн, гараж, хөгжим, уулзалт нэг дор.";
+  "ОНИ ХОТ — Oni And Kishin-ийн cinematic digital world. ONI ID, Garage DNA, Street Ops, Meet болон кланы бүх систем нэг ертөнцөд.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,7 +27,7 @@ function Index() {
     <div className="bg-ink">
       <OniHudNav />
       <main>
-        <OniHero />
+        <OniCinematicHome2 />
         <OniCreed />
         <OniSectors />
       </main>
