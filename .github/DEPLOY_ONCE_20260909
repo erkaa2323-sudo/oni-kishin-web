@@ -2,4 +2,6 @@ Deploy PR #103 ONI WORLD CC0 asset pass to Vercel production.
 Verified PR head: 9c57235d5cf6091d0cc56ea3f2dc3bff8cada539
 Merged main: 543b166d2aae1face30662d185ba1ce8acc9ed18
 Foundation verification run: 34892191251 (success).
-Release workflow must pass full verification before deploying, then verify production routes and interactions in Chromium and WebKit.
+First production release attempt 34892779565 passed full verification but failed at Vercel project-settings pull before build/deploy.
+Workflow was fixed to relink project oni-hub-v3 under team oni-hub before pulling production settings.
+Retry release must pass full verification, deploy prebuilt output to production, then verify production routes and interactions in Chromium and WebKit.
