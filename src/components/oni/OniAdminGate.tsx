@@ -163,7 +163,10 @@ function SignIn() {
           />
         </div>
         {error ? (
-          <p role="alert" className="mt-3 rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3 text-xs text-red-200">
+          <p
+            role="alert"
+            className="mt-3 rounded-xl border border-red-500/20 bg-red-500/[0.06] p-3 text-xs text-red-200"
+          >
             {error}
           </p>
         ) : null}
@@ -195,7 +198,9 @@ function AccessDenied() {
       window.location.reload();
       return;
     }
-    setNotice(result === "already_bootstrapped" ? "Owner аль хэдийн үүссэн байна." : "Эрх олгож чадсангүй.");
+    setNotice(
+      result === "already_bootstrapped" ? "Owner аль хэдийн үүссэн байна." : "Эрх олгож чадсангүй.",
+    );
   };
 
   return (
@@ -207,7 +212,8 @@ function AccessDenied() {
         </div>
         <h1 className="mt-3 text-2xl font-semibold">Админ эрхгүй</h1>
         <p className="mt-3 text-sm leading-6 text-white/45">
-          {email || "Энэ хэрэглэгч"} — зөвшөөрөгдсөн admin profile байхгүй тул хамгаалагдсан өгөгдөл нээгдэхгүй.
+          {email || "Энэ хэрэглэгч"} — зөвшөөрөгдсөн admin profile байхгүй тул хамгаалагдсан өгөгдөл
+          нээгдэхгүй.
         </p>
         {ownerMissing ? (
           <button
@@ -253,7 +259,8 @@ function BackendUnavailable() {
         </div>
         <h1 className="mt-3 text-2xl font-semibold">Холболт тохируулагдаагүй</h1>
         <p role="alert" className="mt-3 text-sm leading-6 text-white/45">
-          Firebase тохиргоо ирээгүй тул админ нэвтрэлт болон хамгаалагдсан өгөгдөл хаалттай хэвээр байна.
+          Firebase тохиргоо ирээгүй тул админ нэвтрэлт болон хамгаалагдсан өгөгдөл хаалттай хэвээр
+          байна.
         </p>
       </section>
     </Shell>
