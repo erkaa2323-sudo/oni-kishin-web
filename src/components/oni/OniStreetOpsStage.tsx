@@ -64,9 +64,7 @@ export function OniStreetOpsStage() {
     [feed],
   );
   const activeRiders = useMemo(() => {
-    const unique = new Set(
-      participants.map((item) => item.cpmNickname.toLocaleLowerCase("mn-MN")),
-    );
+    const unique = new Set(participants.map((item) => item.cpmNickname.toLocaleLowerCase("mn-MN")));
     return unique.size;
   }, [participants]);
 
@@ -83,8 +81,8 @@ export function OniStreetOpsStage() {
                 STREET OPS
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-                ONI ID, Garage DNA, Meet болон event activity-г нэг command board дээр холбосон
-                live ажиллагааны төв.
+                ONI ID, Garage DNA, Meet болон event activity-г нэг command board дээр холбосон live
+                ажиллагааны төв.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link
@@ -134,9 +132,7 @@ export function OniStreetOpsStage() {
                   {meet?.title ?? "NO ACTIVE OPERATION"}
                 </h2>
               </div>
-              <span className="hud-label">
-                {meet ? formatDate(meet.scheduledAt) : "STANDBY"}
-              </span>
+              <span className="hud-label">{meet ? formatDate(meet.scheduledAt) : "STANDBY"}</span>
             </div>
 
             {loading ? (
@@ -201,9 +197,7 @@ export function OniStreetOpsStage() {
                           <strong className="text-sm">{item.nickname}</strong>
                           <span className="hud-label">{formatDate(item.createdAt)}</span>
                         </div>
-                        <p className="mt-1 text-xs font-medium text-foreground/85">
-                          {item.title}
-                        </p>
+                        <p className="mt-1 text-xs font-medium text-foreground/85">{item.title}</p>
                         {item.detail ? (
                           <p className="mt-1 text-xs leading-5 text-muted-foreground">
                             {item.detail}
@@ -254,9 +248,7 @@ export function OniStreetOpsStage() {
                     <span className="hud-label">{car.dna.registry}</span>
                   </div>
                   <h3 className="mt-2 text-cinema text-2xl">{car.name}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    PILOT / {car.ownerCallsign}
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">PILOT / {car.ownerCallsign}</p>
                   <div className="mt-3 grid grid-cols-2 gap-px bg-border">
                     <div className="bg-midnight/75 p-3">
                       <span className="hud-label">BUILD</span>
