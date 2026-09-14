@@ -176,7 +176,7 @@ function SignIn() {
           className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-crimson/45 bg-crimson/15 px-4 text-xs font-semibold text-white disabled:opacity-40"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Нэвтрэх
+          НЭВТРЭХ
         </button>
       </form>
       {ownerMissing ? <BootstrapPanel /> : null}
