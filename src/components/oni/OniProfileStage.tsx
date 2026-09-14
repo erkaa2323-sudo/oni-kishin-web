@@ -81,12 +81,8 @@ export function OniProfileStage() {
         {account?.status === "approved" ? (
           <section className="mt-8 space-y-6" aria-label="ONI ID мэдээлэл">
             <div className="glass-panel relative overflow-hidden p-5 clip-notch sm:p-7">
-              <div
-                className="pointer-events-none absolute right-[-3rem] top-[-3rem] h-48 w-48 rounded-full bg-crimson/10 blur-3xl"
-              />
-              <div
-                className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
-              >
+              <div className="pointer-events-none absolute right-[-3rem] top-[-3rem] h-48 w-48 rounded-full bg-crimson/10 blur-3xl" />
+              <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <span className="hud-label text-crimson/80">DIGITAL CREW PASSPORT</span>
                   <h2 className="mt-2 text-cinema text-4xl">{account.nickname}</h2>
@@ -169,10 +165,7 @@ export function OniProfileStage() {
                   Зураг, creator контент болон Crew дурсамж.
                 </p>
               </Link>
-              <Link
-                to="/meet"
-                className={`${statClass} transition-colors hover:border-crimson/55`}
-              >
+              <Link to="/meet" className={`${statClass} transition-colors hover:border-crimson/55`}>
                 <Users className="h-4 w-4 text-crimson" />
                 <p className="mt-3 text-cinema text-2xl">STREET OPS</p>
                 <p className="mt-1 text-xs text-muted-foreground">
