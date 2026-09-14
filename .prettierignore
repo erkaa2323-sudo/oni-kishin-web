@@ -7,3 +7,4 @@ package-lock.json
 bun.lock
 routeTree.gen.ts
 public/oni-world-3d-*.html
+ONI-WORLD-3D-PIPELINE.md
