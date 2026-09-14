@@ -134,8 +134,8 @@ export function OniCinematicHome2() {
               <strong>СЭРЭВ.</strong>
             </h1>
             <p className="oni-home2__lede">
-              Клан биш — амьд дижитал ертөнц. ONI ID, Garage DNA, ONI WORLD болон Meet системүүд
-              нэг cinematic world layer дээр холбогдлоо.
+              Клан биш — амьд дижитал ертөнц. ONI ID, Garage DNA, ONI WORLD болон Meet системүүд нэг
+              cinematic world layer дээр холбогдлоо.
             </p>
             <div className="oni-home2__actions">
               <Link to="/street-ops" className="oni-home2__primary">
