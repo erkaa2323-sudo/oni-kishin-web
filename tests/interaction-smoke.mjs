@@ -43,7 +43,7 @@ for (const [name, engine] of [
       await page.getByRole("button", { name: "ШИНЭ", exact: true }).click();
       await page.getByRole("button", { name: "ДРИФТ", exact: true }).click();
       await continueButton.click();
-      await expectVisible(page.getByRole("heading", { name: "Шалгах ба илгээх" }));
+      await expectVisible(page.getByRole("heading", { name: "Шалгах ба илгээх", level: 2 }));
       await expectVisible(page.getByText("Smoke Family Smoke Rider", { exact: true }));
       await expectVisible(page.getByText("SMOKE RIDER · SMOKE-001", { exact: true }));
       await expectVisible(page.getByText("Instagram · @smoke", { exact: true }));
