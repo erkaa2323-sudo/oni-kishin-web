@@ -1,6 +1,6 @@
-Deploy PR #94 ONI World System foundation to Vercel production.
-Verified PR head: 83532c2139d3911a96c7a20fe9e070a4a689f1a5
-Merged main: 9f2e3da259c832e83063042e3d6c08bb8d2c9e53
+Deploy PR #96 Street Ops live event command board to Vercel production.
+Verified PR head: db10c9e60a56daed3d7a7ae9e7a6ffa0422ed3ba
+Merged main: 5540a894cb5b09dac2da319469bb79512f4bec2f
 
-Release intent: deploy the verified ONI Digital Crew Passport and Garage DNA foundation without changing Firebase security boundaries.
+Release intent: deploy the verified Street Ops command board connecting the existing Meet lifecycle, registered crew, Garage DNA, and event activity without weakening Firebase security boundaries.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
