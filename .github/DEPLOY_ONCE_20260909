@@ -1,6 +1,6 @@
-Deploy PR #97 Cinematic Home 2.0 to Vercel production.
-Verified PR head: 15382bd7a0e7946d970dcce8fd546a2a6294b390
-Merged main: 52718fbef74e5fc27105ecb9d8ee95079507da97
+Deploy PR #98 Native Notifications to Vercel production.
+Verified PR head: 3efd28eef61eb3b2d6f5314998d638cb0a5a76f3
+Merged main: c305b5c5c5b5f1295b057ae3094c23c675529357
 
-Release intent: deploy the verified Cinematic Home 2.0 landing world while preserving ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, and existing backend security boundaries.
+Release intent: deploy the verified native notification bridge while preserving Cinematic Home 2.0, ONI ID, Garage DNA, Street Ops, Meet, PWA behavior, native voice, and existing backend security boundaries.
 Expected workflow: full release verification -> vercel pull production -> fresh build -> production deploy.
