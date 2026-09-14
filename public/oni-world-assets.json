@@ -1,0 +1,37 @@
+{
+  "license": "CC0-1.0",
+  "source": "https://3dassets.dev",
+  "assets": [
+    {
+      "name": "Neon Strip Run",
+      "url": "https://cdn.3dassets.dev/assets/37836/v1/model.glb",
+      "usage": "Garage and docks facade lighting"
+    },
+    {
+      "name": "Neon Sign Frame, Tall Blade",
+      "url": "https://cdn.3dassets.dev/assets/37839/v1/model.glb",
+      "usage": "Garage and docks signage"
+    },
+    {
+      "name": "Rooftop Water Tank",
+      "url": "https://cdn.3dassets.dev/assets/37844/v1/model.glb",
+      "usage": "Garage and docks rooftop detail"
+    },
+    {
+      "name": "Rooftop Antenna Mast",
+      "url": "https://cdn.3dassets.dev/assets/37845/v1/model.glb",
+      "usage": "ONI Citadel and Shizuki tower skyline detail"
+    },
+    {
+      "name": "Security Camera on a Wall Mount",
+      "url": "https://cdn.3dassets.dev/assets/37835/v1/model.glb",
+      "usage": "Garage exterior security detail"
+    },
+    {
+      "name": "Delivery Drone on a Charge Pad",
+      "url": "https://cdn.3dassets.dev/assets/37828/v1/model.glb",
+      "usage": "Akuma Docks hero prop"
+    }
+  ],
+  "fallback": "Procedural district geometry remains active if any CDN asset fails to load."
+}
