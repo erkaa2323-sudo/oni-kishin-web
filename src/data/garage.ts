@@ -41,6 +41,12 @@ export type Vehicle = {
   summary: string;
   image?: string;
   specs: { label: string; value: string }[];
+  dna: {
+    registry: string;
+    discipline: string;
+    build: string;
+    owner: string;
+  };
 };
 
 export function parseCategory(value: string | undefined | null): VehicleCategoryId {
@@ -76,6 +82,14 @@ export function fallbackGarageArt(key: string): string {
   return GARAGE_ART[Math.abs(hash) % GARAGE_ART.length]!;
 }
 
+function garageRegistry(id: string): string {
+  const compact = id
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase()
+    .slice(-6);
+  return `ONI-${compact || "UNIT"}`;
+}
+
 export async function fetchVehicles(): Promise<GarageLoad> {
   const { garageService } = await import("@/services/domains");
   const res = await garageService.listPublished();
@@ -84,21 +98,28 @@ export async function fetchVehicles(): Promise<GarageLoad> {
   const rows: Vehicle[] = res.data.map((v) => {
     const categoryId = parseCategory(v.category);
     const buildStage = parseBuildStage(v.build);
-    const specs: { label: string; value: string }[] = [
-      { label: "АНГИЛАЛ", value: VEHICLE_CATEGORIES.find((c) => c.id === categoryId)!.label },
-    ];
+    const owner = v.ownerName ?? "—";
+    const build = v.build ?? "STOCK / UNSPECIFIED";
+    const discipline = VEHICLE_CATEGORIES.find((c) => c.id === categoryId)!.label;
+    const specs: { label: string; value: string }[] = [{ label: "АНГИЛАЛ", value: discipline }];
     if (v.build) specs.push({ label: "БҮТЭЦ", value: v.build });
     if (v.ownerName) specs.push({ label: "ЭЗЭН", value: v.ownerName });
 
     return {
       id: v.id,
       name: v.model,
-      ownerCallsign: v.ownerName ?? "—",
+      ownerCallsign: owner,
       categoryId,
       ...(buildStage ? { buildStage } : {}),
       summary: v.build ?? "",
       image: safeImageUrl(v.imagePath) ?? fallbackGarageArt(`${v.id}:${v.model}`),
       specs,
+      dna: {
+        registry: garageRegistry(v.id),
+        discipline,
+        build,
+        owner,
+      },
     };
   });
 

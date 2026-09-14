@@ -98,7 +98,7 @@ export function OniGarageStage() {
             <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
               <div className="min-w-0">
                 <span className="hud-label hud-rule block pl-11 text-crimson/85">
-                  SECTOR 02 / GARAGE
+                  SECTOR 02 / GARAGE DNA
                 </span>
                 <h1
                   id="garage-title"
@@ -106,6 +106,9 @@ export function OniGarageStage() {
                 >
                   ГАРАЖ
                 </h1>
+                <p className="mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground">
+                  Crew машин бүр ONI registry, эзэмшигч, discipline болон build identity-тай.
+                </p>
               </div>
               <span className="hud-label hidden shrink-0 sm:block">
                 {loadState === "ready" ? `${visible.length} / ${vehicles.length} НЭГЖ` : "—"}
@@ -208,7 +211,8 @@ export function OniGarageStage() {
 
                     <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                       <div className="min-w-0">
-                        <span className="hud-label block">
+                        <span className="hud-label block text-crimson/80">
+                          {active.dna.registry} /{" "}
                           {VEHICLE_CATEGORIES.find((c) => c.id === active.categoryId)?.code}
                           {active.buildStage ? ` — ${BUILD_STAGE_LABEL[active.buildStage]}` : ""}
                         </span>
@@ -229,6 +233,18 @@ export function OniGarageStage() {
                       </div>
 
                       <dl className="grid gap-px self-start overflow-hidden border border-border bg-border/60 sm:grid-cols-2">
+                        <div className="min-w-0 bg-ink/70 px-4 py-3 backdrop-blur-md">
+                          <dt className="hud-label truncate">REGISTRY</dt>
+                          <dd className="mt-1 truncate text-sm text-foreground">
+                            {active.dna.registry}
+                          </dd>
+                        </div>
+                        <div className="min-w-0 bg-ink/70 px-4 py-3 backdrop-blur-md">
+                          <dt className="hud-label truncate">DISCIPLINE</dt>
+                          <dd className="mt-1 truncate text-sm text-foreground">
+                            {active.dna.discipline}
+                          </dd>
+                        </div>
                         {active.specs.map((s) => (
                           <div
                             key={s.label}
@@ -245,7 +261,7 @@ export function OniGarageStage() {
               </div>
 
               <div className="min-w-0">
-                <span className="hud-label block">ЦУГЛУУЛГА</span>
+                <span className="hud-label block">DNA REGISTRY</span>
                 <ul
                   className="-mx-5 mt-3 flex snap-x gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:px-0 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
                   aria-label="Автомашинууд"
@@ -286,7 +302,7 @@ export function OniGarageStage() {
                               {v.name}
                             </span>
                             <span className="hud-label block truncate text-[0.55rem]">
-                              {v.ownerCallsign}
+                              {v.dna.registry}
                             </span>
                           </span>
                         </button>
