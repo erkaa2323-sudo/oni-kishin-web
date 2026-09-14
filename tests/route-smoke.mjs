@@ -43,7 +43,7 @@ for (const [name, engine] of [
         assert.deepEqual(errors, []);
         if (route === "/join") {
           assert.ok(text.includes("Oni & Kishin-д нэгдэх хүсэлт"), "join v2 heading missing");
-          assert.ok(text.includes("1 / 4"), "join v2 step indicator missing");
+          assert.ok(text.includes("1. Таны тухай"), "join v2 step indicator missing");
         }
         if (route === "/admin") {
           assert.ok(text.includes("НЭВТРЭХ"), "signed-out admin should show sign-in");
